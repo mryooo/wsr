@@ -1,0 +1,1961 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Abyssal Alchemy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color: #020617;
+            --tube-border: #334155;
+            --tube-bg: rgba(15, 23, 42, 0.4);
+            --pour-speed: 0.3s;
+            --segment-height: 40px; /* JSで動的に変更されます */
+            --primary-glow: #38bdf8;
+            --rarity-common: #94a3b8;
+            --rarity-rare: #3b82f6;
+            --rarity-epic: #a855f7;
+        }
+
+        body {
+            background: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 100%);
+            color: white;
+            font-family: 'Inter', system-ui, sans-serif;
+            touch-action: manipulation;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* チューブのスタイル */
+        .tube {
+            width: clamp(40px, 10vw, 56px);
+            height: 220px; /* 容量増加に合わせて少し縦長に */
+            border: 3px solid var(--tube-border);
+            border-top: 2px solid rgba(255,255,255,0.15);
+            border-bottom-left-radius: 28px;
+            border-bottom-right-radius: 28px;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            background: var(--tube-bg);
+            margin: 8px;
+            z-index: 10;
+            cursor: pointer;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            box-shadow: inset 2px 0 4px rgba(255,255,255,0.05), inset -2px 0 4px rgba(0,0,0,0.2);
+        }
+
+        .tube.selected {
+            transform: translateY(-20px) scale(1.02);
+            border-color: var(--primary-glow);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
+        }
+        
+        .tube.target-mode {
+            border-color: #a855f7;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+            animation: pulse-purple 1.5s infinite;
+        }
+
+        @keyframes pulse-purple {
+            0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(168, 85, 247, 0.7); }
+        }
+
+        .tube-focused {
+            border-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 4px rgba(255,255,255,0.3); /* フォーカスを少し強調 */
+        }
+
+        /* 詰み警告 */
+        .deadlock-glow {
+            box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.5) !important;
+            border-color: rgba(244, 63, 94, 0.8) !important;
+        }
+
+        .water-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column-reverse;
+            padding: 0;
+            gap: 0;
+            pointer-events: none;
+            width: 100%;
+        }
+
+        .water-segment {
+            width: 100%;
+            height: var(--segment-height);
+            position: relative;
+            transition: height 0.3s ease, opacity 0.3s ease;
+        }
+
+        .water-segment::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, 
+                rgba(255,255,255,0.1) 0%, 
+                rgba(255,255,255,0) 20%, 
+                rgba(0,0,0,0.1) 50%, 
+                rgba(255,255,255,0) 80%, 
+                rgba(255,255,255,0.15) 100%);
+            opacity: 0.6;
+        }
+
+        .water-segment:last-child {
+            border-top: 1px solid rgba(255,255,255,0.3);
+        }
+        .water-segment:last-child::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255,255,255,0.4);
+            filter: blur(2px);
+            border-radius: 50%;
+            transform: scaleX(0.9);
+        }
+        
+        /* 蒸発エフェクト */
+        @keyframes evaporate {
+            0% { transform: scale(1); opacity: 1; filter: brightness(1); }
+            50% { filter: brightness(2); background-color: white; }
+            100% { transform: scale(1.2); opacity: 0; }
+        }
+        .evaporating .water-segment {
+            animation: evaporate 0.6s forwards;
+        }
+
+        /* 言語ボタン */
+        .lang-btn{
+            padding: 6px 10px;
+            font-weight: 800;
+            font-size: 12px;
+            border-radius: 12px;
+            opacity: 0.55;
+            transition: all .2s;
+        }
+        .lang-btn.active{ opacity: 1; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.35); }
+
+        /* 変異カード */
+        .perk-card {
+            transition: all 0.25s ease;
+            border: 1px solid rgba(255,255,255,0.06);
+            position: relative;
+            overflow: hidden;
+        }
+        .perk-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border-color: rgba(56,189,248,0.35);
+        }
+
+        /* レアリティ */
+        .rarity-common{ border-left: 4px solid var(--rarity-common); }
+        .rarity-rare{ border-left: 4px solid var(--rarity-rare); }
+        .rarity-epic{ border-left: 4px solid var(--rarity-epic); }
+        
+        /* スキルボタン & ツールチップ */
+        .skill-btn {
+            position: relative;
+            transition: all 0.2s;
+            filter: grayscale(0.8);
+            opacity: 0.7;
+        }
+        .skill-btn:not(:disabled):hover {
+            filter: grayscale(0);
+            opacity: 1;
+            transform: translateY(-2px);
+            z-index: 50; /* ツールチップ表示時に手前に */
+        }
+        .skill-btn.active {
+            filter: grayscale(0);
+            opacity: 1;
+            border-color: var(--primary-glow);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            background: rgba(56, 189, 248, 0.2);
+        }
+        .skill-btn.active-mode {
+            filter: grayscale(0);
+            opacity: 1;
+            border-color: #a855f7;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+            background: rgba(168, 85, 247, 0.2);
+            animation: pulse-btn 1.5s infinite;
+        }
+        @keyframes pulse-btn {
+            0% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.8); }
+            100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
+        }
+
+        /* ツールチップスタイル */
+        .skill-tooltip {
+            position: absolute;
+            bottom: 115%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(2, 6, 23, 0.95);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 8px 12px;
+            border-radius: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            pointer-events: none;
+            width: max-content;
+            max-width: 220px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+        }
+        .skill-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: rgba(56, 189, 248, 0.3) transparent transparent transparent;
+        }
+        .skill-btn:hover .skill-tooltip {
+            opacity: 1;
+            visibility: visible;
+            bottom: 125%;
+        }
+
+        /* UNDOボタン */
+        #btn-undo {
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            transition: all 0.2s;
+        }
+        #btn-undo:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.3);
+        }
+        #btn-undo:active {
+            transform: scale(0.95);
+        }
+
+        /* 警告バナー */
+        #alert-banner {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(244, 63, 94, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            z-index: 50;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        /* トースト通知 */
+        #toast-container {
+            pointer-events: none;
+        }
+        .toast-msg {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            animation: toast-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(4px);
+        }
+        .toast-msg.fade-out {
+            animation: toast-out 0.3s forwards;
+        }
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(-20px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes toast-out {
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+
+        /* 浮遊 */
+        .floating{
+            animation: floaty 3.2s ease-in-out infinite;
+        }
+        @keyframes floaty{
+            0%,100%{ transform: translateY(0); }
+            50%{ transform: translateY(-10px); }
+        }
+
+        /* テスト表示 */
+        #dev-tests {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            z-index: 999;
+            font-family: ui-monospace, Menlo, Consolas, monospace;
+            font-size: 11px;
+            color: rgba(255,255,255,0.75);
+            background: rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 8px 10px;
+            border-radius: 8px;
+            max-width: min(560px, 92vw);
+            white-space: pre-wrap;
+            display:none;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- トースト通知コンテナ -->
+    <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 w-full max-w-sm px-4"></div>
+
+    <div id="game-container" class="flex flex-col items-center justify-between h-screen w-screen p-4 overflow-hidden relative">
+        <div id="alert-banner">NO MOVES LEFT</div>
+
+        <!-- トップHUD -->
+        <div class="w-full max-w-5xl glass-panel p-3 md:p-4 flex items-center justify-between z-20 shrink-0">
+            <div class="flex items-center gap-4">
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]" id="ui-subtitle">錬金術の深淵</div>
+                    <div class="text-xl md:text-2xl font-black tracking-tight leading-none bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent" id="ui-title">Alchemical Descent</div>
+                </div>
+                <div class="hidden md:flex items-center gap-3 ml-4">
+                    <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold border border-white/5" id="ui-floor">FLOOR 1</span>
+                    <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold text-sky-300 border border-white/5" id="ui-essence">0 ✨</span>
+                    <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold text-rose-300 border border-white/5" id="ui-hp">HP 3</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="btn-help" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all">
+                    <span class="md:hidden">?</span><span class="hidden md:inline">Help</span>
+                </button>
+                <button id="btn-settings" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all">⚙</button>
+            </div>
+        </div>
+
+        <!-- 目標/圧力 行 -->
+        <div class="w-full max-w-5xl mt-2 flex gap-2 shrink-0 z-20">
+            <div class="flex-1 glass-panel px-4 py-2 border-l-4 border-l-sky-500/50">
+                <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]" id="ui-goal-title">GOAL</div>
+                <div class="text-sm font-black tracking-tight text-white" id="ui-goal">—</div>
+                <div class="text-[10px] text-slate-500 mt-1" id="ui-goal-sub">—</div>
+            </div>
+            <div class="w-[180px] md:w-[220px] glass-panel px-4 py-2 border-l-4 border-l-rose-500/50">
+                <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]">PRESSURE</div>
+                <div class="flex items-center gap-2 mt-1">
+                    <div class="flex-1 h-2 rounded-full bg-slate-800/80 overflow-hidden relative border border-white/5">
+                        <div id="ui-pressure-bar" class="h-full rounded-full bg-gradient-to-r from-sky-400 via-purple-400 to-rose-500 transition-all duration-300" style="width:0%"></div>
+                    </div>
+                    <div class="text-xs font-black w-5 text-right" id="ui-pressure">0</div>
+                </div>
+                <div class="text-[10px] text-slate-500 mt-1 text-right" id="ui-pressure-sub">—</div>
+            </div>
+        </div>
+
+        <!-- 盤面 -->
+        <div class="flex-1 w-full flex items-center justify-center relative z-10 my-4 overflow-y-auto min-h-0">
+            <div id="tubes-container" class="flex flex-wrap items-center justify-center content-center max-w-5xl h-full pb-2"></div>
+        </div>
+        
+        <!-- スキルバー -->
+        <div id="skills-container" class="w-full max-w-lg flex justify-center gap-3 z-20 mb-2 min-h-[50px]">
+            <!-- JSでボタン生成 -->
+        </div>
+
+        <!-- 下HUD -->
+        <div class="w-full max-w-5xl glass-panel p-3 md:p-4 shrink-0 z-20 mb-safe">
+            <div class="md:hidden flex justify-between mb-3 px-1">
+                 <span class="text-lg font-bold text-sky-300" id="ui-essence-mobile">0 ✨</span>
+                 <span class="text-lg font-bold text-rose-300" id="ui-hp-mobile">HP 3</span>
+            </div>
+            <div class="flex items-center justify-between gap-3 relative">
+                <div class="flex items-center gap-2 md:gap-3 flex-wrap">
+                    <span class="px-4 py-2 rounded-xl glass-panel text-lg font-black uppercase tracking-widest bg-black/20" id="ui-turn">TURN 0</span>
+                    <span class="px-4 py-2 rounded-xl glass-panel text-lg font-black uppercase tracking-widest bg-black/20" id="ui-secondary">BONUS —</span>
+                    <span class="px-4 py-2 rounded-xl glass-panel text-lg font-black uppercase tracking-widest text-sky-300 bg-black/20 hidden sm:block" id="ui-perks">PERKS 0</span>
+                </div>
+                
+                <!-- ヒント要素を復元 -->
+                <div class="hidden md:block absolute left-1/2 -translate-x-1/2 text-[10px] text-slate-500 uppercase tracking-[0.35em] whitespace-nowrap pointer-events-none" id="ui-hint">Click to pour</div>
+
+                <!-- UNDOボタン -->
+                <button id="btn-undo" class="px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest text-slate-300 flex items-center gap-2">
+                    <span>↺</span> UNDO (5✨)
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 画面：イベント（完成2択） -->
+    <div id="event-screen" class="fixed inset-0 z-[140] bg-slate-950/85 backdrop-blur-sm hidden items-center justify-center p-6 transition-opacity">
+        <div class="glass-panel w-full max-w-2xl p-6 border border-sky-500/20 shadow-2xl shadow-sky-900/20">
+            <div class="flex items-end justify-between gap-4">
+                <div>
+                    <div class="text-[10px] text-sky-400 uppercase tracking-[0.35em] font-bold" id="event-kicker">EVENT</div>
+                    <div class="text-3xl font-black tracking-tight text-white mt-1" id="event-title">—</div>
+                    <div class="text-slate-300 text-sm mt-3 whitespace-pre-line leading-relaxed" id="event-desc">—</div>
+                </div>
+                <div class="text-right shrink-0">
+                    <div class="px-3 py-1 bg-rose-500/10 border border-rose-500/30 rounded text-[10px] text-rose-300 uppercase tracking-[0.2em]">Unavoidable</div>
+                </div>
+            </div>
+            <div class="grid md:grid-cols-2 gap-4 mt-8" id="event-choices"></div>
+        </div>
+    </div>
+
+    <!-- スタート画面 -->
+    <div id="start-screen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950 p-8">
+        <div class="absolute top-8 right-8 flex gap-2 glass-panel p-1 z-50">
+            <button onclick="setLang('en')" id="lang-en" class="lang-btn">EN</button>
+            <button onclick="setLang('ja')" id="lang-ja" class="lang-btn active">JP</button>
+        </div>
+
+        <div class="text-center mb-16 floating relative">
+            <div class="absolute inset-0 bg-sky-500/20 blur-[100px] rounded-full"></div>
+            <h1 class="relative text-7xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-sky-300 via-sky-500 to-indigo-600 drop-shadow-2xl">Abyssal Alchemy</h1>
+            <p id="start-subtitle" class="relative text-sky-200/60 font-medium tracking-[0.5em] uppercase text-xs mt-4">錬金術の深淵</p>
+        </div>
+        <button id="start-run-btn" class="w-full max-w-xs py-5 bg-sky-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-sky-500/20 hover:bg-sky-500 hover:shadow-sky-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0">探索を開始</button>
+        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 1.6.2 Language Fix</p>
+    </div>
+
+    <!-- 変異選択 & ショップ画面 -->
+    <div id="perk-screen" class="fixed inset-0 z-[150] bg-slate-950 flex flex-col items-center justify-start p-6 hidden overflow-y-auto">
+        <div class="w-full max-w-4xl mt-4 md:mt-8 pb-10">
+            <div class="flex justify-between items-end mb-6 pb-4 border-b border-white/5">
+                <div>
+                    <h2 id="perk-title" class="text-3xl md:text-4xl font-black text-white italic uppercase leading-none">変異の兆し</h2>
+                    <p id="perk-subtitle" class="text-slate-400 text-xs mt-2 uppercase tracking-widest">無料の強化を1つ選択</p>
+                </div>
+                <div class="text-right">
+                    <button id="reroll-btn" class="px-4 py-2 glass-panel border border-white/5 text-xs font-black uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all hidden">Reroll (-5 ✨)</button>
+                    <div class="text-xs font-bold text-sky-400 mt-2 uppercase tracking-[0.2em] bg-sky-900/30 px-3 py-1 rounded" id="perk-essence">Essence: 0 ✨</div>
+                </div>
+            </div>
+
+            <!-- Perks Section -->
+            <div id="perk-section-container">
+                <div class="grid md:grid-cols-3 gap-4" id="perk-cards"></div>
+            </div>
+
+            <!-- Shop Section -->
+            <div class="mt-12 pt-6 border-t border-white/5">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-black tracking-tight text-white/90 uppercase flex items-center gap-2">
+                        <span class="text-yellow-500">◈</span> Shop
+                    </h3>
+                    <div class="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Trade Essence for survival</div>
+                </div>
+                <div class="grid md:grid-cols-3 gap-4" id="shop-cards"></div>
+
+                <div class="mt-8 flex justify-center">
+                    <button id="continue-btn" class="w-full max-w-md py-4 bg-indigo-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-lg shadow-indigo-900/40 hover:bg-indigo-500 transition-all active:scale-95">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help -->
+    <div id="help-screen" class="fixed inset-0 z-[160] bg-slate-950/90 backdrop-blur hidden items-center justify-center p-6">
+        <div class="glass-panel w-full max-w-2xl p-8 border border-white/10">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]">HELP</div>
+                    <div class="text-3xl font-black tracking-tight">Guide</div>
+                </div>
+                <button id="help-close" class="px-4 py-2 glass-panel font-black text-xs uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-colors">Close</button>
+            </div>
+            <div class="text-slate-300 text-sm leading-loose whitespace-pre-line font-medium" id="help-text"></div>
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div id="settings-screen" class="fixed inset-0 z-[160] bg-slate-950/90 backdrop-blur hidden items-center justify-center p-6">
+        <div class="glass-panel w-full max-w-xl p-8 border border-white/10">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]">SETTINGS</div>
+                    <div class="text-3xl font-black tracking-tight">Options</div>
+                </div>
+                <button id="settings-close" class="px-4 py-2 glass-panel font-black text-xs uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-colors">Close</button>
+            </div>
+            <div class="mt-5 grid gap-4">
+                <label class="glass-panel p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors">
+                    <span class="text-sm font-black uppercase tracking-widest">Show Debug Info</span>
+                    <input type="checkbox" id="toggle-tests" class="scale-125 accent-sky-500" />
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div id="dev-tests"></div>
+
+    <script>
+        // --- ユーティリティ ---
+        function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
+        function randInt(n){ return Math.floor(Math.random()*n); }
+        function pick(arr){ return arr[randInt(arr.length)]; }
+        function deepCopy(x){ return JSON.parse(JSON.stringify(x)); }
+        function ui(id){ return document.getElementById(id); }
+        // 安全なテキスト設定
+        function setText(id, text){
+            const el = document.getElementById(id);
+            if(el) el.textContent = text;
+        }
+
+        // --- トースト通知 ---
+        function showToast(msg, color='sky'){
+            const container = ui('toast-container');
+            const el = document.createElement('div');
+            el.className = `toast-msg text-${color}-300 border-${color}-500/30`;
+            el.innerHTML = `<span>◈</span> ${msg}`;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.classList.add('fade-out');
+                setTimeout(() => el.remove(), 300);
+            }, 3000);
+        }
+
+        // --- 翻訳データ ---
+        const translations = {
+            en: {
+                subtitle: "Alchemical Descent",
+                startBtn: "Begin Descent",
+                vitality: "HP",
+                floor: "FLOOR",
+                essence: "Essence",
+                turn: "TURN",
+                secondary: "BONUS",
+                perks: "PERKS",
+                hint: "Select a tube to pour",
+                goalTitle: "GOAL",
+                pressureTitle: "PRESSURE",
+                eventKicker: "EVENT",
+                unavoid: "Unavoidable",
+                helpTitle: "How to play",
+                helpText: [
+                    "• Pour water: Click a tube, then click another to pour.",
+                    "• Obsidian (Black Ink): Match 4 to evaporate them and clear the tube!",
+                    "• Pressure: Rises with every move. If it fills, you take 1 Damage.",
+                    "• Survival: No Move limit. Manage your HP and Pressure to survive.",
+                    "• Artifacts: Buy skills in the shop. Use them from the bottom bar.",
+                    "• Undo: Use the button below (Costs 5 Essence).",
+                ].join("\n"),
+                helpClose: "Close",
+                settings: "Settings",
+                continue: "Continue",
+                shopTitle: "Shop",
+                shopSub: "Trade Essence for survival",
+                gameOver: "Consumed",
+                gameOverSub: "The abyss claims another soul...",
+                victory: "Mutation",
+                victorySub: "Select a mutation to evolve",
+            },
+            ja: {
+                subtitle: "錬金術の深淵",
+                startBtn: "探索を開始",
+                vitality: "HP",
+                floor: "階層",
+                essence: "エッセンス",
+                turn: "経過ターン",
+                secondary: "副目標",
+                perks: "変異",
+                hint: "チューブを選択して注ぐ",
+                goalTitle: "目標",
+                pressureTitle: "圧力",
+                eventKicker: "変質",
+                unavoid: "不可避",
+                helpTitle: "遊び方",
+                helpText: [
+                    "・注ぐ：チューブを選択し、別のチューブへ注ぎます",
+                    "・黒インク：4つ揃えると蒸発して消え、空き瓶になります。",
+                    "・圧力：1手ごとに上昇します。最大になるとHPが1減ります。",
+                    "・生存：手数制限はありません。HPが尽きない限り探索を続けられます。",
+                    "・道具と秘術：ショップでスキルを購入し、画面下部から使用します",
+                    "・やり直し：右下のUNDOボタンを使用します（消費：5エッセンス）",
+                ].join("\n"),
+                helpClose: "閉じる",
+                settings: "設定",
+                continue: "次へ進む",
+                shopTitle: "ショップ",
+                shopSub: "エッセンスを消費して安定を得る",
+                gameOver: "奈落に呑まれた",
+                gameOverSub: "深淵はまた一つ魂を喰らった...",
+                victory: "変異の兆し",
+                victorySub: "力を選んで進化する",
+            }
+        };
+
+        let currentLang = 'ja';
+
+        function setLang(lang){
+            currentLang = lang;
+            document.getElementById('lang-en').classList.toggle('active', lang==='en');
+            document.getElementById('lang-ja').classList.toggle('active', lang==='ja');
+            applyLang();
+            renderHUD();
+        }
+
+        function t(key){
+            return translations[currentLang]?.[key] ?? translations.en[key] ?? key;
+        }
+
+        function applyLang(){
+            setText('start-subtitle', t('subtitle'));
+            setText('start-run-btn', t('startBtn'));
+            setText('ui-subtitle', t('subtitle'));
+            setText('ui-title', translations.en.subtitle);
+            setText('ui-hint', t('hint'));
+            setText('ui-goal-title', t('goalTitle'));
+            setText('help-text', t('helpText'));
+            setText('help-close', t('helpClose'));
+        }
+
+        // --- ゲーム定義 ---
+        const COLOR_POOL = [
+            { key: 'R', name:{en:'Crimson', ja:'紅'}, hex:'#f43f5e' },
+            { key: 'B', name:{en:'Azure', ja:'蒼'}, hex:'#3b82f6' },
+            { key: 'Y', name:{en:'Amber', ja:'琥珀'}, hex:'#fbbf24' },
+            { key: 'W', name:{en:'Ivory', ja:'象牙'}, hex:'#e2e8f0' },
+            { key: 'K', name:{en:'Obsidian', ja:'黒'}, hex:'#0f172a' },
+            { key: 'G', name:{en:'Emerald', ja:'翠'}, hex:'#10b981' }, 
+            { key: 'P', name:{en:'Amethyst', ja:'紫'}, hex:'#a855f7' }, 
+            // Added colors for high level safety
+            { key: 'O', name:{en:'Orange', ja:'橙'}, hex:'#f97316' }, 
+            { key: 'T', name:{en:'Teal', ja:'青緑'}, hex:'#14b8a6' }, 
+            { key: 'M', name:{en:'Pink', ja:'桃'}, hex:'#ec4899' }, 
+        ];
+
+        // --- Perks & Skills ---
+        const PERKS = {
+            catalyst: {
+                id:'catalyst',
+                name:{en:'Catalyst', ja:'触媒反応'},
+                rarity:'rare',
+                desc:{en:'Once per floor: Completing a tube reduces Pressure by 5.', ja:'各階層1回：色を完成させると圧力が5下がる。'},
+            },
+            unseal: {
+                id:'unseal',
+                name:{en:'Unseal', ja:'封印解除'},
+                rarity:'rare',
+                desc:{en:'Completed tubes can be used as destination.', ja:'完成したチューブの上にも水を注げるようになる。'},
+            },
+            reflux: {
+                id:'reflux',
+                name:{en:'Reflux', ja:'逆流制御'},
+                rarity:'common',
+                desc:{en:'First undo each floor is free (Pressure +2).', ja:'各階層、最初のUndoはエッセンス無料（圧力+2で代用）。'},
+            },
+            overflow: {
+                id:'overflow',
+                name:{en:'Overflow', ja:'オーバーフロー'},
+                rarity:'common',
+                desc:{en:'Pressure max +4.', ja:'圧力の最大許容量が+4される。'},
+            },
+            purification: {
+                id:'purification',
+                name:{en:'Purification', ja:'浄化作用'},
+                rarity:'epic',
+                desc:{en:'Clearing Obsidian (Black) reduces Pressure by 3 and grants 2 Essence.', ja:'黒インクを消滅させると、圧力が3下がり、2エッセンスを得る。'},
+            },
+            scavenger: {
+                id:'scavenger',
+                name:{en:'Scavenger', ja:'スカベンジャー'},
+                rarity:'rare',
+                desc:{en:'15% chance to find a random item when descending.', ja:'階層移動時、15%の確率でランダムなアイテムを拾う。'},
+            },
+            bargain: {
+                id:'bargain',
+                name:{en:'Bargain', ja:'交渉術'},
+                rarity:'common',
+                desc:{en:'Shop prices are reduced by 20%.', ja:'ショップの価格が20%OFFになる。'},
+            },
+            // New Perks
+            heavy_mastery: {
+                id:'heavy_mastery',
+                name:{en:'Heavy Mastery', ja:'大容量ボーナス'},
+                rarity:'rare',
+                desc:{en:'Clearing a tube with capacity 5+ reduces Pressure by 3.', ja:'容量5以上のチューブを完成させると圧力が3下がる。'},
+            },
+            deep_adapt: {
+                id:'deep_adapt',
+                name:{en:'Deep Adapt', ja:'深層適応'},
+                rarity:'epic',
+                desc:{en:'Gain Max HP based on current tube capacity at start of floor.', ja:'階層開始時、現在のチューブ容量に応じて最大HPが増加する。'},
+            }
+        };
+
+        const ITEMS = {
+            pipette: {
+                id: 'pipette',
+                type: 'tool', // 永続
+                name: {en:'Pipette', ja:'精密ピペット'},
+                desc: {en:'Toggle: Pour only 1 segment.', ja:'切替：1目盛りだけ注ぐモード'},
+                icon: '⚗️',
+                cost: 10
+            },
+            inverter: {
+                id: 'inverter',
+                type: 'consumable',
+                name: {en:'Gravity Coil', ja:'重力反転機'},
+                desc: {en:'【Use】Invert contents.', ja:'【使用品】中身を上下反転'},
+                icon: '🔄',
+                cost: 6
+            },
+            void_salt: {
+                id: 'void_salt',
+                type: 'consumable',
+                name: {en:'Void Salt', ja:'虚無の塩'},
+                desc: {en:'【Use】Remove top Black.', ja:'【使用品】一番上の【黒】を除去'},
+                icon: '🧂',
+                cost: 8
+            },
+            separator: {
+                id: 'separator',
+                type: 'consumable',
+                name: {en:'Separator', ja:'遠心分離機'},
+                desc: {en:'【Use】Sort tube contents.', ja:'【使用品】中身を整理する'},
+                icon: '🌪️',
+                cost: 12
+            },
+            summon_vial: {
+                id: 'summon_vial',
+                type: 'consumable',
+                name: {en:'Extra Vial', ja:'予備フラスコ'},
+                desc: {en:'【Use】Add an empty tube.', ja:'【使用品】空き瓶を1つ追加'},
+                icon: '🧪',
+                cost: 15
+            },
+            // New Item
+            cycle_siphon: {
+                id: 'cycle_siphon',
+                type: 'consumable',
+                name: {en:'Cycle Siphon', ja:'循環サイフォン'},
+                desc: {en:'【Use】Move bottom to top.', ja:'【使用品】一番下を一番上へ'},
+                icon: '⏫',
+                cost: 9
+            }
+        };
+
+        const SHOP_ITEMS = [
+            // Consumables / Upgrades
+            { id:'heal', type:'stat', name:{en:'Stabilizer', ja:'安定剤'}, cost:8, desc:{en:'Heal +1 HP', ja:'HP+1'}, apply(gs){ gs.hp += 1; showToast('HP Recovered!', 'rose'); } },
+            { id:'relief', type:'stat', name:{en:'Vent Valve', ja:'圧力弁'}, cost:5, desc:{en:'Pressure -5', ja:'圧力-5'}, apply(gs){ gs.pressure = Math.max(0, gs.pressure-5); showToast('Pressure Released!', 'sky'); } },
+            
+            // Skill Items
+            { id:'buy_pipette', type:'item', ref: ITEMS.pipette },
+            { id:'buy_inverter', type:'item', ref: ITEMS.inverter },
+            { id:'buy_separator', type:'item', ref: ITEMS.separator },
+            { id:'buy_siphon', type:'item', ref: ITEMS.cycle_siphon },
+            { id:'buy_void', type:'item', ref: ITEMS.void_salt },
+            { id:'buy_summon', type:'item', ref: ITEMS.summon_vial },
+        ];
+
+        // --- ゲーム状態 ---
+        const gameState = {
+            floor: 1,
+            essence: 0,
+            hp: 3,
+            maxHp: 3,
+            turnCount: 0, // MovesLeftの代わりにターン数
+            capacity: 4,
+            tubeCount: 0,
+            selectedIdx: null,
+            tubes: [],
+            busy: false,
+            perks: new Set(),
+            inventory: {}, 
+            pressure: 0,
+            pressureMax: 14,
+            unsealActive: false,
+            catalystAvailable: true,
+            refluxArmed: false,
+            history: [],
+            primaryGoal: null,
+            secondaryGoal: null,
+            secondaryProgress: 0,
+            focusIdx: null, // 初期値はnull (キー操作するまでフォーカスなし)
+            currentPerkChoices: null,
+            pipetteMode: false,
+            targetMode: null, 
+        };
+
+        // --- DOM ---
+        const tubesContainer = ui('tubes-container');
+        const skillsContainer = ui('skills-container');
+        const startScreen = ui('start-screen');
+        const perkScreen = ui('perk-screen');
+        const perkCards = ui('perk-cards');
+        const shopCards = ui('shop-cards');
+        const continueBtn = ui('continue-btn');
+        const rerollBtn = ui('reroll-btn');
+        const helpScreen = ui('help-screen');
+        const settingsScreen = ui('settings-screen');
+        const eventScreen = ui('event-screen');
+        const eventChoices = ui('event-choices');
+        const devTests = ui('dev-tests');
+        const alertBanner = ui('alert-banner');
+        const undoBtn = ui('btn-undo');
+
+        // --- Game Logic ---
+
+        function tubeTop(t){ return t.length ? t[t.length-1] : null; }
+        function tubeFree(t){ return gameState.capacity - t.length; }
+        function isCompleteTube(t){
+            if (t.length !== gameState.capacity) return false;
+            return t.every(c => c === t[0]);
+        }
+        function colorMeta(key){ return COLOR_POOL.find(c => c.key===key); }
+        function colorName(key){ const m=colorMeta(key); return currentLang==='ja' ? m.name.ja : m.name.en; }
+
+        function generateGoals(){
+            const flat = gameState.tubes.flat();
+            const presentColors = new Set(flat);
+            presentColors.delete('K'); 
+            const colors = [...presentColors];
+
+            if (colors.length === 0) {
+                gameState.primaryGoal = { type:'survive', text: currentLang==='ja'?'生き延びろ':'Survive' };
+                return;
+            }
+
+            const roll = Math.random();
+            if (roll < 0.50){
+                // N色完成目標
+                const maxN = colors.length;
+                const n = clamp(Math.floor(maxN / 1.5), 1, maxN);
+                gameState.primaryGoal = {
+                    type:'completeN', n:n,
+                    text: currentLang==='ja' ? `いずれか${n}色を完成` : `Complete any ${n} colors`
+                };
+            } else {
+                const c = pick(colors);
+                gameState.primaryGoal = {
+                    type:'completeColor', color:c,
+                    text: currentLang==='ja' ? `${colorName(c)}を完成` : `Complete ${colorName(c)}`
+                };
+            }
+            // Secondary Goal (Moved from MovesLeft to Turns)
+            const sroll = Math.random();
+            const par = 14 + Math.floor(gameState.floor / 2) + 5; // 推定ターン数
+            if (sroll < 0.5){
+                gameState.secondaryGoal = {
+                    type:'speed', limit: par,
+                    text: currentLang==='ja' ? `${par}ターン以内に1本完成` : `Complete 1 within ${par} turns`
+                };
+            } else {
+                gameState.secondaryGoal = {
+                    type:'combo', need:2,
+                    text: currentLang==='ja' ? '連続完成（コンボ）' : 'Combo: 2 in a row'
+                };
+            }
+            gameState.secondaryProgress = 0;
+            renderHUD();
+        }
+
+        function checkPrimaryGoal(){
+            if (gameState.primaryGoal.type === 'completeN') {
+                return countCompletedTubes() >= gameState.primaryGoal.n;
+            }
+            if (gameState.primaryGoal.type === 'completeColor'){
+                return gameState.tubes.some(t => isCompleteTube(t) && t[0] === gameState.primaryGoal.color);
+            }
+            if (gameState.primaryGoal.type === 'survive') return false; 
+            return false;
+        }
+        
+        function checkLevelClear(){
+            if (checkPrimaryGoal()) return true;
+            const allClean = gameState.tubes.every(t => t.length === 0 || (isCompleteTube(t) && t[0] !== 'K'));
+            if (allClean) return true;
+            return false;
+        }
+
+        function checkSecondaryGoalOnComplete(){
+            if (!gameState.secondaryGoal) return;
+            if (gameState.secondaryGoal.type === 'speed'){
+                // 目標ターン以内であれば達成
+                if (gameState.turnCount <= gameState.secondaryGoal.limit){
+                    gameState.secondaryProgress = 1; 
+                }
+            } else if (gameState.secondaryGoal.type === 'combo'){
+                gameState.secondaryProgress += 1;
+            }
+        }
+
+        function secondarySucceeded(){
+            if (!gameState.secondaryGoal) return false;
+            if (gameState.secondaryGoal.type === 'speed') return gameState.secondaryProgress >= 1;
+            if (gameState.secondaryGoal.type === 'combo') return gameState.secondaryProgress >= gameState.secondaryGoal.need;
+            return false;
+        }
+        
+        function isDeadlocked(){
+            for(let i=0; i<gameState.tubes.length; i++){
+                if(gameState.tubes[i].length === 0) continue; 
+                for(let j=0; j<gameState.tubes.length; j++){
+                    if(i===j) continue;
+                    const check = canPour(i, j);
+                    if(check.ok) return false; 
+                }
+            }
+            return true; 
+        }
+
+        function generateBoard(){
+            const floor = gameState.floor;
+            gameState.tubeCount = Math.min(10, 6 + Math.floor((floor-1)/2));
+            const numColors = gameState.tubeCount - 2;
+
+            // Fix: Cap requested colors to pool size to prevent infinite loop
+            const safeNumColors = Math.min(numColors, COLOR_POOL.length);
+            
+            const pool = COLOR_POOL.slice(0, Math.min(COLOR_POOL.length, safeNumColors + (floor > 5 ? 1 : 0))).map(c=>c.key);
+            const colors = [];
+            
+            let failsafe = 0;
+            while(colors.length < safeNumColors){
+                const c = pick(pool);
+                if(!colors.includes(c)) colors.push(c);
+                
+                failsafe++;
+                if(failsafe > 100) break; // Emergency break
+            }
+
+            const bag = [];
+            for (const c of colors) for (let i=0;i<gameState.capacity;i++) bag.push(c);
+
+            for (let i=bag.length-1;i>0;i--){
+                const j = randInt(i+1);
+                [bag[i], bag[j]] = [bag[j], bag[i]];
+            }
+
+            const tubes = Array.from({length: gameState.tubeCount}, () => []);
+            let k=0;
+            for (let t=0;t<safeNumColors;t++){
+                for (let s=0;s<gameState.capacity;s++) {
+                    if(k < bag.length) tubes[t].push(bag[k++]);
+                }
+            }
+
+            for (let i=0;i<20;i++){
+                const t1 = randInt(safeNumColors);
+                const t2 = randInt(safeNumColors);
+                if (t1===t2) continue;
+                const s1 = randInt(gameState.capacity);
+                const s2 = randInt(gameState.capacity);
+                if(tubes[t1][s1] && tubes[t2][s2]) {
+                    [tubes[t1][s1], tubes[t2][s2]] = [tubes[t2][s2], tubes[t1][s1]];
+                }
+            }
+
+            gameState.tubes = tubes;
+            
+            // Layout Adjustment based on capacity
+            updateTubeLayout();
+        }
+        
+        function updateTubeLayout(){
+            const cap = gameState.capacity;
+            let segHeight = 40;
+            if(cap >= 6) segHeight = 32;
+            else if(cap >= 5) segHeight = 36;
+            
+            document.documentElement.style.setProperty('--segment-height', `${segHeight}px`);
+        }
+
+        // --- Render ---
+        function renderBoard(){
+            tubesContainer.innerHTML = '';
+            
+            const deadlocked = isDeadlocked();
+            if (alertBanner) alertBanner.style.opacity = deadlocked ? '1' : '0';
+
+            gameState.tubes.forEach((segments, i) => {
+                const tube = document.createElement('div');
+                tube.className = 'tube';
+                tube.dataset.idx = String(i);
+
+                if (i === gameState.selectedIdx) tube.classList.add('selected');
+                
+                // focusIdxがnullでない場合のみフォーカスを表示
+                if (gameState.focusIdx !== null && i === gameState.focusIdx) {
+                    tube.classList.add('tube-focused');
+                }
+                
+                if (deadlocked) tube.classList.add('deadlock-glow');
+                
+                if (gameState.targetMode) {
+                    tube.classList.add('target-mode');
+                    tube.style.cursor = 'crosshair';
+                }
+
+                if (isCompleteTube(segments)) {
+                    if (segments[0] !== 'K') {
+                        tube.style.boxShadow = `0 0 15px ${colorMeta(segments[0]).hex}`;
+                        tube.style.borderColor = `rgba(255,255,255,0.5)`;
+                    }
+                }
+
+                const water = document.createElement('div');
+                water.className = 'water-container';
+
+                segments.forEach(key => {
+                    const c = colorMeta(key)?.hex || '#64748b';
+                    const seg = document.createElement('div');
+                    seg.className = 'water-segment';
+                    seg.style.backgroundColor = c;
+                    water.appendChild(seg);
+                });
+
+                tube.appendChild(water);
+                tube.addEventListener('click', () => handleTubeClick(i));
+                tubesContainer.appendChild(tube);
+            });
+            
+            renderSkills();
+        }
+        
+        function renderSkills(){
+            skillsContainer.innerHTML = '';
+            // Inventory check
+            Object.keys(gameState.inventory).forEach(key => {
+                const count = gameState.inventory[key];
+                if(count > 0 || ITEMS[key].type === 'tool'){
+                    const def = ITEMS[key];
+                    const btn = document.createElement('button');
+                    btn.className = 'skill-btn w-12 h-12 glass-panel flex items-center justify-center text-xl rounded-full border border-white/10';
+                    
+                    // Name and Desc
+                    const name = currentLang==='ja' ? def.name.ja : def.name.en;
+                    const desc = currentLang==='ja' ? def.desc.ja : def.desc.en;
+
+                    // Badge and Tooltip HTML
+                    let badgeHtml = '';
+                    if(def.type === 'consumable'){
+                        badgeHtml = `<span class="absolute -top-1 -right-1 bg-sky-500 text-[10px] font-bold px-1.5 rounded-full text-white pointer-events-none">${count}</span>`;
+                    }
+
+                    btn.innerHTML = `
+                        ${def.icon}
+                        ${badgeHtml}
+                        <div class="skill-tooltip">
+                            <div class="font-bold text-sky-300 text-xs mb-1">${name}</div>
+                            <div class="text-slate-300 text-[10px] leading-tight whitespace-pre-wrap">${desc}</div>
+                        </div>
+                    `;
+                    
+                    // Active state
+                    if(key === 'pipette' && gameState.pipetteMode) btn.classList.add('active');
+                    if(gameState.targetMode === key) btn.classList.add('active-mode');
+
+                    btn.onclick = () => activateSkill(key);
+                    skillsContainer.appendChild(btn);
+                }
+            });
+        }
+
+        function activateSkill(key){
+            if(gameState.busy) return;
+            const def = ITEMS[key];
+            
+            if(def.id === 'summon_vial'){
+                 if(gameState.inventory[key] > 0){
+                     gameState.inventory[key]--;
+                     gameState.tubeCount++;
+                     gameState.tubes.push([]); // 空のチューブ追加
+                     // Fix: Render board first, then show float text on the new tube
+                     renderBoard();
+                     showFloatText(gameState.tubes.length-1, "Summoned!", "#a855f7");
+                     showToast(currentLang==='ja'?'空き瓶を追加しました！':'Extra Tube Added!', 'purple');
+                 }
+                 return;
+            }
+            
+            if(def.type === 'tool' && key === 'pipette'){
+                // Toggle
+                gameState.pipetteMode = !gameState.pipetteMode;
+                gameState.targetMode = null; 
+                gameState.selectedIdx = null; 
+            } else if (def.type === 'consumable'){
+                // Toggle Target Mode
+                if(gameState.targetMode === key){
+                    gameState.targetMode = null; 
+                } else {
+                    gameState.targetMode = key;
+                    gameState.selectedIdx = null; 
+                    gameState.pipetteMode = false; 
+                    setText('ui-hint', currentLang==='ja' ? "対象を選択してください" : "Select a target tube");
+                }
+            }
+            renderBoard();
+        }
+
+        async function handleTubeClick(idx) {
+            if (gameState.busy) return;
+            
+            // --- Skill Target Logic ---
+            if (gameState.targetMode) {
+                await applySkillEffect(idx);
+                return;
+            }
+
+            const content = gameState.tubes[idx];
+
+            // 選択解除
+            if (gameState.selectedIdx === idx) {
+                gameState.selectedIdx = null;
+                renderBoard();
+                return;
+            }
+
+            // 新規選択
+            if (gameState.selectedIdx === null) {
+                if (content.length === 0) return;
+                // 黒インクコンプリートは一瞬で消えるので選択不能だが、万が一残っていても選択不可
+                if (isCompleteTube(content) && content[0] === 'K') return; 
+                if (isCompleteTube(content) && !gameState.unsealActive) return;
+
+                gameState.selectedIdx = idx;
+                renderBoard();
+            } else {
+                // 移動試行
+                await tryPour(gameState.selectedIdx, idx);
+            }
+        }
+        
+        async function applySkillEffect(idx){
+            const skillKey = gameState.targetMode;
+            const tube = gameState.tubes[idx];
+            
+            if(!skillKey || !gameState.inventory[skillKey] || gameState.inventory[skillKey] <= 0) return;
+            
+            let success = false;
+            
+            try {
+                gameState.busy = true;
+
+                if(skillKey === 'inverter'){
+                    if(tube.length < 2) {
+                        showFloatText(idx, "Too Empty!", "#ef4444");
+                    } else {
+                        pushHistory();
+                        gameState.inventory[skillKey]--;
+                        tube.reverse(); 
+                        showFloatText(idx, "Inverted!", "#a855f7");
+                        success = true;
+                    }
+                } else if (skillKey === 'void_salt'){
+                    if(tube.length === 0){
+                        showFloatText(idx, "Empty!", "#ef4444");
+                    } else {
+                        const topColor = tube[tube.length-1];
+                        if(topColor !== 'K'){
+                            showFloatText(idx, "Pure Element!", "#ef4444");
+                        } else {
+                            pushHistory();
+                            gameState.inventory[skillKey]--;
+                            tube.pop();
+                            showFloatText(idx, "Voided!", "#a855f7");
+                            success = true;
+                        }
+                    }
+                } else if (skillKey === 'separator'){
+                    if(tube.length < 2) {
+                        showFloatText(idx, "No need!", "#ef4444");
+                    } else {
+                        pushHistory();
+                        gameState.inventory[skillKey]--;
+                        const counts = {};
+                        const order = [];
+                        for(const c of tube){
+                            if(!counts[c]) { counts[c]=0; order.push(c); }
+                            counts[c]++;
+                        }
+                        const newTube = [];
+                        for(const c of order){
+                            for(let i=0; i<counts[c]; i++) newTube.push(c);
+                        }
+                        gameState.tubes[idx] = newTube;
+                        
+                        showFloatText(idx, "Separated!", "#a855f7");
+                        success = true;
+                    }
+                } else if (skillKey === 'cycle_siphon'){
+                     if(tube.length === 0) {
+                        showFloatText(idx, "Empty!", "#ef4444");
+                     } else {
+                        pushHistory();
+                        gameState.inventory[skillKey]--;
+                        const bottom = tube.shift(); // Remove bottom
+                        tube.push(bottom); // Add to top
+                        showFloatText(idx, "Cycled!", "#a855f7");
+                        success = true;
+                     }
+                }
+            } finally {
+                gameState.busy = false;
+            }
+            
+            if(success){
+                gameState.targetMode = null;
+                renderHUD();
+                renderBoard();
+                
+                // Check if skill caused completion
+                if(isCompleteTube(gameState.tubes[idx])){
+                    await handleCompletion(idx, gameState.tubes[idx][0]);
+                }
+            }
+        }
+
+        function canPour(fromIdx, toIdx){
+            if (fromIdx === toIdx) return {ok:false, reason:'same'};
+            const from = gameState.tubes[fromIdx];
+            const to = gameState.tubes[toIdx];
+            if (!from.length) return {ok:false, reason:'empty'};
+            if (tubeFree(to) <= 0) return {ok:false, reason:'full'};
+
+            const top = tubeTop(from);
+            const toTop = tubeTop(to);
+
+            if (toTop && toTop !== top) return {ok:false, reason:'mismatch'};
+
+            // 移動量計算
+            let count = 1;
+            // Pipette Mode: Force 1
+            if(gameState.pipetteMode){
+                count = 1;
+            } else {
+                for (let i=from.length-2;i>=0;i--){
+                    if (from[i] === top) count++;
+                    else break;
+                }
+            }
+            
+            const moveCount = Math.min(count, tubeFree(to));
+            return {ok:true, color: top, moveCount};
+        }
+
+        function pushHistory(){
+            gameState.history.push({
+                tubes: deepCopy(gameState.tubes),
+                turnCount: gameState.turnCount,
+                pressure: gameState.pressure,
+                hp: gameState.hp,
+                secondaryProgress: gameState.secondaryProgress,
+                catalystAvailable: gameState.catalystAvailable,
+                essence: gameState.essence,
+                inventory: {...gameState.inventory},
+                tubeCount: gameState.tubeCount 
+            });
+            if (gameState.history.length > 50) gameState.history.shift();
+        }
+
+        async function tryPour(fromIdx, toIdx){
+            const check = canPour(fromIdx, toIdx);
+            if (!check.ok){
+                const content = gameState.tubes[toIdx];
+                if (content.length > 0 && (!isCompleteTube(content) || gameState.unsealActive)) {
+                    gameState.selectedIdx = toIdx;
+                } else {
+                    gameState.selectedIdx = null;
+                }
+                renderBoard();
+                return;
+            }
+
+            try {
+                pushHistory();
+                gameState.busy = true;
+                gameState.pressure += 1;
+                gameState.turnCount += 1;
+
+                // Visual stream
+                await animatePour(fromIdx, toIdx, check.color);
+
+                const from = gameState.tubes[fromIdx];
+                const to = gameState.tubes[toIdx];
+                const moveCount = check.moveCount;
+
+                for (let i=0;i<moveCount;i++){
+                    to.push(from.pop());
+                }
+
+                // MovesLeft減算処理を削除
+
+                // Check completion for the destination tube
+                if(isCompleteTube(to)){
+                    await handleCompletion(toIdx, to[0]);
+                } else {
+                    if (gameState.secondaryGoal?.type === 'combo') gameState.secondaryProgress = 0;
+                }
+
+                if (gameState.pressure >= gameState.pressureMax){
+                    gameState.pressure = 0;
+                    gameState.hp -= 1;
+                    ui('game-container').classList.add('animate-shake');
+                    setTimeout(()=>ui('game-container').classList.remove('animate-shake'), 500);
+                    corruptRandomSegment();
+                }
+            } catch (e) {
+                console.error("Game Logic Error:", e);
+            } finally {
+                gameState.selectedIdx = null;
+                gameState.busy = false;
+            }
+
+            // 死亡判定をHPのみに変更
+            if (gameState.hp <= 0){
+                openPerkScreen(true);
+                return;
+            }
+
+            // All Clear判定を使用
+            if (checkLevelClear()){
+                gameState.essence += 6 + (secondarySucceeded() ? 4 : 0);
+                setTimeout(() => openPerkScreen(false), 500);
+                return;
+            }
+
+            renderHUD();
+            renderBoard();
+        }
+
+        async function handleCompletion(tubeIdx, colorKey){
+            const tubeEl = tubeCenterEl(tubeIdx);
+            
+            // 黒インクの場合：消滅処理
+            if (colorKey === 'K') {
+                showFloatText(tubeIdx, "Purged!", "#94a3b8");
+                
+                // Perk: Purification check
+                if(gameState.perks.has('purification')){
+                    gameState.pressure = Math.max(0, gameState.pressure - 3);
+                    gameState.essence += 2;
+                    showFloatText(tubeIdx, "Purified! (-3 Pressure)", "#38bdf8");
+                }
+                
+                // エフェクト待機
+                tubeEl.classList.add('evaporating');
+                await new Promise(r => setTimeout(r, 600));
+                
+                gameState.tubes[tubeIdx] = []; // Empty the tube
+                tubeEl.classList.remove('evaporating');
+                
+                // 黒消滅後、盤面の再描画とクリア判定を行う
+                renderBoard();
+                
+                if (checkLevelClear()){
+                    gameState.essence += 6 + (secondarySucceeded() ? 4 : 0);
+                    setTimeout(() => openPerkScreen(false), 500);
+                }
+                
+                return; // イベントは発生しない
+            }
+
+            // 通常色の場合
+            if (gameState.perks.has('catalyst') && gameState.catalystAvailable){
+                gameState.pressure = Math.max(0, gameState.pressure - 5);
+                gameState.catalystAvailable = false;
+                showFloatText(tubeIdx, "Catalyst! (-5 Pressure)");
+            }
+            
+            // Perk: Heavy Mastery
+            if(gameState.perks.has('heavy_mastery') && gameState.capacity >= 5){
+                 gameState.pressure = Math.max(0, gameState.pressure - 3);
+                 showFloatText(tubeIdx, "Heavy Bonus! (-3 Pressure)", "#a855f7");
+            }
+            
+            checkSecondaryGoalOnComplete();
+            await showCompletionEvent(colorKey);
+        }
+
+        function countCompletedTubes(){
+            // 黒インク完了は一瞬で消えるので、この判定に残ることはほぼないが、
+            // 完了状態 = 容量Maxかつ同色
+            return gameState.tubes.filter(t => isCompleteTube(t) && t[0] !== 'K').length;
+        }
+
+        function corruptRandomSegment(){
+            const candidates = [];
+            for (let i=0;i<gameState.tubes.length;i++){
+                const t = gameState.tubes[i];
+                if (t.length < gameState.capacity) candidates.push(i);
+            }
+            if (!candidates.length) return;
+
+            const idx = pick(candidates);
+            gameState.tubes[idx].push('K');
+            showFloatText(idx, "CORRUPTED!", "#ef4444");
+        }
+
+        function showFloatText(tubeIdx, text, color="#38bdf8"){
+            const el = ui('tubes-container').children[tubeIdx];
+            if(!el) return;
+            const rect = el.getBoundingClientRect();
+            const float = document.createElement('div');
+            float.textContent = text;
+            float.style.position = 'fixed';
+            float.style.left = rect.left + 'px';
+            float.style.top = rect.top + 'px';
+            float.style.color = color;
+            float.style.fontWeight = 'bold';
+            float.style.fontSize = '14px';
+            float.style.pointerEvents = 'none';
+            float.style.zIndex = 100;
+            float.style.textShadow = '0 2px 4px rgba(0,0,0,0.8)';
+            float.animate([
+                { transform: 'translateY(0)', opacity: 1 },
+                { transform: 'translateY(-30px)', opacity: 0 }
+            ], { duration: 1000, easing: 'ease-out' });
+            document.body.appendChild(float);
+            setTimeout(()=>float.remove(), 1000);
+        }
+
+        function tubeCenterEl(idx){
+            return ui('tubes-container').querySelector(`[data-idx="${idx}"]`);
+        }
+
+        function animatePour(fromIdx, toIdx, colorKey){
+            return new Promise((resolve) => {
+                const fromEl = tubeCenterEl(fromIdx);
+                const toEl = tubeCenterEl(toIdx);
+                if (!fromEl || !toEl){ resolve(); return; }
+                const fr = fromEl.getBoundingClientRect();
+                const tr = toEl.getBoundingClientRect();
+                const isRight = tr.left > fr.left;
+                fromEl.style.transform = `translateY(-10px) rotate(${isRight ? 45 : -45}deg)`;
+                fromEl.style.zIndex = 50; 
+                setTimeout(() => {
+                    fromEl.style.transform = '';
+                    fromEl.style.zIndex = '';
+                    resolve();
+                }, 300);
+            });
+        }
+
+        // --- Event / Screens ---
+        function showCompletionEvent(colorKey){
+            return new Promise((resolve) => {
+                const name = colorName(colorKey);
+                const title = currentLang==='ja' ? `${name}の安定化` : `${name} Stabilized`;
+                const desc = currentLang==='ja'
+                    ? `${name}を完成させた。\n深淵が反応している。`
+                    : `You completed ${name}.\nThe abyss reacts to your achievement.`;
+
+                const choices = buildEventChoices(colorKey);
+                
+                ui('event-kicker').textContent = t('eventKicker');
+                ui('event-title').textContent = title;
+                ui('event-desc').textContent = desc;
+                eventChoices.innerHTML = '';
+
+                choices.forEach(ch => {
+                    const card = document.createElement('div');
+                    card.className = 'glass-panel perk-card p-4 cursor-pointer hover:bg-white/5 border-l-4 border-l-sky-500';
+                    card.innerHTML = `
+                        <div class="text-[10px] text-sky-300 uppercase tracking-[0.35em] mb-1">${ch.kicker}</div>
+                        <div class="text-xl font-black text-white">${ch.title}</div>
+                        <div class="text-slate-400 text-xs mt-2 leading-relaxed">${ch.desc}</div>
+                    `;
+                    card.onclick = () => {
+                        ch.apply();
+                        eventScreen.classList.add('hidden');
+                        eventScreen.classList.remove('flex');
+                        renderHUD();
+                        renderBoard();
+                        resolve();
+                    };
+                    eventChoices.appendChild(card);
+                });
+
+                eventScreen.classList.remove('hidden');
+                eventScreen.classList.add('flex');
+            });
+        }
+
+        function buildEventChoices(colorKey){
+            if (colorKey === 'B'){ 
+                return [
+                    {
+                        kicker: currentLang==='ja' ? '排出' : 'Vent',
+                        title: currentLang==='ja' ? '圧力 -4' : 'Pressure -4',
+                        desc: currentLang==='ja' ? '安全を確保する' : 'Release built-up pressure.',
+                        apply(){ gameState.pressure = Math.max(0, gameState.pressure-4); }
+                    },
+                    {
+                        kicker: currentLang==='ja' ? '知識' : 'Insight',
+                        title: currentLang==='ja' ? 'エッセンス +4' : 'Essence +4',
+                        desc: currentLang==='ja' ? 'リスクを取って富を得る' : 'Gain currency for the shop.',
+                        apply(){ gameState.essence += 4; }
+                    }
+                ];
+            }
+            if (colorKey === 'R'){
+                return [
+                    {
+                        kicker: currentLang==='ja' ? '活力' : 'Vitality',
+                        title: currentLang==='ja' ? 'HP +1 / 圧力 +3' : 'HP +1 / Pressure +3',
+                        desc: currentLang==='ja' ? '回復するが負荷がかかる' : 'Heal yourself, but strain the system.',
+                        apply(){ 
+                            gameState.hp += 1; // 上限突破 (Fix)
+                            gameState.pressure += 3; 
+                        }
+                    },
+                    // Haste was removed as moves are unlimited. Replacing with "Calm"
+                    {
+                        kicker: currentLang==='ja' ? '平静' : 'Calm',
+                        title: currentLang==='ja' ? '圧力 -6' : 'Pressure -6',
+                        desc: currentLang==='ja' ? '心を落ち着ける' : 'Significantly reduce pressure.',
+                        apply(){ gameState.pressure = Math.max(0, gameState.pressure-6); }
+                    }
+                ];
+            }
+            return [
+                {
+                    kicker: currentLang==='ja' ? '浄化' : 'Purify',
+                    title: currentLang==='ja' ? '圧力 -2' : 'Pressure -2',
+                    desc: currentLang==='ja' ? '少し落ち着く' : 'Minor relief.',
+                    apply(){ gameState.pressure = Math.max(0, gameState.pressure-2); }
+                },
+                {
+                    kicker: currentLang==='ja' ? '貪欲' : 'Greed',
+                    title: currentLang==='ja' ? 'エッセンス +3 / 圧力 +1' : 'Essence +3 / Pressure +1',
+                    desc: currentLang==='ja' ? '小さな代償で富を' : 'Wealth at a cost.',
+                    apply(){ gameState.essence += 3; gameState.pressure += 1; }
+                }
+            ];
+        }
+
+        function openPerkScreen(isDeath){
+            perkScreen.classList.remove('hidden');
+
+            ui('perk-title').textContent = isDeath ? t('gameOver') : t('victory');
+            ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : t('victorySub');
+            ui('perk-essence').textContent = `${t('essence')}: ${gameState.essence} ✨`;
+
+            perkCards.innerHTML = '';
+            
+            if(isDeath){
+                ui('perk-section-container').style.display = 'none';
+                shopCards.innerHTML = ''; 
+                
+                const restartDiv = document.createElement('div');
+                restartDiv.className = 'col-span-3 text-center py-10';
+                restartDiv.innerHTML = `
+                    <p class="text-slate-400 mb-6">Floor Reached: ${gameState.floor}</p>
+                    <button onclick="startNewRun()" class="px-8 py-4 bg-rose-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-rose-500 shadow-lg shadow-rose-900/40">Try Again</button>
+                `;
+                shopCards.appendChild(restartDiv);
+                
+                continueBtn.style.display = 'none';
+                return;
+            }
+
+            ui('perk-section-container').style.display = 'block';
+            continueBtn.style.display = 'block';
+            continueBtn.textContent = t('continue');
+            continueBtn.onclick = () => {
+                perkScreen.classList.add('hidden');
+                nextFloor();
+            };
+
+            if (!gameState.currentPerkChoices) {
+                gameState.currentPerkChoices = rollPerkChoices();
+            }
+            gameState.currentPerkChoices.forEach(p => perkCards.appendChild(buildPerkCard(p)));
+            
+            ui('reroll-btn').classList.toggle('hidden', gameState.essence < 5);
+
+            shopCards.innerHTML = '';
+            SHOP_ITEMS.forEach(item => shopCards.appendChild(buildShopCard(item)));
+        }
+
+        function rollPerkChoices(){
+            const all = Object.values(PERKS);
+            const candidates = all.filter(p => !gameState.perks.has(p.id));
+            const pool = candidates.length >= 3 ? candidates : all;
+            
+            const picks = [];
+            const safePool = [...pool];
+            while(picks.length < 3 && safePool.length > 0){
+                const idx = randInt(safePool.length);
+                picks.push(safePool[idx]);
+                safePool.splice(idx, 1);
+            }
+            return picks;
+        }
+
+        function buildPerkCard(perk){
+            const card = document.createElement('div');
+            card.className = `perk-card glass-panel p-5 cursor-pointer rarity-${perk.rarity} relative`;
+            const name = currentLang==='ja' ? perk.name.ja : perk.name.en;
+            const desc = currentLang==='ja' ? perk.desc.ja : perk.desc.en;
+            const owned = gameState.perks.has(perk.id);
+            
+            card.innerHTML = `
+                <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]">${perk.rarity}</div>
+                <div class="text-lg font-black mt-2 text-white">${name}</div>
+                <div class="text-slate-400 text-xs mt-2 leading-relaxed h-12">${desc}</div>
+                <div class="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+                    <span class="text-[10px] text-sky-400 uppercase tracking-widest">${owned ? 'OWNED' : 'FREE'}</span>
+                    <span class="text-2xl text-white/10 font-black absolute bottom-2 right-4 pointer-events-none icon-bg">+</span>
+                </div>
+            `;
+            if(!owned){
+                card.onclick = () => {
+                    acquirePerk(perk.id);
+                    Array.from(perkCards.children).forEach(c => {
+                        c.style.pointerEvents = 'none';
+                        c.style.opacity = '0.4';
+                    });
+                    card.style.opacity = '1';
+                    card.style.borderColor = '#38bdf8';
+                    card.style.transform = 'scale(1.05)';
+                    card.style.boxShadow = '0 0 20px rgba(56,189,248,0.2)';
+                };
+            } else {
+                card.style.opacity = '0.5';
+                card.style.pointerEvents = 'none';
+            }
+            return card;
+        }
+
+        function buildShopCard(item){
+            const card = document.createElement('div');
+            card.className = 'glass-panel p-5 flex flex-col justify-between';
+            
+            const def = item.type==='item' ? item.ref : item;
+            
+            const name = currentLang==='ja' ? def.name.ja : def.name.en;
+            const desc = currentLang==='ja' ? def.desc.ja : def.desc.en;
+            let cost = item.cost || def.cost;
+            
+            // Perk: Bargain
+            if(gameState.perks.has('bargain')) cost = Math.floor(cost * 0.8);
+            
+            const canBuy = gameState.essence >= cost;
+            
+            let ownedText = '';
+            if(item.type==='item' && def.type==='tool'){
+                if(gameState.inventory[def.id]) ownedText = '(OWNED)';
+            }
+            if(item.type==='item' && def.type==='consumable'){
+                 const count = gameState.inventory[def.id] || 0;
+                 if(count > 0) ownedText = `(Held: ${count})`;
+            }
+
+            card.innerHTML = `
+                <div>
+                    <div class="flex items-center justify-between">
+                        <div class="text-base font-black text-white">${name} ${ownedText}</div>
+                        <div class="text-sky-300 text-sm font-black">${cost} ✨</div>
+                    </div>
+                    <div class="text-slate-400 text-xs mt-2">${desc}</div>
+                </div>
+                <button class="mt-4 w-full py-2 bg-white/5 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${canBuy ? 'hover:bg-sky-500 hover:text-white' : 'opacity-50 cursor-not-allowed'}">
+                    BUY
+                </button>
+            `;
+            
+            const btn = card.querySelector('button');
+            if(canBuy){
+                btn.onclick = () => {
+                    if(item.type === 'item' && def.type==='tool' && gameState.inventory[def.id]){
+                        btn.textContent = "OWNED";
+                        return;
+                    }
+                
+                    gameState.essence -= cost;
+                    
+                    if(item.type === 'item'){
+                        const id = def.id;
+                        if(!gameState.inventory[id]) gameState.inventory[id] = 0;
+                        if(def.type === 'tool') gameState.inventory[id] = 1;
+                        else gameState.inventory[id]++;
+                        
+                        showToast(currentLang==='ja'?`${name}を購入！`:`Bought ${name}!`, 'sky');
+                    } else {
+                        item.apply(gameState);
+                    }
+                    
+                    ui('perk-essence').textContent = `${t('essence')}: ${gameState.essence} ✨`;
+                    renderHUD();
+                    openPerkScreen(false);
+                };
+            }
+            return card;
+        }
+
+        function acquirePerk(id){
+            gameState.perks.add(id);
+            if(id === 'unseal') gameState.unsealActive = true;
+            if(id === 'distill') gameState.distillActive = true; 
+            if(id === 'reflux') gameState.refluxArmed = true;
+            if(id === 'overflow') {
+                gameState.pressureMax += 4;
+                renderHUD(); 
+            }
+            renderHUD();
+        }
+
+        // --- Core Loop ---
+        function startNewRun(){
+            startScreen.classList.add('hidden');
+            gameState.floor = 1;
+            gameState.essence = 0;
+            gameState.hp = 3;
+            gameState.maxHp = 3;
+            gameState.perks = new Set();
+            gameState.pressure = 0;
+            gameState.pressureMax = 14;
+            gameState.history = [];
+            gameState.inventory = {}; 
+            gameState.unsealActive = false;
+            gameState.distillActive = false;
+            gameState.refluxArmed = false;
+            gameState.currentPerkChoices = null; 
+            gameState.pipetteMode = false;
+            gameState.targetMode = null;
+            
+            perkScreen.classList.add('hidden'); 
+            nextFloor(true);
+        }
+
+        function nextFloor(isFirst=false){
+            if(!isFirst) gameState.floor += 1;
+            
+            // --- Capacity Progression Logic ---
+            // Floor 1-3: Cap 4
+            // Floor 4-7: Cap 5
+            // Floor 8+: Cap 6 (Max)
+            if (gameState.floor >= 8) gameState.capacity = 6;
+            else if (gameState.floor >= 4) gameState.capacity = 5;
+            else gameState.capacity = 4;
+            
+            // Perk: Scavenger logic
+            if(!isFirst && gameState.perks.has('scavenger')){
+                if(Math.random() < 0.15){
+                    const items = ['inverter', 'void_salt', 'separator', 'cycle_siphon']; 
+                    const gift = pick(items);
+                    if(!gameState.inventory[gift]) gameState.inventory[gift] = 0;
+                    gameState.inventory[gift]++;
+                    // alert("Scavenger found: " + ITEMS[gift].name[currentLang==='ja'?'ja':'en']);
+                    showToast("Scavenger found: " + ITEMS[gift].name[currentLang==='ja'?'ja':'en'], 'emerald');
+                }
+            }
+            
+            // Perk: Deep Adapt Logic
+            if(gameState.perks.has('deep_adapt')){
+                // Gain +1 Max HP if capacity > 4
+                if(gameState.capacity > 4){
+                    gameState.maxHp += 1;
+                    gameState.hp += 1; // Heal as well?
+                }
+            }
+
+            gameState.movesPerFloor = 0; // Unused
+            gameState.turnCount = 0;
+            gameState.pressure = 0; 
+            gameState.catalystAvailable = true;
+            if(gameState.perks.has('reflux')) gameState.refluxArmed = true;
+
+            generateBoard();
+            generateGoals();
+            
+            gameState.currentPerkChoices = null;
+            gameState.selectedIdx = null;
+            gameState.busy = false;
+            gameState.targetMode = null;
+            gameState.pipetteMode = false;
+            
+            renderHUD();
+            renderBoard();
+        }
+
+        function tryUndo(){
+            if (!gameState.history.length) return;
+            
+            let cost = 5; 
+            let isFree = false;
+            
+            if(gameState.refluxArmed){
+                isFree = true;
+            } else if (gameState.essence < cost){
+                ui('ui-essence').classList.add('text-red-500');
+                setTimeout(()=>ui('ui-essence').classList.remove('text-red-500'), 500);
+                return;
+            }
+
+            const prev = gameState.history.pop();
+            gameState.tubes = prev.tubes;
+            gameState.turnCount = prev.turnCount;
+            gameState.pressure = prev.pressure;
+            gameState.hp = prev.hp;
+            gameState.secondaryProgress = prev.secondaryProgress;
+            gameState.catalystAvailable = prev.catalystAvailable;
+            gameState.essence = prev.essence;
+            gameState.inventory = prev.inventory; 
+            gameState.tubeCount = prev.tubeCount;
+            gameState.capacity = prev.capacity || 4; // Restore capacity
+            
+            if(isFree){
+                gameState.pressure += 2;
+                gameState.refluxArmed = false;
+                showFloatText(0, "Reflux Used (+2 Pressure)", "#a855f7");
+            } else {
+                gameState.essence -= cost;
+            }
+
+            gameState.selectedIdx = null;
+            updateTubeLayout();
+            renderHUD();
+            renderBoard();
+        }
+
+        // --- HUD ---
+        function renderHUD(){
+            setText('ui-floor', `${t('floor')} ${gameState.floor}`);
+            setText('ui-essence', `${gameState.essence} ✨`);
+            setText('ui-hp', `HP ${gameState.hp}`);
+            
+            setText('ui-essence-mobile', `${gameState.essence} ✨`);
+            setText('ui-hp-mobile', `HP ${gameState.hp}`);
+
+            setText('ui-turn', `${t('turn')} ${gameState.turnCount}`);
+            setText('ui-perks', `${t('perks')} ${gameState.perks.size}`);
+
+            setText('ui-goal', gameState.primaryGoal?.text ?? '—');
+            setText('ui-goal-sub', gameState.secondaryGoal?.text ?? '—');
+            
+            setText('ui-secondary', `${t('secondary')} ${secondarySucceeded() ? 'COMPLETE' : '—'}`);
+            
+            const secondaryEl = ui('ui-secondary');
+            if (secondaryEl) {
+                secondaryEl.className = secondarySucceeded() 
+                    ? "px-4 py-2 rounded-xl glass-panel text-lg font-black uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
+                    : "px-4 py-2 rounded-xl glass-panel text-lg font-black uppercase tracking-widest bg-black/20";
+            }
+
+            setText('ui-pressure', String(gameState.pressure));
+            const pct = Math.round((gameState.pressure / gameState.pressureMax) * 100);
+            
+            const pBar = ui('ui-pressure-bar');
+            if(pBar) {
+                pBar.style.width = `${clamp(pct,0,100)}%`;
+                 if(gameState.pressure >= gameState.pressureMax - 3){
+                    pBar.classList.remove('from-sky-400', 'via-purple-400');
+                    pBar.classList.add('bg-rose-600');
+                } else {
+                    pBar.classList.add('from-sky-400', 'via-purple-400');
+                    pBar.classList.remove('bg-rose-600');
+                }
+            }
+            setText('ui-pressure-sub', `${gameState.pressure} / ${gameState.pressureMax}`);
+           
+            
+            // Undoボタンの更新
+            const undoCost = gameState.refluxArmed ? 'FREE' : '5✨';
+            if (undoBtn) {
+                undoBtn.innerHTML = `<span>↺</span> UNDO (${undoCost})`;
+                if(!gameState.refluxArmed && gameState.essence < 5 && gameState.history.length > 0){
+                    undoBtn.style.opacity = '0.5';
+                    undoBtn.style.cursor = 'not-allowed';
+                } else if (gameState.history.length === 0){
+                    undoBtn.style.opacity = '0.3';
+                    undoBtn.style.cursor = 'default';
+                } else {
+                    undoBtn.style.opacity = '1';
+                    undoBtn.style.cursor = 'pointer';
+                }
+            }
+
+            renderSkills();
+        }
+
+        function moveFocus(dx){
+            if(!gameState.tubes.length) return;
+            const n = gameState.tubeCount;
+            
+            // キー操作時にフォーカスがなければ0番目を選択して表示開始
+            if (gameState.focusIdx === null) {
+                gameState.focusIdx = 0;
+            } else {
+                gameState.focusIdx = (gameState.focusIdx + dx + n) % n;
+            }
+            renderBoard();
+        }
+
+        ui('btn-help').onclick = () => ui('help-screen').classList.replace('hidden', 'flex');
+        ui('help-close').onclick = () => ui('help-screen').classList.replace('flex', 'hidden');
+        ui('btn-settings').onclick = () => ui('settings-screen').classList.replace('hidden', 'flex');
+        ui('settings-close').onclick = () => ui('settings-screen').classList.replace('flex', 'hidden');
+        if(undoBtn) undoBtn.onclick = () => tryUndo();
+        
+        ui('reroll-btn').onclick = () => {
+            if(gameState.essence >= 5){
+                gameState.essence -= 5;
+                gameState.currentPerkChoices = null; 
+                openPerkScreen(false); 
+                ui('perk-essence').textContent = `${t('essence')}: ${gameState.essence} ✨`;
+            }
+        };
+
+        ui('toggle-tests').onchange = (e) => {
+            devTests.style.display = e.target.checked ? 'block' : 'none';
+        };
+        
+        ui('start-run-btn').onclick = startNewRun;
+
+        window.onkeydown = (e) => {
+            if(!perkScreen.classList.contains('hidden')) return;
+            if(!eventScreen.classList.contains('hidden')) return;
+            if(!helpScreen.classList.contains('hidden')) return;
+
+            if (e.key === 'ArrowLeft') moveFocus(-1);
+            if (e.key === 'ArrowRight') moveFocus(1);
+            
+            if (e.key === 'Enter' || e.key === ' ') {
+                 if(gameState.focusIdx !== null) handleTubeClick(gameState.focusIdx);
+            }
+            if (e.key === 'Backspace' || e.key === 'z') tryUndo();
+        };
+
+        applyLang();
+        
+    </script>
+</body>
+</html>
