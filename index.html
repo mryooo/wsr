@@ -443,7 +443,7 @@
             <p id="start-subtitle" class="relative text-sky-200/60 font-medium tracking-[0.5em] uppercase text-xs mt-4">錬金術の深淵</p>
         </div>
         <button id="start-run-btn" class="w-full max-w-xs py-5 bg-sky-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-sky-500/20 hover:bg-sky-500 hover:shadow-sky-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0">探索を開始</button>
-        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.2.0 Safe Chemistry</p>
+        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.2.1 Stable Chemistry</p>
     </div>
 
     <!-- 変異選択 & ショップ画面 -->
@@ -825,7 +825,11 @@
                 id:'heal', type:'stat', cost:8, 
                 name:{en:'Stabilizer', ja:'安定剤'}, 
                 desc:{en:'Heal +1 HP', ja:'HP+1'}, 
-                apply(gs){ gs.hp += 1; showToast('HP Recovered!', 'rose'); } 
+                apply(gs){ 
+                    // Caps at MaxHP unless Perk increases max
+                    gs.hp = Math.min(gs.maxHp, gs.hp + 1);
+                    showToast('HP Recovered!', 'rose'); 
+                } 
             },
             { 
                 id:'relief', type:'stat', cost:5, 
@@ -837,7 +841,11 @@
                 id:'panacea', type:'stat', cost:20, 
                 name:{en:'Panacea', ja:'万能薬'}, 
                 desc:{en:'HP+1, Pressure=0', ja:'HP+1, 圧力全回復'}, 
-                apply(gs){ gs.hp += 1; gs.pressure = 0; showToast('Full Restore!', 'emerald'); } 
+                apply(gs){ 
+                    gs.hp = Math.min(gs.maxHp, gs.hp + 1);
+                    gs.pressure = 0; 
+                    showToast('Full Restore!', 'emerald'); 
+                } 
             },
             { 
                 id:'dark_pact', type:'stat', cost:0, 
@@ -1011,6 +1019,21 @@
             const allClean = gameState.tubes.every(t => t.length === 0 || (isCompleteTube(t) && t[0] !== 'K'));
             if (allClean) return true;
             return false;
+        }
+
+        function onLevelClear(){
+            const base = 6;
+            const bonus = secondarySucceeded() ? 4 : 0;
+            gameState.essence += (base + bonus);
+            
+            const msg = currentLang==='ja' 
+                ? `エリア確保! +${base}✨${bonus>0 ? ` (ボーナス +${bonus}✨)` : ''}`
+                : `Area Cleared! +${base}✨${bonus>0 ? ` (Bonus +${bonus}✨)` : ''}`;
+            
+            showToast(msg, bonus>0 ? 'emerald' : 'sky');
+            
+            // 少し待ってから次へ
+            setTimeout(() => openPerkScreen(false), 1500);
         }
 
         function checkSecondaryGoalOnComplete(){
@@ -1361,7 +1384,7 @@
                         showFloatText(idx, "Cycled!", "#a855f7");
                         success = true;
                      }
-                } else if (skillKey === 'sediment'){ // REPLACED extraction
+                } else if (skillKey === 'sediment'){ 
                      if(tube.length < 2) showFloatText(idx, "No need!", "#ef4444");
                      else {
                         pushHistory();
@@ -1371,7 +1394,7 @@
                         showFloatText(idx, "Sunk!", "#a855f7");
                         success = true;
                      }
-                } else if (skillKey === 'layer_swap'){ // REPLACED unifier
+                } else if (skillKey === 'layer_swap'){ 
                     if(tube.length < 2) showFloatText(idx, "Need 2+", "#ef4444");
                     else {
                         pushHistory();
@@ -1572,8 +1595,7 @@
             }
 
             if (checkLevelClear()){
-                gameState.essence += 6 + (secondarySucceeded() ? 4 : 0);
-                setTimeout(() => openPerkScreen(false), 500);
+                onLevelClear();
                 return;
             }
 
@@ -1598,8 +1620,7 @@
                 tubeEl.classList.remove('evaporating');
                 renderBoard();
                 if (checkLevelClear()){
-                    gameState.essence += 6 + (secondarySucceeded() ? 4 : 0);
-                    setTimeout(() => openPerkScreen(false), 500);
+                    onLevelClear();
                 }
                 return; 
             }
@@ -1793,7 +1814,7 @@
                         title: currentLang==='ja' ? 'HP +1 / 圧力 +3' : 'HP +1 / Pressure +3',
                         desc: currentLang==='ja' ? '回復するが負荷がかかる' : 'Heal yourself, but strain the system.',
                         apply(){ 
-                            gameState.hp += 1; // 上限突破 (Fix)
+                            gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1); // Cap check
                             gameState.pressure += 3; 
                         }
                     },
@@ -1832,13 +1853,61 @@
             shopCards.innerHTML = '';
             
             if(isDeath){
-                perkCards.innerHTML = `<div class="text-slate-500 text-sm">No mutations acquired.</div>`; 
-                shopCards.innerHTML = `
-                    <div class="col-span-full text-center py-10">
-                        <p class="text-slate-400 mb-6 font-bold text-xl">Floor Reached: ${gameState.floor}</p>
-                        <button onclick="startNewRun()" class="px-8 py-4 bg-rose-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-rose-500 shadow-lg shadow-rose-900/40 transform transition hover:-translate-y-1">Try Again</button>
+                // --- リザルト画面の生成 ---
+                perkCards.innerHTML = `
+                    <div class="flex flex-col gap-4 h-full">
+                        <div class="text-sm font-bold text-rose-400 uppercase tracking-widest border-b border-white/10 pb-2">
+                            ${currentLang==='ja'?'探索記録':'Exploration Log'}
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5">
+                                <div class="text-[10px] text-slate-400 uppercase tracking-widest">FLOOR</div>
+                                <div class="text-4xl font-black text-white">${gameState.floor}</div>
+                            </div>
+                            <div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5">
+                                <div class="text-[10px] text-slate-400 uppercase tracking-widest">ESSENCE</div>
+                                <div class="text-4xl font-black text-sky-300">${gameState.essence}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-auto">
+                            <div class="text-[10px] text-slate-500 mb-2 uppercase tracking-widest">Result String</div>
+                            <textarea id="share-text-area" class="w-full h-24 bg-black/50 border border-white/10 rounded p-2 text-[10px] text-slate-400 font-mono resize-none" readonly>${generateShareText()}</textarea>
+                        </div>
                     </div>
                 `;
+
+                // 右側：所持スキル一覧 ＆ アクション
+                const perkList = Object.entries(gameState.perks).map(([id, lv]) => {
+                    const p = PERKS[id];
+                    const name = currentLang==='ja' ? p.name.ja : p.name.en;
+                    return `<div class="flex justify-between items-center py-2 border-b border-white/5">
+                        <span class="text-sm font-bold text-slate-200">${name}</span>
+                        <span class="text-xs font-bold text-sky-400">Lv.${lv}</span>
+                    </div>`;
+                }).join('');
+
+                shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto";
+                shopCards.className = "flex flex-col gap-4 h-full";
+                
+                shopCards.innerHTML = `
+                    <div class="flex-1 overflow-y-auto min-h-[120px]">
+                        <div class="text-sm font-bold text-sky-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-2">
+                            ${currentLang==='ja'?'獲得した変異':'Acquired Mutations'}
+                        </div>
+                        ${perkList || `<div class="text-slate-500 text-xs italic py-4">${currentLang==='ja'?'変異なし':'No mutations'}</div>`}
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3 mt-4 shrink-0">
+                        <button onclick="copyResult()" class="py-4 bg-indigo-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-indigo-500 shadow-lg shadow-indigo-900/40 transform transition hover:-translate-y-1">
+                            ${currentLang==='ja'?'結果をコピー':'Copy Result'}
+                        </button>
+                        <button onclick="startNewRun()" class="py-4 bg-rose-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-rose-500 shadow-lg shadow-rose-900/40 transform transition hover:-translate-y-1">
+                            ${currentLang==='ja'?'リトライ':'Try Again'}
+                        </button>
+                    </div>
+                `;
+                
                 continueBtn.style.display = 'none';
                 return;
             }
@@ -1850,6 +1919,10 @@
                 nextFloor();
             };
 
+            // Reset classes for shop mode
+            shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto";
+            shopCards.className = "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3";
+
             if (!gameState.currentPerkChoices) {
                 gameState.currentPerkChoices = rollPerkChoices();
             }
@@ -1860,15 +1933,35 @@
             gameState.currentPerkChoices.forEach(p => perkCards.appendChild(buildPerkCard(p)));
             refreshRerollUI();
             gameState.currentShopOffers.forEach(item => shopCards.appendChild(buildShopCard(item)));
+            updateShopButtons(); // Init button states
+        }
+
+        function generateShareText(){
+            const floor = gameState.floor;
+            const ess = gameState.essence;
+            const perks = Object.entries(gameState.perks).map(([id, lv]) => {
+                const p = PERKS[id];
+                const name = currentLang==='ja' ? p.name.ja : p.name.en;
+                return `${name} Lv.${lv}`;
+            }).join('\n');
+            
+            const title = "Abyssal Alchemy";
+            const text = `${title}\nFloor: ${floor}\nEssence: ${ess}✨\n\n[Mutations]\n${perks || '(None)'}\n\n#AbyssalAlchemy #WaterSortRogue`;
+            return text;
+        }
+
+        function copyResult(){
+            const textarea = document.getElementById('share-text-area');
+            if(!textarea) return;
+            textarea.select();
+            document.execCommand('copy');
+            showToast(currentLang==='ja'?'コピーしました！':'Copied to clipboard!', 'emerald');
         }
 
         function generateShopOffers(){
-            // Create a weighted or uniform random selection from SHOP_POOL
-            // For now, uniform is fine. Pick 4.
             const candidates = [...SHOP_POOL];
             const offers = [];
             
-            // Try to pick 4 unique items
             for(let i=0; i<4; i++){
                 if(candidates.length === 0) break;
                 
@@ -1897,6 +1990,8 @@
                 btn.textContent = `Reroll (-5✨)`;
                 btn.classList.toggle('hidden', gameState.essence < 5);
             }
+            // Ensure shop buttons are updated when essence changes via reroll logic if needed,
+            // though reroll rebuilds the shop anyway.
         }
 
         function rollPerkChoices(){
@@ -1950,23 +2045,29 @@
             return card;
         }
 
+        function getDiscountedCost(baseCost) {
+            if(hasPerk('bargain')){
+                const lv = getPerkLevel('bargain');
+                const discount = 15 + (lv * 5); 
+                return Math.floor(baseCost * (1 - discount/100));
+            }
+            return baseCost;
+        }
+
         function buildShopCard(item){
             const card = document.createElement('div');
-            card.className = 'glass-panel p-3 flex flex-col justify-between relative group hover:border-white/20 transition-all';
+            card.className = 'glass-panel p-3 flex flex-col justify-between relative group hover:border-white/20 transition-all shop-card';
             
             const def = item.type==='item' ? item.ref : item;
             
             const name = currentLang==='ja' ? def.name.ja : def.name.en;
             const desc = currentLang==='ja' ? def.desc.ja : def.desc.en;
-            let cost = item.cost || def.cost;
+            const baseCost = item.cost || def.cost;
+            const cost = getDiscountedCost(baseCost);
             
-            if(hasPerk('bargain')){
-                const lv = getPerkLevel('bargain');
-                const discount = 15 + (lv * 5); 
-                cost = Math.floor(cost * (1 - discount/100));
-            }
-            
-            const canBuy = gameState.essence >= cost;
+            // Store cost for dynamic checking
+            card.dataset.cost = cost;
+
             let ownedText = '';
             if(item.type==='item' && def.type==='consumable'){
                  const count = gameState.inventory[def.id] || 0;
@@ -1983,17 +2084,29 @@
                     </div>
                     <div class="text-slate-500 text-[9px] leading-tight h-8 overflow-hidden">${desc}</div>
                 </div>
-                <button class="mt-2 w-full py-1.5 bg-white/5 rounded font-bold text-[10px] uppercase tracking-widest transition-all ${canBuy ? 'hover:bg-sky-500 hover:text-white' : 'opacity-30 cursor-not-allowed'} flex items-center justify-center gap-1">
+                <button class="mt-2 w-full py-1.5 bg-white/5 rounded font-bold text-[10px] uppercase tracking-widest transition-all shop-btn flex items-center justify-center gap-1">
                     <span>BUY</span>
                     ${ownedText ? `<span class="bg-black/40 px-1 rounded text-white/70">${ownedText}</span>` : ''}
                 </button>
             `;
             
-            const btn = card.querySelector('button');
-            if(canBuy){
+            const btn = card.querySelector('.shop-btn');
+            
+            // If already bought tool, disable permanently
+            if(item.type === 'item' && def.type==='tool' && gameState.inventory[def.id]){
+                 btn.innerHTML = `<span>BOUGHT</span>`;
+                 btn.classList.add('opacity-50', 'cursor-not-allowed');
+                 btn.disabled = true;
+            } else {
                 btn.onclick = () => {
+                    // CRITICAL FIX: Re-check essence at moment of click
+                    if (gameState.essence < cost) {
+                        showToast(currentLang==='ja'?'エッセンスが足りません！':'Not enough Essence!', 'rose');
+                        return;
+                    }
+                    
                     if(item.type === 'item' && def.type==='tool' && gameState.inventory[def.id]){
-                        return; // Prevent duplicate tool
+                        return; 
                     }
                 
                     gameState.essence -= cost;
@@ -2011,13 +2124,14 @@
                     
                     ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
                     
-                    // Mark as purchased visually (disable button)
+                    // Mark tool as bought
                     if(item.type === 'item' && def.type==='tool'){
                          btn.innerHTML = `<span>BOUGHT</span>`;
                          btn.classList.add('opacity-50', 'cursor-not-allowed');
                          btn.onclick = null;
+                         btn.disabled = true;
                     } else if (item.id === 'dark_pact' && gameState.hp <= 1){
-                         // Update UI for dark pact risk
+                         // Do nothing special, updateShopButtons checks logic
                     }
                     
                     // Update owned counts for consumables
@@ -2027,9 +2141,32 @@
                     }
                     
                     refreshRerollUI();
+                    updateShopButtons(); // Refresh ALL buttons based on new essence
                 };
             }
             return card;
+        }
+
+        // New function to update all shop buttons state
+        function updateShopButtons() {
+            const cards = document.querySelectorAll('.shop-card');
+            cards.forEach(card => {
+                const cost = parseInt(card.dataset.cost);
+                const btn = card.querySelector('.shop-btn');
+                
+                if(btn.disabled && btn.textContent.includes('BOUGHT')) return; // Already bought tool
+
+                if(gameState.essence >= cost) {
+                    btn.classList.remove('opacity-30', 'cursor-not-allowed');
+                    btn.classList.add('hover:bg-sky-500', 'hover:text-white');
+                    // Re-enable pointer events if needed
+                    btn.style.pointerEvents = 'auto';
+                } else {
+                    btn.classList.add('opacity-30', 'cursor-not-allowed');
+                    btn.classList.remove('hover:bg-sky-500', 'hover:text-white');
+                    // btn.style.pointerEvents = 'none'; // Optional: pure CSS disable
+                }
+            });
         }
 
         function acquirePerk(id){
@@ -2142,14 +2279,14 @@
             }
 
             const prev = gameState.history.pop();
-            gameState.tubes = prev.tubes;
+            gameState.tubes = deepCopy(prev.tubes); // Fix: Ensure deep copy on undo
             gameState.turnCount = prev.turnCount;
             gameState.pressure = prev.pressure;
             gameState.hp = prev.hp;
             gameState.secondaryProgress = prev.secondaryProgress;
             gameState.catalystAvailable = prev.catalystAvailable;
             gameState.essence = prev.essence;
-            gameState.inventory = prev.inventory; 
+            gameState.inventory = {...prev.inventory}; // Fix: Restore inventory
             gameState.tubeCount = prev.tubeCount;
             gameState.capacity = prev.capacity || 4; 
             gameState.momentumTurns = prev.momentumTurns;
