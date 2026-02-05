@@ -11,8 +11,8 @@
             --tube-border: #334155;
             --tube-bg: rgba(15, 23, 42, 0.4);
             --pour-speed: 0.3s;
-            --segment-height: 40px; /* JSで動的に変更されます */
-            --tube-height: 220px;   /* JSで動的に変更されます */
+            --segment-height: 40px;
+            --tube-height: 220px;
             --primary-glow: #38bdf8;
             --rarity-common: #94a3b8;
             --rarity-rare: #3b82f6;
@@ -51,7 +51,7 @@
             position: relative;
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
             background: var(--tube-bg);
-            margin: 6px; /* マージンを少し詰める */
+            margin: 6px;
             z-index: 10;
             cursor: pointer;
             overflow: hidden;
@@ -80,7 +80,7 @@
 
         .tube-focused {
             border-color: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 0 0 4px rgba(255,255,255,0.3); /* フォーカスを少し強調 */
+            box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
         }
 
         /* 詰み警告 */
@@ -138,7 +138,6 @@
             transform: scaleX(0.9);
         }
         
-        /* 蒸発エフェクト */
         @keyframes evaporate {
             0% { transform: scale(1); opacity: 1; filter: brightness(1); }
             50% { filter: brightness(2); background-color: white; }
@@ -148,7 +147,6 @@
             animation: evaporate 0.6s forwards;
         }
 
-        /* 言語ボタン */
         .lang-btn{
             padding: 6px 10px;
             font-weight: 800;
@@ -159,7 +157,6 @@
         }
         .lang-btn.active{ opacity: 1; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.35); }
 
-        /* 変異カード */
         .perk-card {
             transition: all 0.25s ease;
             border: 1px solid rgba(255,255,255,0.06);
@@ -172,12 +169,10 @@
             border-color: rgba(56,189,248,0.35);
         }
 
-        /* レアリティ */
         .rarity-common{ border-left: 3px solid var(--rarity-common); }
         .rarity-rare{ border-left: 3px solid var(--rarity-rare); }
         .rarity-epic{ border-left: 3px solid var(--rarity-epic); }
         
-        /* スキルボタン & ツールチップ */
         .skill-btn {
             position: relative;
             transition: all 0.2s;
@@ -188,7 +183,7 @@
             filter: grayscale(0);
             opacity: 1;
             transform: translateY(-2px);
-            z-index: 50; /* ツールチップ表示時に手前に */
+            z-index: 50;
         }
         .skill-btn.active {
             filter: grayscale(0);
@@ -211,7 +206,6 @@
             100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
         }
 
-        /* ツールチップスタイル */
         .skill-tooltip {
             position: absolute;
             bottom: 115%;
@@ -247,7 +241,6 @@
             bottom: 125%;
         }
 
-        /* UNDOボタン */
         #btn-undo {
             border: 1px solid rgba(255,255,255,0.1);
             background: rgba(255,255,255,0.05);
@@ -261,7 +254,6 @@
             transform: scale(0.95);
         }
 
-        /* 警告バナー */
         #alert-banner {
             position: absolute;
             top: 20%;
@@ -279,7 +271,6 @@
             transition: opacity 0.3s;
         }
         
-        /* トースト通知 */
         #toast-container {
             pointer-events: none;
         }
@@ -309,7 +300,6 @@
             to { opacity: 0; transform: translateY(-10px); }
         }
 
-        /* 浮遊 */
         .floating{
             animation: floaty 3.2s ease-in-out infinite;
         }
@@ -318,14 +308,11 @@
             50%{ transform: translateY(-10px); }
         }
 
-        /* スケーリング用コンテナスタイル */
         #tubes-container {
             transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
             transform-origin: center center;
-            /* 必要ならここにmax-widthなどの制限を追加 */
         }
 
-        /* テスト表示 */
         #dev-tests {
             position: fixed;
             bottom: 10px;
@@ -346,7 +333,6 @@
 </head>
 <body>
     
-    <!-- トースト通知コンテナ -->
     <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 w-full max-w-sm px-4"></div>
 
     <div id="game-container" class="flex flex-col items-center justify-between h-screen w-screen p-2 md:p-4 overflow-hidden relative">
@@ -370,7 +356,6 @@
                 <button id="btn-help" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all">
                     <span class="md:hidden">?</span><span class="hidden md:inline">Help</span>
                 </button>
-                <!-- 設定ボタンを削除しました -->
             </div>
         </div>
 
@@ -403,9 +388,8 @@
             <!-- JSでボタン生成 -->
         </div>
 
-        <!-- 下HUD (調整済み: モバイル表示エリアを拡張) -->
+        <!-- 下HUD -->
         <div id="bottom-hud" class="w-full max-w-5xl glass-panel p-3 md:p-4 shrink-0 z-20 mb-safe">
-            <!-- Mobile HUD Adjusted: Floor/Essence/Perks/HP -->
             <div class="md:hidden flex items-center justify-between mb-3 px-1 gap-2 text-sm font-bold">
                  <span class="text-slate-300 bg-white/5 px-2 py-1 rounded border border-white/10" id="ui-floor-mobile">1F</span>
                  <div class="flex gap-3">
@@ -422,16 +406,14 @@
                     <span class="px-4 py-2 rounded-xl glass-panel text-lg font-black uppercase tracking-widest text-sky-300 bg-black/20 hidden sm:block" id="ui-perks">PERKS 0</span>
                 </div>
                 
-                <!-- UNDOボタン -->
                 <button id="btn-undo" class="px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest text-slate-300 flex items-center gap-2">
                     <span>↺</span> UNDO (5✨)
                 </button>
             </div>
         </div>
-
     </div>
 
-    <!-- 画面：イベント（完成2択） -->
+    <!-- 画面：イベント -->
     <div id="event-screen" class="fixed inset-0 z-[140] bg-slate-950/85 backdrop-blur-sm hidden items-center justify-center p-6 transition-opacity">
         <div class="glass-panel w-full max-w-2xl p-6 border border-sky-500/20 shadow-2xl shadow-sky-900/20">
             <div class="flex items-end justify-between gap-4">
@@ -461,10 +443,10 @@
             <p id="start-subtitle" class="relative text-sky-200/60 font-medium tracking-[0.5em] uppercase text-xs mt-4">錬金術の深淵</p>
         </div>
         <button id="start-run-btn" class="w-full max-w-xs py-5 bg-sky-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-sky-500/20 hover:bg-sky-500 hover:shadow-sky-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0">探索を開始</button>
-        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 1.9.5 Bugfix</p>
+        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.2.0 Safe Chemistry</p>
     </div>
 
-    <!-- 変異選択 & ショップ画面 (Layout Revised: Fixed Footer) -->
+    <!-- 変異選択 & ショップ画面 -->
     <div id="perk-screen" class="fixed inset-0 z-[150] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
         <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
             
@@ -476,7 +458,6 @@
                 </div>
                 <div class="text-right flex flex-col items-end gap-2">
                     <button id="reroll-btn" class="px-3 py-1 glass-panel border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all hidden">Reroll (-5✨)</button>
-                    <!-- スマホ用のEssence表示はショップ内に統合することも検討したが、ここが見やすい -->
                 </div>
             </div>
 
@@ -487,7 +468,7 @@
                 <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-white/5 bg-slate-900/20">
                     <div class="text-sm font-bold mb-3 text-sky-300 uppercase tracking-widest flex items-center gap-2">
                         <span>🧬 Mutations</span>
-                        <span class="text-[10px] text-slate-500 font-normal normal-case">Pick One</span>
+                        <span class="text-[10px] text-slate-500 font-normal normal-case">Pick One (Updates every level)</span>
                     </div>
                     <div class="grid gap-3" id="perk-cards">
                         <!-- Perks injected here -->
@@ -499,11 +480,12 @@
                     <div class="flex justify-between items-center mb-3">
                         <div class="text-sm font-bold text-yellow-500 uppercase tracking-widest flex items-center gap-2">
                             <span>◈ Shop</span>
+                            <span class="text-[10px] text-slate-500 font-normal normal-case">4 Random Items</span>
                         </div>
                         <div class="text-[10px] font-bold text-sky-400 bg-sky-900/30 px-2 py-1 rounded border border-sky-500/20" id="perk-essence">Essence: 0 ✨</div>
                     </div>
                     
-                    <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3" id="shop-cards">
+                    <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3" id="shop-cards">
                         <!-- Shop Items injected here -->
                     </div>
                 </div>
@@ -531,8 +513,6 @@
         </div>
     </div>
 
-    <!-- Settings (削除済みのため定義も削除) -->
-
     <div id="dev-tests"></div>
 
     <script>
@@ -542,7 +522,6 @@
         function pick(arr){ return arr[randInt(arr.length)]; }
         function deepCopy(x){ return JSON.parse(JSON.stringify(x)); }
         function ui(id){ return document.getElementById(id); }
-        // 安全なテキスト設定
         function setText(id, text){
             const el = document.getElementById(id);
             if(el) el.textContent = text;
@@ -650,7 +629,6 @@
             setText('start-run-btn', t('startBtn'));
             setText('ui-subtitle', t('subtitle'));
             setText('ui-title', translations.en.subtitle);
-            // setText('ui-hint', t('hint')); // Removed
             setText('ui-goal-title', t('goalTitle'));
             setText('help-text', t('helpText'));
             setText('help-close', t('helpClose'));
@@ -658,149 +636,240 @@
 
         // --- ゲーム定義 ---
         const COLOR_POOL = [
-            { key: 'R', name:{en:'Crimson', ja:'紅'}, hex:'#dc2626' }, // Rose-500 -> Red-600
+            { key: 'R', name:{en:'Crimson', ja:'紅'}, hex:'#dc2626' }, 
             { key: 'B', name:{en:'Azure', ja:'蒼'}, hex:'#3b82f6' },
             { key: 'Y', name:{en:'Amber', ja:'琥珀'}, hex:'#fbbf24' },
             { key: 'W', name:{en:'Ivory', ja:'象牙'}, hex:'#e2e8f0' },
             { key: 'K', name:{en:'Obsidian', ja:'黒'}, hex:'#0f172a' },
-            { key: 'G', name:{en:'Emerald', ja:'翠'}, hex:'#22c55e' }, // Emerald-500 -> Green-500
+            { key: 'G', name:{en:'Emerald', ja:'翠'}, hex:'#22c55e' }, 
             { key: 'P', name:{en:'Amethyst', ja:'紫'}, hex:'#a855f7' }, 
             { key: 'O', name:{en:'Orange', ja:'橙'}, hex:'#f97316' }, 
-            { key: 'T', name:{en:'Teal', ja:'青緑'}, hex:'#06b6d4' }, // Teal-500 -> Cyan-500
-            { key: 'M', name:{en:'Pink', ja:'桃'}, hex:'#d946ef' }, // Pink-500 -> Fuchsia-500
+            { key: 'T', name:{en:'Teal', ja:'青緑'}, hex:'#06b6d4' }, 
+            { key: 'M', name:{en:'Pink', ja:'桃'}, hex:'#d946ef' }, 
         ];
 
-        // --- Perks & Skills ---
+        // --- Perks ---
         const PERKS = {
             catalyst: {
                 id:'catalyst',
                 name:{en:'Catalyst', ja:'触媒反応'},
                 rarity:'rare',
-                desc:{en:'Once per floor: Completing a tube reduces Pressure by 5.', ja:'各階層1回：色を完成させると圧力が5下がる。'},
+                desc:{en:'Completing a tube reduces Pressure by [4 + Lv].', ja:'色を完成させると圧力が [4 + Lv] 下がる。'},
+            },
+            efficiency: {
+                id:'efficiency',
+                name:{en:'Efficiency', ja:'抽出効率'},
+                rarity:'common',
+                desc:{en:'Tube completion has [Lv x 20]% chance to grant +1 Essence.', ja:'色完成時、[Lv x 20]% の確率で +1 エッセンスを獲得。'},
             },
             transmutation: {
                 id:'transmutation',
                 name:{en:'Transmutation', ja:'物質変換'},
                 rarity:'rare',
-                desc:{en:'Gain a random item at the start of each floor.', ja:'階層開始時、ランダムなアイテムを1つ獲得する。'},
+                desc:{en:'Start each floor with [Lv] random items.', ja:'階層開始時、[Lv] 個のランダムアイテムを獲得する。'},
             },
             momentum: {
                 id:'momentum',
                 name:{en:'Momentum', ja:'慣性律'},
                 rarity:'common',
-                desc:{en:'Pressure does not increase on the turn after completing a tube.', ja:'チューブを完成させた直後の1ターンは圧力が上昇しない。'},
+                desc:{en:'After completing a tube, Pressure does not rise for [Lv] turns.', ja:'チューブ完成後、[Lv] ターンの間、圧力が上昇しない。'},
             },
             reflux: {
                 id:'reflux',
                 name:{en:'Reflux', ja:'逆流制御'},
                 rarity:'common',
-                desc:{en:'First undo each floor is free (Pressure +2).', ja:'各階層、最初のUndoはエッセンス無料（圧力+2で代用）。'},
+                desc:{en:'First [Lv] undos each floor are free (Pressure +2 instead).', ja:'各階層、最初の [Lv] 回のUndoはエッセンス無料。'},
+            },
+            steady_hand: {
+                id:'steady_hand',
+                name:{en:'Steady Hand', ja:'安定した手'},
+                rarity:'rare',
+                desc:{en:'Pressure does not rise for the first [Lv x 3] turns of a floor.', ja:'階層開始から [Lv x 3] ターンの間、圧力が上昇しない。'},
             },
             overflow: {
                 id:'overflow',
                 name:{en:'Overflow', ja:'オーバーフロー'},
                 rarity:'common',
-                desc:{en:'Pressure max +4.', ja:'圧力の最大許容量が+4される。'},
+                desc:{en:'Pressure max +[Lv x 4].', ja:'圧力の最大許容量が +[Lv x 4] される。'},
             },
             purification: {
                 id:'purification',
                 name:{en:'Purification', ja:'浄化作用'},
                 rarity:'epic',
-                desc:{en:'Clearing Obsidian (Black) reduces Pressure by 3 and grants 2 Essence.', ja:'黒インクを消滅させると、圧力が3下がり、2エッセンスを得る。'},
+                desc:{en:'Clearing Obsidian reduces Pressure by [2 + Lv] and grants [1 + Lv] Essence.', ja:'黒インク消滅時、圧力-[2 + Lv]、エッセンス+[1 + Lv]。'},
             },
             scavenger: {
                 id:'scavenger',
                 name:{en:'Scavenger', ja:'スカベンジャー'},
                 rarity:'rare',
-                desc:{en:'15% chance to find a random item when descending.', ja:'階層移動時、15%の確率でランダムなアイテムを拾う。'},
+                desc:{en:'[10 + Lv x 5]% chance to find item on new floor.', ja:'階層移動時、[10 + Lv x 5]% の確率でアイテムを拾う。'},
+            },
+            recycler: {
+                id:'recycler',
+                name:{en:'Recycler', ja:'リサイクル'},
+                rarity:'epic',
+                desc:{en:'[Lv x 10]% chance to not consume item on use.', ja:'アイテム使用時、[Lv x 10]% の確率で消費しない。'},
             },
             bargain: {
                 id:'bargain',
                 name:{en:'Bargain', ja:'交渉術'},
                 rarity:'common',
-                desc:{en:'Shop prices are reduced by 20%.', ja:'ショップの価格が20%OFFになる。'},
+                desc:{en:'Shop prices reduced by [15 + Lv x 5]%.', ja:'ショップ価格 [15 + Lv x 5]% OFF。'},
             },
             heavy_mastery: {
                 id:'heavy_mastery',
                 name:{en:'Heavy Mastery', ja:'大容量ボーナス'},
                 rarity:'rare',
-                desc:{en:'Clearing a tube with capacity 5+ reduces Pressure by 3.', ja:'容量5以上のチューブを完成させると圧力が3下がる。'},
+                desc:{en:'Clearing 5+ capacity tube reduces Pressure by [2 + Lv].', ja:'容量5以上のチューブ完成で圧力 [2 + Lv] 減少。'},
+            },
+            void_shield: {
+                id:'void_shield',
+                name:{en:'Void Shield', ja:'虚空の盾'},
+                rarity:'rare',
+                desc:{en:'[Lv x 15]% chance to negate Pressure damage.', ja:'圧力ダメージを受けた時、[Lv x 15]% で無効化する。'},
             },
             deep_adapt: {
                 id:'deep_adapt',
                 name:{en:'Deep Adapt', ja:'深層適応'},
                 rarity:'epic',
-                desc:{en:'Gain Max HP based on current tube capacity at start of floor.', ja:'階層開始時、現在のチューブ容量に応じて最大HPが増加する。'},
+                desc:{en:'Gain [Lv] Max HP if capacity > 4 at start of floor.', ja:'階層開始時、容量5以上なら最大HP+[Lv]。'},
             },
-            // 新規Perk：クーポン券
+            flow_mastery: {
+                id:'flow_mastery',
+                name:{en:'Flow Mastery', ja:'フロー熟練'},
+                rarity:'common',
+                desc:{en:'Combo reduces Pressure by [Lv x 2].', ja:'コンボ発生時、圧力が [Lv x 2] 下がる。'},
+            },
             coupon: {
                 id: 'coupon',
                 name: {en:'Coupon', ja:'クーポン券'},
                 rarity: 'common',
-                desc: {en:'Start each floor with 1 free Reroll.', ja:'各階層開始時、無料でリロールできるクーポンを1枚得る。'}
+                desc: {en:'Start each floor with [Lv] free Rerolls.', ja:'各階層開始時、無料でリロールできるクーポンを [Lv] 枚得る。'}
             }
         };
 
+        // --- Items & Skills ---
+        // 修正: 色を消滅させるスキルを廃止・変更し、総量保存の法則を守る
         const ITEMS = {
             pipette: {
-                id: 'pipette',
-                type: 'tool', 
+                id: 'pipette', type: 'tool', cost: 10, icon: '⚗️',
                 name: {en:'Pipette', ja:'精密ピペット'},
-                desc: {en:'Toggle: Pour only 1 segment.', ja:'切替：1目盛りだけ注ぐモード'},
-                icon: '⚗️',
-                cost: 10
+                desc: {en:'Toggle: Pour 1 segment.', ja:'切替：1目盛りだけ注ぐ'}
             },
             inverter: {
-                id: 'inverter',
-                type: 'consumable',
+                id: 'inverter', type: 'consumable', cost: 6, icon: '🔄',
                 name: {en:'Gravity Coil', ja:'重力反転機'},
-                desc: {en:'【Use】Invert contents.', ja:'【使用】中身を上下反転'},
-                icon: '🔄',
-                cost: 6
+                desc: {en:'Invert contents.', ja:'中身を上下反転'}
             },
             void_salt: {
-                id: 'void_salt',
-                type: 'consumable',
+                id: 'void_salt', type: 'consumable', cost: 8, icon: '🧂',
                 name: {en:'Void Salt', ja:'虚無の塩'},
-                desc: {en:'【Use】Remove top Black.', ja:'【使用】一番上の【黒】を除去'},
-                icon: '🧂',
-                cost: 8
+                desc: {en:'Remove top Black.', ja:'一番上の【黒】を除去'}
             },
             separator: {
-                id: 'separator',
-                type: 'consumable',
+                id: 'separator', type: 'consumable', cost: 12, icon: '🌪️',
                 name: {en:'Separator', ja:'遠心分離機'},
-                desc: {en:'【Use】Sort tube contents.', ja:'【使用】中身を整理する'},
-                icon: '🌪️',
-                cost: 12
+                desc: {en:'Sort tube contents.', ja:'中身を整理する'}
             },
             summon_vial: {
-                id: 'summon_vial',
-                type: 'consumable',
+                id: 'summon_vial', type: 'consumable', cost: 15, icon: '🧪',
                 name: {en:'Extra Vial', ja:'予備フラスコ'},
-                desc: {en:'【Use】Add an empty tube.', ja:'【使用】空き瓶を1つ追加'},
-                icon: '🧪',
-                cost: 15
+                desc: {en:'Add empty tube.', ja:'空き瓶を1つ追加'}
             },
             cycle_siphon: {
-                id: 'cycle_siphon',
-                type: 'consumable',
+                id: 'cycle_siphon', type: 'consumable', cost: 9, icon: '⏫',
                 name: {en:'Cycle Siphon', ja:'循環サイフォン'},
-                desc: {en:'【Use】Move bottom to top.', ja:'【使用】一番下を一番上へ'},
-                icon: '⏫',
-                cost: 9
+                desc: {en:'Move bottom to top.', ja:'一番下を一番上へ'}
+            },
+            // --- NEW ITEMS (Revised for Safety) ---
+            sedative: {
+                id: 'sedative', type: 'consumable', cost: 12, icon: '💤',
+                name: {en:'Sedative', ja:'鎮静剤'},
+                desc: {en:'Set Pressure to 0.', ja:'圧力を0にする'}
+            },
+            sediment: { // Replaced 'extraction'
+                id: 'sediment', type: 'consumable', cost: 10, icon: '⏬',
+                name: {en:'Sediment', ja:'沈殿'},
+                desc: {en:'Move top to bottom.', ja:'一番上を一番下へ'}
+            },
+            layer_swap: { // Replaced 'unifier'
+                id: 'layer_swap', type: 'consumable', cost: 12, icon: '🔗',
+                name: {en:'Layer Swap', ja:'層交換'},
+                desc: {en:'Swap top 2 layers.', ja:'上2つの層を入れ替え'}
+            },
+            vacuum: { // Modified to be Black Ink only
+                id: 'vacuum', type: 'consumable', cost: 14, icon: '🌀',
+                name: {en:'Obsidian Vacuum', ja:'黒吸引機'},
+                desc: {en:'Remove all top Obsidian.', ja:'一番上の黒インクを全除去'}
+            },
+            midas: { // Modified to be Black Ink only
+                id: 'midas', type: 'consumable', cost: 8, icon: '🖐️',
+                name: {en:'Alchemy Stone', ja:'対黒変成'},
+                desc: {en:'Obsidian > Essence.', ja:'一番上の黒をエッセンスに'}
+            },
+            shaker: {
+                id: 'shaker', type: 'consumable', cost: 5, icon: '🎲',
+                name: {en:'Shaker', ja:'シェイカー'},
+                desc: {en:'Shuffle tube.', ja:'中身をシャッフル'}
+            },
+            cursed_sludge: { // Replaced 'black_dye' to avoid deleting color
+                id: 'cursed_sludge', type: 'consumable', cost: 6, icon: '⚫',
+                name: {en:'Cursed Sludge', ja:'呪いの泥'},
+                desc: {en:'Add Obsidian if space.', ja:'空きがあれば黒を追加'}
             }
         };
 
-        const SHOP_ITEMS = [
-            { id:'heal', type:'stat', name:{en:'Stabilizer', ja:'安定剤'}, cost:8, desc:{en:'Heal +1 HP', ja:'HP+1'}, apply(gs){ gs.hp += 1; showToast('HP Recovered!', 'rose'); } },
-            { id:'relief', type:'stat', name:{en:'Vent Valve', ja:'圧力弁'}, cost:5, desc:{en:'Pressure -5', ja:'圧力-5'}, apply(gs){ gs.pressure = Math.max(0, gs.pressure-5); showToast('Pressure Released!', 'sky'); } },
-            { id:'buy_pipette', type:'item', ref: ITEMS.pipette },
-            { id:'buy_inverter', type:'item', ref: ITEMS.inverter },
-            { id:'buy_separator', type:'item', ref: ITEMS.separator },
-            { id:'buy_siphon', type:'item', ref: ITEMS.cycle_siphon },
-            { id:'buy_void', type:'item', ref: ITEMS.void_salt },
-            { id:'buy_summon', type:'item', ref: ITEMS.summon_vial },
+        // Instant Shop Items (Stat boosts / Events)
+        const INSTANT_ITEMS = [
+            { 
+                id:'heal', type:'stat', cost:8, 
+                name:{en:'Stabilizer', ja:'安定剤'}, 
+                desc:{en:'Heal +1 HP', ja:'HP+1'}, 
+                apply(gs){ gs.hp += 1; showToast('HP Recovered!', 'rose'); } 
+            },
+            { 
+                id:'relief', type:'stat', cost:5, 
+                name:{en:'Vent Valve', ja:'圧力弁'}, 
+                desc:{en:'Pressure -5', ja:'圧力-5'}, 
+                apply(gs){ gs.pressure = Math.max(0, gs.pressure-5); showToast('Pressure Released!', 'sky'); } 
+            },
+            { 
+                id:'panacea', type:'stat', cost:20, 
+                name:{en:'Panacea', ja:'万能薬'}, 
+                desc:{en:'HP+1, Pressure=0', ja:'HP+1, 圧力全回復'}, 
+                apply(gs){ gs.hp += 1; gs.pressure = 0; showToast('Full Restore!', 'emerald'); } 
+            },
+            { 
+                id:'dark_pact', type:'stat', cost:0, 
+                name:{en:'Dark Pact', ja:'黒の契約'}, 
+                desc:{en:'HP-1, +20 Ess', ja:'HP-1, +20エッセンス'}, 
+                apply(gs){ 
+                    if(gs.hp > 1){
+                        gs.hp -= 1; gs.essence += 20; 
+                        showToast('Power at a cost...', 'purple'); 
+                    } else {
+                        showToast('Too weak...', 'red');
+                    }
+                } 
+            },
+            { 
+                id:'mystery_box', type:'stat', cost:5, 
+                name:{en:'Mystery Box', ja:'福袋'}, 
+                desc:{en:'Random Item', ja:'ランダムアイテム'}, 
+                apply(gs){ 
+                    const keys = Object.keys(ITEMS);
+                    const gift = pick(keys);
+                    if(!gs.inventory[gift]) gs.inventory[gift] = 0;
+                    gs.inventory[gift]++;
+                    showToast(`Got ${ITEMS[gift].name[currentLang==='ja'?'ja':'en']}!`, 'yellow');
+                } 
+            }
+        ];
+
+        // Combine for pool
+        const SHOP_POOL = [
+            ...INSTANT_ITEMS,
+            ...Object.values(ITEMS).map(i => ({ id: `buy_${i.id}`, type: 'item', ref: i }))
         ];
 
         // --- ゲーム状態 ---
@@ -815,13 +884,13 @@
             selectedIdx: null,
             tubes: [],
             busy: false,
-            perks: new Set(),
+            perks: {},
             inventory: {}, 
             pressure: 0,
             pressureMax: 14,
             catalystAvailable: true,
-            refluxArmed: false,
-            momentumActive: false, 
+            refluxUses: 0,
+            momentumTurns: 0,
             history: [],
             primaryGoal: null,
             secondaryGoal: null,
@@ -831,12 +900,12 @@
             currentShopOffers: null,
             pipetteMode: false,
             targetMode: null, 
-            rerollCoupons: 0, // 新規: クーポン所持数
+            rerollCoupons: 0,
         };
 
         // --- DOM ---
         const tubesContainer = ui('tubes-container');
-        const boardArea = ui('board-area'); // スケーリング計算用
+        const boardArea = ui('board-area');
         const skillsContainer = ui('skills-container');
         const startScreen = ui('start-screen');
         const perkScreen = ui('perk-screen');
@@ -845,15 +914,34 @@
         const continueBtn = ui('continue-btn');
         const rerollBtn = ui('reroll-btn');
         const helpScreen = ui('help-screen');
-        // const settingsScreen = ui('settings-screen'); // Deleted
         const eventScreen = ui('event-screen');
         const eventChoices = ui('event-choices');
         const devTests = ui('dev-tests');
         const alertBanner = ui('alert-banner');
         const undoBtn = ui('btn-undo');
 
-        // --- Game Logic ---
+        // --- Helper ---
+        function getPerkLevel(id){ return gameState.perks[id] || 0; }
+        function hasPerk(id){ return (gameState.perks[id] || 0) > 0; }
+        function getPerkDesc(id, level=1){
+            const def = PERKS[id];
+            let txt = currentLang==='ja' ? def.desc.ja : def.desc.en;
+            txt = txt.replace(/\[Lv\]/g, level);
+            txt = txt.replace(/\[4 \+ Lv\]/g, 4 + level);
+            txt = txt.replace(/\[Lv x 20\]/g, level * 20);
+            txt = txt.replace(/\[Lv x 3\]/g, level * 3);
+            txt = txt.replace(/\[Lv x 4\]/g, level * 4);
+            txt = txt.replace(/\[2 \+ Lv\]/g, 2 + level);
+            txt = txt.replace(/\[1 \+ Lv\]/g, 1 + level);
+            txt = txt.replace(/\[10 \+ Lv x 5\]/g, 10 + level * 5);
+            txt = txt.replace(/\[Lv x 10\]/g, level * 10);
+            txt = txt.replace(/\[15 \+ Lv x 5\]/g, 15 + level * 5);
+            txt = txt.replace(/\[Lv x 15\]/g, level * 15);
+            txt = txt.replace(/\[Lv x 2\]/g, level * 2);
+            return txt;
+        }
 
+        // --- Game Logic ---
         function tubeTop(t){ return t.length ? t[t.length-1] : null; }
         function tubeFree(t){ return gameState.capacity - t.length; }
         function isCompleteTube(t){
@@ -933,6 +1021,11 @@
                 }
             } else if (gameState.secondaryGoal.type === 'combo'){
                 gameState.secondaryProgress += 1;
+                if(hasPerk('flow_mastery') && gameState.secondaryProgress >= 2){
+                    const lv = getPerkLevel('flow_mastery');
+                    gameState.pressure = Math.max(0, gameState.pressure - (lv * 2));
+                    showFloatText(0, `Flow! -${lv*2} Pressure`, '#38bdf8');
+                }
             }
         }
 
@@ -969,7 +1062,6 @@
             while(colors.length < safeNumColors){
                 const c = pick(pool);
                 if(!colors.includes(c)) colors.push(c);
-                
                 failsafe++;
                 if(failsafe > 100) break; 
             }
@@ -1011,15 +1103,12 @@
             if(cap >= 6) segHeight = 32;
             else if(cap >= 5) segHeight = 36;
             
-            // チューブの高さを容量に合わせて計算 (segHeight * cap + top/bottom padding approx 20-30px)
-            // 少し余裕を持たせる (例: +40px)
             const tubeHeight = (segHeight * cap) + 40;
 
             document.documentElement.style.setProperty('--segment-height', `${segHeight}px`);
             document.documentElement.style.setProperty('--tube-height', `${tubeHeight}px`);
         }
 
-        // --- Render ---
         function renderBoard(){
             tubesContainer.innerHTML = '';
             
@@ -1068,44 +1157,28 @@
             });
             
             renderSkills();
-            
-            // レンダリング後にサイズ調整を実行
-            // DOM更新完了を待つためにrequestAnimationFrameを使用
             requestAnimationFrame(adjustBoardScale);
         }
         
-        // --- 自動スケーリング処理 ---
         function adjustBoardScale() {
             if (!boardArea || !tubesContainer) return;
-            
-            // 一旦リセットして本来のサイズを計測
             tubesContainer.style.transform = 'none';
-            
             const availableW = boardArea.clientWidth;
             const availableH = boardArea.clientHeight;
-            
             const contentW = tubesContainer.scrollWidth;
             const contentH = tubesContainer.scrollHeight;
-            
-            // マージン分を考慮して少し小さめに
             const safeW = availableW * 0.95;
             const safeH = availableH * 0.95;
-            
             let scale = 1;
-            
             if (contentW > safeW || contentH > safeH) {
                 scale = Math.min(safeW / contentW, safeH / contentH);
             }
-            
-            // 極端に小さくなりすぎないように制限 (例: 0.4倍まで)
             scale = Math.max(scale, 0.4);
-            
             if (scale < 1) {
                 tubesContainer.style.transform = `scale(${scale})`;
             }
         }
         
-        // ウィンドウサイズ変更時も実行
         window.addEventListener('resize', () => {
             requestAnimationFrame(adjustBoardScale);
         });
@@ -1120,11 +1193,9 @@
                     const btn = document.createElement('button');
                     btn.className = 'skill-btn w-12 h-12 glass-panel flex items-center justify-center text-xl rounded-full border border-white/10 shrink-0';
                     
-                    // Name and Desc
                     const name = currentLang==='ja' ? def.name.ja : def.name.en;
                     const desc = currentLang==='ja' ? def.desc.ja : def.desc.en;
 
-                    // Badge and Tooltip HTML
                     let badgeHtml = '';
                     if(def.type === 'consumable'){
                         badgeHtml = `<span class="absolute -top-1 -right-1 bg-sky-500 text-[10px] font-bold px-1.5 rounded-full text-white pointer-events-none">${count}</span>`;
@@ -1139,7 +1210,6 @@
                         </div>
                     `;
                     
-                    // Active state
                     if(key === 'pipette' && gameState.pipetteMode) btn.classList.add('active');
                     if(gameState.targetMode === key) btn.classList.add('active-mode');
 
@@ -1153,15 +1223,24 @@
             if(gameState.busy) return;
             const def = ITEMS[key];
             
-            if(def.id === 'summon_vial'){
+            // Non-targetable Instant items (if any in inventory)
+            if(key === 'summon_vial'){
                  if(gameState.inventory[key] > 0){
                      gameState.inventory[key]--;
                      gameState.tubeCount++;
-                     gameState.tubes.push([]); // 空のチューブ追加
-                     // Fix: Render board first, then show float text on the new tube
+                     gameState.tubes.push([]);
                      renderBoard();
                      showFloatText(gameState.tubes.length-1, "Summoned!", "#a855f7");
                      showToast(currentLang==='ja'?'空き瓶を追加しました！':'Extra Tube Added!', 'purple');
+                 }
+                 return;
+            }
+            if(key === 'sedative'){
+                 if(gameState.inventory[key] > 0){
+                     gameState.inventory[key]--;
+                     gameState.pressure = 0;
+                     renderHUD();
+                     showToast("Sedated! Pressure 0.", 'purple');
                  }
                  return;
             }
@@ -1179,8 +1258,6 @@
                     gameState.targetMode = key;
                     gameState.selectedIdx = null; 
                     gameState.pipetteMode = false; 
-                    
-                    // Hint text logic removed; replaced with toast for feedback
                     showToast(currentLang==='ja' ? "対象を選択してください" : "Select a target tube", 'sky');
                 }
             }
@@ -1190,7 +1267,6 @@
         async function handleTubeClick(idx) {
             if (gameState.busy) return;
             
-            // --- Skill Target Logic ---
             if (gameState.targetMode) {
                 await applySkillEffect(idx);
                 return;
@@ -1198,25 +1274,19 @@
 
             const content = gameState.tubes[idx];
 
-            // 選択解除
             if (gameState.selectedIdx === idx) {
                 gameState.selectedIdx = null;
                 renderBoard();
                 return;
             }
 
-            // 新規選択
             if (gameState.selectedIdx === null) {
                 if (content.length === 0) return;
-                
-                // 完成したチューブは選択不可（黒インク含む）
-                // 元: && !gameState.unsealActive があったが削除
                 if (isCompleteTube(content)) return; 
 
                 gameState.selectedIdx = idx;
                 renderBoard();
             } else {
-                // 移動試行
                 await tryPour(gameState.selectedIdx, idx);
             }
         }
@@ -1228,68 +1298,140 @@
             if(!skillKey || !gameState.inventory[skillKey] || gameState.inventory[skillKey] <= 0) return;
             
             let success = false;
+            let consume = true;
+
+            // Perk: Recycler
+            if(hasPerk('recycler')){
+                const lv = getPerkLevel('recycler');
+                if(Math.random() < lv * 0.1){
+                    consume = false;
+                    showToast("Recycled! Item saved.", 'purple');
+                }
+            }
             
             try {
                 gameState.busy = true;
 
+                // --- Effect Logic ---
                 if(skillKey === 'inverter'){
-                    if(tube.length < 2) {
-                        showFloatText(idx, "Too Empty!", "#ef4444");
-                    } else {
+                    if(tube.length < 2) showFloatText(idx, "Too Empty!", "#ef4444");
+                    else {
                         pushHistory();
-                        gameState.inventory[skillKey]--;
+                        if(consume) gameState.inventory[skillKey]--;
                         tube.reverse(); 
                         showFloatText(idx, "Inverted!", "#a855f7");
                         success = true;
                     }
                 } else if (skillKey === 'void_salt'){
-                    if(tube.length === 0){
-                        showFloatText(idx, "Empty!", "#ef4444");
-                    } else {
-                        const topColor = tube[tube.length-1];
-                        if(topColor !== 'K'){
-                            showFloatText(idx, "Pure Element!", "#ef4444");
-                        } else {
+                    if(tube.length === 0) showFloatText(idx, "Empty!", "#ef4444");
+                    else {
+                        if(tube[tube.length-1] !== 'K') showFloatText(idx, "Not Black!", "#ef4444");
+                        else {
                             pushHistory();
-                            gameState.inventory[skillKey]--;
+                            if(consume) gameState.inventory[skillKey]--;
                             tube.pop();
                             showFloatText(idx, "Voided!", "#a855f7");
                             success = true;
                         }
                     }
                 } else if (skillKey === 'separator'){
-                    if(tube.length < 2) {
-                        showFloatText(idx, "No need!", "#ef4444");
-                    } else {
+                    if(tube.length < 2) showFloatText(idx, "No need!", "#ef4444");
+                    else {
                         pushHistory();
-                        gameState.inventory[skillKey]--;
+                        if(consume) gameState.inventory[skillKey]--;
+                        // Sort
                         const counts = {};
-                        const order = [];
-                        for(const c of tube){
-                            if(!counts[c]) { counts[c]=0; order.push(c); }
-                            counts[c]++;
-                        }
+                        tube.forEach(c => counts[c] = (counts[c]||0)+1);
                         const newTube = [];
-                        for(const c of order){
-                            for(let i=0; i<counts[c]; i++) newTube.push(c);
-                        }
+                        // Rebuild sorted (simple alpha sort for stability)
+                        Object.keys(counts).sort().forEach(c => {
+                             for(let i=0; i<counts[c]; i++) newTube.push(c);
+                        });
                         gameState.tubes[idx] = newTube;
-                        
                         showFloatText(idx, "Separated!", "#a855f7");
                         success = true;
                     }
                 } else if (skillKey === 'cycle_siphon'){
-                     if(tube.length === 0) {
-                        showFloatText(idx, "Empty!", "#ef4444");
-                     } else {
+                     if(tube.length === 0) showFloatText(idx, "Empty!", "#ef4444");
+                     else {
                         pushHistory();
-                        gameState.inventory[skillKey]--;
-                        const bottom = tube.shift(); // Remove bottom
-                        tube.push(bottom); // Add to top
+                        if(consume) gameState.inventory[skillKey]--;
+                        const bottom = tube.shift();
+                        tube.push(bottom);
                         showFloatText(idx, "Cycled!", "#a855f7");
                         success = true;
                      }
+                } else if (skillKey === 'sediment'){ // REPLACED extraction
+                     if(tube.length < 2) showFloatText(idx, "No need!", "#ef4444");
+                     else {
+                        pushHistory();
+                        if(consume) gameState.inventory[skillKey]--;
+                        const top = tube.pop();
+                        tube.unshift(top); // Top to bottom
+                        showFloatText(idx, "Sunk!", "#a855f7");
+                        success = true;
+                     }
+                } else if (skillKey === 'layer_swap'){ // REPLACED unifier
+                    if(tube.length < 2) showFloatText(idx, "Need 2+", "#ef4444");
+                    else {
+                        pushHistory();
+                        if(consume) gameState.inventory[skillKey]--;
+                        // Swap top 2
+                        const t1 = tube[tube.length-1];
+                        const t2 = tube[tube.length-2];
+                        tube[tube.length-1] = t2;
+                        tube[tube.length-2] = t1;
+                        showFloatText(idx, "Swapped!", "#a855f7");
+                        success = true;
+                    }
+                } else if (skillKey === 'vacuum'){ // Obsidian only
+                    if(tube.length === 0) showFloatText(idx, "Empty!", "#ef4444");
+                    else if(tube[tube.length-1] !== 'K') showFloatText(idx, "Obsidian Only!", "#ef4444");
+                    else {
+                        pushHistory();
+                        if(consume) gameState.inventory[skillKey]--;
+                        // Remove all top K
+                        while(tube.length > 0 && tube[tube.length-1] === 'K'){
+                            tube.pop();
+                        }
+                        showFloatText(idx, "Vacuumed!", "#a855f7");
+                        success = true;
+                    }
+                } else if (skillKey === 'midas'){ // Obsidian only
+                    if(tube.length === 0) showFloatText(idx, "Empty!", "#ef4444");
+                    else if(tube[tube.length-1] !== 'K') showFloatText(idx, "Obsidian Only!", "#ef4444");
+                    else {
+                        pushHistory();
+                        if(consume) gameState.inventory[skillKey]--;
+                        tube.pop(); // Remove 1 K
+                        gameState.essence += 2; 
+                        showFloatText(idx, "Transmuted! (+2✨)", "#fbbf24");
+                        success = true;
+                    }
+                } else if (skillKey === 'shaker'){
+                    if(tube.length < 2) showFloatText(idx, "No need!", "#ef4444");
+                    else {
+                        pushHistory();
+                        if(consume) gameState.inventory[skillKey]--;
+                        // Shuffle
+                        for (let i = tube.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [tube[i], tube[j]] = [tube[j], tube[i]];
+                        }
+                        showFloatText(idx, "Shaken!", "#a855f7");
+                        success = true;
+                    }
+                } else if (skillKey === 'cursed_sludge'){ // Add K, don't replace
+                    if(tube.length >= gameState.capacity) showFloatText(idx, "Full!", "#ef4444");
+                    else {
+                        pushHistory();
+                        if(consume) gameState.inventory[skillKey]--;
+                        tube.push('K');
+                        showFloatText(idx, "Cursed!", "#0f172a");
+                        success = true;
+                    }
                 }
+
             } finally {
                 gameState.busy = false;
             }
@@ -1298,8 +1440,6 @@
                 gameState.targetMode = null;
                 renderHUD();
                 renderBoard();
-                
-                // Check if skill caused completion
                 if(isCompleteTube(gameState.tubes[idx])){
                     await handleCompletion(idx, gameState.tubes[idx][0]);
                 }
@@ -1318,9 +1458,7 @@
 
             if (toTop && toTop !== top) return {ok:false, reason:'mismatch'};
 
-            // 移動量計算
             let count = 1;
-            // Pipette Mode: Force 1
             if(gameState.pipetteMode){
                 count = 1;
             } else {
@@ -1345,7 +1483,8 @@
                 essence: gameState.essence,
                 inventory: {...gameState.inventory},
                 tubeCount: gameState.tubeCount,
-                momentumActive: gameState.momentumActive 
+                momentumTurns: gameState.momentumTurns,
+                refluxUses: gameState.refluxUses
             });
             if (gameState.history.length > 50) gameState.history.shift();
         }
@@ -1354,7 +1493,6 @@
             const check = canPour(fromIdx, toIdx);
             if (!check.ok){
                 const content = gameState.tubes[toIdx];
-                // Unseal Removed: 完了したチューブは選択不可
                 if (content.length > 0 && !isCompleteTube(content)) {
                     gameState.selectedIdx = toIdx;
                 } else {
@@ -1368,18 +1506,24 @@
                 pushHistory();
                 gameState.busy = true;
                 
-                // --- Momentum Check ---
-                if(gameState.momentumActive){
-                    // 圧力上昇なし
-                    gameState.momentumActive = false; // 消費
+                let pressureImmune = false;
+                if(hasPerk('steady_hand')){
+                    const lv = getPerkLevel('steady_hand');
+                    if(gameState.turnCount < lv * 3) pressureImmune = true;
+                }
+                
+                if(gameState.momentumTurns > 0){
+                    gameState.momentumTurns--;
+                    pressureImmune = true;
                     showFloatText(toIdx, "Momentum!", "#a855f7");
-                } else {
+                } 
+                
+                if(!pressureImmune) {
                     gameState.pressure += 1;
                 }
                 
                 gameState.turnCount += 1;
 
-                // Visual stream: 数量も渡してアニメーションを制御
                 await animatePour(fromIdx, toIdx, check.color, check.moveCount);
 
                 const from = gameState.tubes[fromIdx];
@@ -1390,7 +1534,6 @@
                     to.push(from.pop());
                 }
 
-                // Check completion for the destination tube
                 if(isCompleteTube(to)){
                     await handleCompletion(toIdx, to[0]);
                 } else {
@@ -1398,11 +1541,23 @@
                 }
 
                 if (gameState.pressure >= gameState.pressureMax){
-                    gameState.pressure = 0;
-                    gameState.hp -= 1;
-                    ui('game-container').classList.add('animate-shake');
-                    setTimeout(()=>ui('game-container').classList.remove('animate-shake'), 500);
-                    corruptRandomSegment();
+                    let prevented = false;
+                    if(hasPerk('void_shield')){
+                        const lv = getPerkLevel('void_shield');
+                        if(Math.random() < lv * 0.15){
+                            prevented = true;
+                            showFloatText(0, "Void Shield!", "#a855f7");
+                            gameState.pressure = 0; 
+                        }
+                    }
+
+                    if(!prevented){
+                        gameState.pressure = 0;
+                        gameState.hp -= 1;
+                        ui('game-container').classList.add('animate-shake');
+                        setTimeout(()=>ui('game-container').classList.remove('animate-shake'), 500);
+                        corruptRandomSegment();
+                    }
                 }
             } catch (e) {
                 console.error("Game Logic Error:", e);
@@ -1411,13 +1566,11 @@
                 gameState.busy = false;
             }
 
-            // 死亡判定をHPのみに変更
             if (gameState.hp <= 0){
                 openPerkScreen(true);
                 return;
             }
 
-            // All Clear判定を使用
             if (checkLevelClear()){
                 gameState.essence += 6 + (secondarySucceeded() ? 4 : 0);
                 setTimeout(() => openPerkScreen(false), 500);
@@ -1431,52 +1584,47 @@
         async function handleCompletion(tubeIdx, colorKey){
             const tubeEl = tubeCenterEl(tubeIdx);
             
-            // 黒インクの場合：消滅処理
             if (colorKey === 'K') {
                 showFloatText(tubeIdx, "Purged!", "#94a3b8");
-                
-                // Perk: Purification check
-                if(gameState.perks.has('purification')){
-                    gameState.pressure = Math.max(0, gameState.pressure - 3);
-                    gameState.essence += 2;
-                    showFloatText(tubeIdx, "Purified! (-3 Pressure)", "#38bdf8");
+                if(hasPerk('purification')){
+                    const lv = getPerkLevel('purification');
+                    gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
+                    gameState.essence += (1 + lv);
+                    showFloatText(tubeIdx, `Purified! (-${2+lv} P)`, "#38bdf8");
                 }
-                
-                // エフェクト待機
                 tubeEl.classList.add('evaporating');
                 await new Promise(r => setTimeout(r, 600));
-                
-                gameState.tubes[tubeIdx] = []; // Empty the tube
+                gameState.tubes[tubeIdx] = []; 
                 tubeEl.classList.remove('evaporating');
-                
-                // 黒消滅後、盤面の再描画とクリア判定を行う
                 renderBoard();
-                
                 if (checkLevelClear()){
                     gameState.essence += 6 + (secondarySucceeded() ? 4 : 0);
                     setTimeout(() => openPerkScreen(false), 500);
                 }
-                
-                return; // イベントは発生しない
+                return; 
             }
 
-            // 通常色の場合
-            if (gameState.perks.has('catalyst') && gameState.catalystAvailable){
-                gameState.pressure = Math.max(0, gameState.pressure - 5);
+            if (hasPerk('catalyst') && gameState.catalystAvailable){
+                const lv = getPerkLevel('catalyst');
+                gameState.pressure = Math.max(0, gameState.pressure - (4 + lv));
                 gameState.catalystAvailable = false;
-                showFloatText(tubeIdx, "Catalyst! (-5 Pressure)");
+                showFloatText(tubeIdx, `Catalyst! (-${4+lv} P)`);
             }
-            
-            // Perk: Heavy Mastery
-            if(gameState.perks.has('heavy_mastery') && gameState.capacity >= 5){
-                 gameState.pressure = Math.max(0, gameState.pressure - 3);
-                 showFloatText(tubeIdx, "Heavy Bonus! (-3 Pressure)", "#a855f7");
+            if (hasPerk('efficiency')){
+                const lv = getPerkLevel('efficiency');
+                if(Math.random() < lv * 0.20){
+                    gameState.essence += 1;
+                    showFloatText(tubeIdx, "Efficiency! (+1✨)", "#fbbf24");
+                }
             }
-            
-            // Perk: Momentum Activate
-            if(gameState.perks.has('momentum')){
-                gameState.momentumActive = true;
-                // Float text will be shown on next move
+            if(hasPerk('heavy_mastery') && gameState.capacity >= 5){
+                 const lv = getPerkLevel('heavy_mastery');
+                 gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
+                 showFloatText(tubeIdx, `Heavy Bonus! (-${2+lv} P)`, "#a855f7");
+            }
+            if(hasPerk('momentum')){
+                const lv = getPerkLevel('momentum');
+                gameState.momentumTurns = lv; 
             }
             
             checkSecondaryGoalOnComplete();
@@ -1484,8 +1632,6 @@
         }
 
         function countCompletedTubes(){
-            // 黒インク完了は一瞬で消えるので、この判定に残ることはほぼないが、
-            // 完了状態 = 容量Maxかつ同色
             return gameState.tubes.filter(t => isCompleteTube(t) && t[0] !== 'K').length;
         }
 
@@ -1493,7 +1639,6 @@
             const candidates = [];
             for (let i=0;i<gameState.tubes.length;i++){
                 const t = gameState.tubes[i];
-                // 変更点: トップが黒('K')でない場合のみ候補にする
                 if (t.length < gameState.capacity && (t.length === 0 || t[t.length-1] !== 'K')) {
                     candidates.push(i);
                 }
@@ -1541,7 +1686,6 @@
                 const fromWater = fromEl.querySelector('.water-container');
                 const toWater = toEl.querySelector('.water-container');
                 
-                // 注ぐ側: DOMの末尾からcount個を取得 (column-reverseなので末尾が一番上)
                 const shrinkSegments = [];
                 for(let i=0; i<count; i++){
                     if(fromWater.children.length > i){
@@ -1549,22 +1693,16 @@
                     }
                 }
                 
-                // 注がれる側: 色情報
                 const colorHex = colorMeta(colorKey)?.hex || '#64748b';
-
-                // 回転方向
                 const fr = fromEl.getBoundingClientRect();
                 const tr = toEl.getBoundingClientRect();
                 const isRight = tr.left > fr.left;
                 
-                // 1. 回転開始
                 fromEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
                 fromEl.style.transform = `translateY(-10px) rotate(${isRight ? 45 : -45}deg)`;
                 fromEl.style.zIndex = 50; 
                 
-                // 2. 少し遅れて液面変動開始
                 setTimeout(() => {
-                    // 減るアニメーション
                     shrinkSegments.forEach(seg => {
                         if(seg) {
                             seg.style.height = '0px';
@@ -1573,7 +1711,6 @@
                         }
                     });
                     
-                    // 増えるアニメーション
                     for(let i=0; i<count; i++){
                         const newSeg = document.createElement('div');
                         newSeg.className = 'water-segment';
@@ -1581,16 +1718,12 @@
                         newSeg.style.height = '0px';
                         newSeg.style.opacity = '0.5';
                         toWater.appendChild(newSeg);
-                        
-                        // Reflow
                         void newSeg.offsetWidth;
-                        
                         newSeg.style.height = 'var(--segment-height)';
                         newSeg.style.opacity = '1';
                     }
                 }, 50);
 
-                // 3. 完了処理
                 setTimeout(() => {
                     fromEl.style.transform = '';
                     fromEl.style.zIndex = '';
@@ -1609,12 +1742,10 @@
                     : `You completed ${name}.\nThe abyss reacts to your achievement.`;
 
                 const choices = buildEventChoices(colorKey);
-                
                 ui('event-kicker').textContent = t('eventKicker');
                 ui('event-title').textContent = title;
                 ui('event-desc').textContent = desc;
                 eventChoices.innerHTML = '';
-
                 choices.forEach(ch => {
                     const card = document.createElement('div');
                     card.className = 'glass-panel perk-card p-4 cursor-pointer hover:bg-white/5 border-l-4 border-l-sky-500';
@@ -1633,7 +1764,6 @@
                     };
                     eventChoices.appendChild(card);
                 });
-
                 eventScreen.classList.remove('hidden');
                 eventScreen.classList.add('flex');
             });
@@ -1698,7 +1828,6 @@
             ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : t('victorySub');
             ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
 
-            // Reset contents
             perkCards.innerHTML = '';
             shopCards.innerHTML = '';
             
@@ -1724,20 +1853,43 @@
             if (!gameState.currentPerkChoices) {
                 gameState.currentPerkChoices = rollPerkChoices();
             }
-            if(!gameState.currentShopOffers) {
-                gameState.currentShopOffers = [...SHOP_ITEMS]; // Copy current offers
+            if (!gameState.currentShopOffers) {
+                gameState.currentShopOffers = generateShopOffers();
             }
 
             gameState.currentPerkChoices.forEach(p => perkCards.appendChild(buildPerkCard(p)));
-            
             refreshRerollUI();
-
             gameState.currentShopOffers.forEach(item => shopCards.appendChild(buildShopCard(item)));
+        }
+
+        function generateShopOffers(){
+            // Create a weighted or uniform random selection from SHOP_POOL
+            // For now, uniform is fine. Pick 4.
+            const candidates = [...SHOP_POOL];
+            const offers = [];
+            
+            // Try to pick 4 unique items
+            for(let i=0; i<4; i++){
+                if(candidates.length === 0) break;
+                
+                let idx = randInt(candidates.length);
+                let selected = candidates[idx];
+                
+                // If item is a tool and already owned, don't show it (remove and retry)
+                if(selected.type === 'item' && selected.ref.type === 'tool' && gameState.inventory[selected.ref.id]){
+                    candidates.splice(idx, 1);
+                    i--; // retry
+                    continue;
+                }
+                
+                offers.push(selected);
+                candidates.splice(idx, 1);
+            }
+            return offers;
         }
         
         function refreshRerollUI(){
             const btn = ui('reroll-btn');
-            // クーポンがあればそちらを優先表示、なければエッセンス消費
             if((gameState.rerollCoupons||0) > 0){
                 btn.textContent = `Reroll (Coupon: ${gameState.rerollCoupons})`;
                 btn.classList.remove('hidden');
@@ -1749,11 +1901,9 @@
 
         function rollPerkChoices(){
             const all = Object.values(PERKS);
-            const candidates = all.filter(p => !gameState.perks.has(p.id));
-            const pool = candidates.length >= 3 ? candidates : all;
-            
+            const candidates = [...all];
             const picks = [];
-            const safePool = [...pool];
+            const safePool = [...candidates];
             while(picks.length < 3 && safePool.length > 0){
                 const idx = randInt(safePool.length);
                 picks.push(safePool[idx]);
@@ -1765,37 +1915,38 @@
         function buildPerkCard(perk){
             const card = document.createElement('div');
             card.className = `perk-card glass-panel p-3 cursor-pointer rarity-${perk.rarity} relative hover:bg-white/5 transition-all`;
-            const name = currentLang==='ja' ? perk.name.ja : perk.name.en;
-            const desc = currentLang==='ja' ? perk.desc.ja : perk.desc.en;
-            const owned = gameState.perks.has(perk.id);
             
+            const ownedLevel = gameState.perks[perk.id] || 0;
+            const nextLevel = ownedLevel + 1;
+            
+            const name = currentLang==='ja' ? perk.name.ja : perk.name.en;
+            const desc = getPerkDesc(perk.id, nextLevel); 
+            
+            const isUpgrade = ownedLevel > 0;
+            const badgeText = isUpgrade ? `UPGRADE Lv.${nextLevel}` : 'NEW';
+            const badgeClass = isUpgrade ? 'text-emerald-400' : 'text-sky-400';
+
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-1">
                     <span class="text-[9px] text-slate-400 uppercase tracking-widest">${perk.rarity}</span>
-                    ${owned ? '<span class="text-[9px] text-sky-400 font-bold uppercase">OWNED</span>' : ''}
+                    <span class="text-[9px] ${badgeClass} font-bold uppercase">${badgeText}</span>
                 </div>
-                <div class="text-sm font-black text-white leading-tight mb-1">${name}</div>
+                <div class="text-sm font-black text-white leading-tight mb-1">${name} <span class="text-[10px] text-slate-500">Lv.${ownedLevel}→${nextLevel}</span></div>
                 <div class="text-slate-400 text-[10px] leading-relaxed">${desc}</div>
-                ${!owned ? '<div class="absolute bottom-2 right-2 text-white/10 text-xl font-bold">+</div>' : ''}
+                <div class="absolute bottom-2 right-2 text-white/10 text-xl font-bold">+</div>
             `;
 
-            if(!owned){
-                card.onclick = () => {
-                    acquirePerk(perk.id);
-                    // 選択済みエフェクト
-                    Array.from(perkCards.children).forEach(c => {
-                        c.style.pointerEvents = 'none';
-                        c.style.opacity = '0.4';
-                        c.classList.remove('border-sky-500');
-                    });
-                    card.style.opacity = '1';
-                    card.style.borderColor = '#38bdf8';
-                    card.classList.add('bg-sky-500/10');
-                };
-            } else {
-                card.style.opacity = '0.5';
-                card.style.pointerEvents = 'none';
-            }
+            card.onclick = () => {
+                acquirePerk(perk.id);
+                Array.from(perkCards.children).forEach(c => {
+                    c.style.pointerEvents = 'none';
+                    c.style.opacity = '0.4';
+                    c.classList.remove('border-sky-500');
+                });
+                card.style.opacity = '1';
+                card.style.borderColor = '#38bdf8';
+                card.classList.add('bg-sky-500/10');
+            };
             return card;
         }
 
@@ -1809,18 +1960,21 @@
             const desc = currentLang==='ja' ? def.desc.ja : def.desc.en;
             let cost = item.cost || def.cost;
             
-            // Perk: Bargain
-            if(gameState.perks.has('bargain')) cost = Math.floor(cost * 0.8);
+            if(hasPerk('bargain')){
+                const lv = getPerkLevel('bargain');
+                const discount = 15 + (lv * 5); 
+                cost = Math.floor(cost * (1 - discount/100));
+            }
             
             const canBuy = gameState.essence >= cost;
-            
             let ownedText = '';
             if(item.type==='item' && def.type==='consumable'){
                  const count = gameState.inventory[def.id] || 0;
                  if(count > 0) ownedText = `x${count}`;
+            } else if (item.type==='item' && def.type==='tool'){
+                if(gameState.inventory[def.id]) ownedText = 'OWNED';
             }
 
-            // Compact Shop Card Layout
             card.innerHTML = `
                 <div>
                     <div class="flex items-start justify-between mb-1">
@@ -1839,8 +1993,7 @@
             if(canBuy){
                 btn.onclick = () => {
                     if(item.type === 'item' && def.type==='tool' && gameState.inventory[def.id]){
-                        // One time tool
-                        return;
+                        return; // Prevent duplicate tool
                     }
                 
                     gameState.essence -= cost;
@@ -1856,13 +2009,23 @@
                         item.apply(gameState);
                     }
                     
-                    // Update Essence UI
                     ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
-                    ui('ui-essence').textContent = `${gameState.essence} ✨`;
                     
-                    // Re-render shop to update buttons/owned counts
-                    shopCards.innerHTML = '';
-                    SHOP_ITEMS.forEach(i => shopCards.appendChild(buildShopCard(i)));
+                    // Mark as purchased visually (disable button)
+                    if(item.type === 'item' && def.type==='tool'){
+                         btn.innerHTML = `<span>BOUGHT</span>`;
+                         btn.classList.add('opacity-50', 'cursor-not-allowed');
+                         btn.onclick = null;
+                    } else if (item.id === 'dark_pact' && gameState.hp <= 1){
+                         // Update UI for dark pact risk
+                    }
+                    
+                    // Update owned counts for consumables
+                    if(item.type === 'item' && def.type==='consumable'){
+                        const count = gameState.inventory[def.id];
+                        btn.innerHTML = `<span>BUY</span> <span class="bg-black/40 px-1 rounded text-white/70">x${count}</span>`;
+                    }
+                    
                     refreshRerollUI();
                 };
             }
@@ -1870,14 +2033,12 @@
         }
 
         function acquirePerk(id){
-            gameState.perks.add(id);
-            if(id === 'unseal') gameState.unsealActive = true;
-            if(id === 'reflux') gameState.refluxArmed = true;
+            if(!gameState.perks[id]) gameState.perks[id] = 0;
+            gameState.perks[id]++;
             if(id === 'overflow') {
                 gameState.pressureMax += 4;
                 renderHUD(); 
             }
-            // クーポンの場合、即時反映はしないが次回以降有効になる
             renderHUD();
         }
 
@@ -1888,15 +2049,16 @@
             gameState.essence = 0;
             gameState.hp = 3;
             gameState.maxHp = 3;
-            gameState.perks = new Set();
+            gameState.perks = {};
             gameState.pressure = 0;
             gameState.pressureMax = 14;
             gameState.history = [];
             gameState.inventory = {}; 
-            gameState.unsealActive = false;
-            gameState.refluxArmed = false;
-            gameState.momentumActive = false;
+            gameState.catalystAvailable = true;
+            gameState.refluxUses = 0;
+            gameState.momentumTurns = 0;
             gameState.currentPerkChoices = null; 
+            gameState.currentShopOffers = null; 
             gameState.pipetteMode = false;
             gameState.targetMode = null;
             gameState.rerollCoupons = 0;
@@ -1907,56 +2069,49 @@
 
         function nextFloor(isFirst=false){
             if(!isFirst) gameState.floor += 1;
-            
-            // --- Capacity Progression Logic ---
-            // Floor 1-3: Cap 4
-            // Floor 4-7: Cap 5
-            // Floor 8+: Cap 6 (Max)
             if (gameState.floor >= 8) gameState.capacity = 6;
             else if (gameState.floor >= 4) gameState.capacity = 5;
             else gameState.capacity = 4;
             
-            // Perk: Scavenger logic
-            if(!isFirst && gameState.perks.has('scavenger')){
-                if(Math.random() < 0.15){
-                    const items = ['inverter', 'void_salt', 'separator', 'cycle_siphon']; 
-                    const gift = pick(items);
+            if(!isFirst && hasPerk('scavenger')){
+                const lv = getPerkLevel('scavenger');
+                if(Math.random() < (0.10 + lv * 0.05)){
+                    const itemKeys = Object.keys(ITEMS);
+                    const gift = pick(itemKeys);
                     if(!gameState.inventory[gift]) gameState.inventory[gift] = 0;
                     gameState.inventory[gift]++;
-                    // alert("Scavenger found: " + ITEMS[gift].name[currentLang==='ja'?'ja':'en']);
                     showToast("Scavenger found: " + ITEMS[gift].name[currentLang==='ja'?'ja':'en'], 'emerald');
                 }
             }
-            
-            // Perk: Transmutation Logic (NEW)
-            if(!isFirst && gameState.perks.has('transmutation')){
-                const items = ['inverter', 'void_salt', 'separator', 'cycle_siphon']; 
-                const gift = pick(items);
-                if(!gameState.inventory[gift]) gameState.inventory[gift] = 0;
-                gameState.inventory[gift]++;
-                showToast("Transmutation: Created " + ITEMS[gift].name[currentLang==='ja'?'ja':'en'], 'purple');
+            if(!isFirst && hasPerk('transmutation')){
+                const lv = getPerkLevel('transmutation');
+                for(let i=0; i<lv; i++){
+                    const itemKeys = Object.keys(ITEMS);
+                    const gift = pick(itemKeys);
+                    if(!gameState.inventory[gift]) gameState.inventory[gift] = 0;
+                    gameState.inventory[gift]++;
+                }
+                showToast(`Transmutation: +${lv} Item(s)`, 'purple');
             }
-            
-            // Perk: Deep Adapt Logic
-            if(gameState.perks.has('deep_adapt')){
-                // Gain +1 Max HP if capacity > 4
+            if(hasPerk('deep_adapt')){
+                const lv = getPerkLevel('deep_adapt');
                 if(gameState.capacity > 4){
-                    gameState.maxHp += 1;
-                    gameState.hp += 1; // Heal as well?
+                    gameState.maxHp += lv;
+                    gameState.hp += lv; 
                 }
             }
-
-            // Perk: Coupon Logic
-            if(gameState.perks.has('coupon')){
-                gameState.rerollCoupons = (gameState.rerollCoupons || 0) + 1;
-                showToast("Coupon Gained!", "yellow");
+            if(hasPerk('coupon')){
+                const lv = getPerkLevel('coupon');
+                gameState.rerollCoupons = (gameState.rerollCoupons || 0) + lv;
+                showToast(`Coupon: +${lv}`, "yellow");
             }
 
-            gameState.movesPerFloor = 0; // Unused
+            gameState.movesPerFloor = 0; 
             gameState.turnCount = 0;
             gameState.pressure = 0; 
             gameState.catalystAvailable = true;
-            if(gameState.perks.has('reflux')) gameState.refluxArmed = true;
+            gameState.momentumTurns = 0;
+            gameState.refluxUses = getPerkLevel('reflux');
 
             generateBoard();
             generateGoals();
@@ -1967,7 +2122,6 @@
             gameState.busy = false;
             gameState.targetMode = null;
             gameState.pipetteMode = false;
-            gameState.momentumActive = false;
             
             renderHUD();
             renderBoard();
@@ -1979,7 +2133,7 @@
             let cost = 5; 
             let isFree = false;
             
-            if(gameState.refluxArmed){
+            if(gameState.refluxUses > 0){
                 isFree = true;
             } else if (gameState.essence < cost){
                 ui('ui-essence').classList.add('text-red-500');
@@ -1997,13 +2151,14 @@
             gameState.essence = prev.essence;
             gameState.inventory = prev.inventory; 
             gameState.tubeCount = prev.tubeCount;
-            gameState.capacity = prev.capacity || 4; // Restore capacity
-            gameState.momentumActive = prev.momentumActive;
+            gameState.capacity = prev.capacity || 4; 
+            gameState.momentumTurns = prev.momentumTurns;
+            gameState.refluxUses = prev.refluxUses;
             
             if(isFree){
                 gameState.pressure += 2;
-                gameState.refluxArmed = false;
-                showFloatText(0, "Reflux Used (+2 Pressure)", "#a855f7");
+                gameState.refluxUses--;
+                showFloatText(0, "Reflux Used (+2 P)", "#a855f7");
             } else {
                 gameState.essence -= cost;
             }
@@ -2020,14 +2175,14 @@
             setText('ui-essence', `${gameState.essence} ✨`);
             setText('ui-hp', `HP ${gameState.hp}`);
             
-            // Mobile HUD Updates
             setText('ui-floor-mobile', `${gameState.floor}F`);
             setText('ui-essence-mobile', `${gameState.essence} ✨`);
-            setText('ui-perks-mobile', `🧬 ${gameState.perks.size}`);
+            const totalLevels = Object.values(gameState.perks).reduce((a,b)=>a+b, 0);
+            setText('ui-perks-mobile', `🧬 ${totalLevels}`);
             setText('ui-hp-mobile', `HP ${gameState.hp}`);
 
             setText('ui-turn', `${t('turn')} ${gameState.turnCount}`);
-            setText('ui-perks', `${t('perks')} ${gameState.perks.size}`);
+            setText('ui-perks', `${t('perks')} ${totalLevels}`);
 
             setText('ui-goal', gameState.primaryGoal?.text ?? '—');
             setText('ui-goal-sub', gameState.secondaryGoal?.text ?? '—');
@@ -2057,12 +2212,10 @@
             }
             setText('ui-pressure-sub', `${gameState.pressure} / ${gameState.pressureMax}`);
            
-            
-            // Undoボタンの更新
-            const undoCost = gameState.refluxArmed ? 'FREE' : '5✨';
+            const undoCost = gameState.refluxUses > 0 ? 'FREE' : '5✨';
             if (undoBtn) {
                 undoBtn.innerHTML = `<span>↺</span> UNDO (${undoCost})`;
-                if(!gameState.refluxArmed && gameState.essence < 5 && gameState.history.length > 0){
+                if(gameState.refluxUses <= 0 && gameState.essence < 5 && gameState.history.length > 0){
                     undoBtn.style.opacity = '0.5';
                     undoBtn.style.cursor = 'not-allowed';
                 } else if (gameState.history.length === 0){
@@ -2073,15 +2226,12 @@
                     undoBtn.style.cursor = 'pointer';
                 }
             }
-
             renderSkills();
         }
 
         function moveFocus(dx){
             if(!gameState.tubes.length) return;
             const n = gameState.tubeCount;
-            
-            // キー操作時にフォーカスがなければ0番目を選択して表示開始
             if (gameState.focusIdx === null) {
                 gameState.focusIdx = 0;
             } else {
@@ -2095,31 +2245,22 @@
         if(undoBtn) undoBtn.onclick = () => tryUndo();
         
         ui('reroll-btn').onclick = () => {
-            // Free reroll logic for debug (commented out usually, but lets keep logic clean)
-            if(gameState.debugFreeReroll){
-                gameState.currentPerkChoices = null;
-                gameState.currentShopOffers = null;
-                openPerkScreen(false);
-                showToast(currentLang==='ja'?'デバッグリロール！':'Free reroll!', 'emerald');
-            } else if((gameState.rerollCoupons||0) > 0){
+            if((gameState.rerollCoupons||0) > 0){
                 gameState.rerollCoupons--;
                 showToast(currentLang==='ja'?'クーポンを使用！':'Coupon used!', 'emerald');
-                gameState.currentPerkChoices = null;
-                gameState.currentShopOffers = null;
-                openPerkScreen(false);
-                ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
-                refreshRerollUI();
             } else if(gameState.essence >= 5){
                 gameState.essence -= 5;
-                gameState.currentPerkChoices = null;
-                gameState.currentShopOffers = null;
-                openPerkScreen(false);
-                ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
-                refreshRerollUI();
+            } else {
+                return;
             }
-        };
 
-        // ui('toggle-tests').onchange removed to fix null reference error
+            gameState.currentPerkChoices = null;
+            gameState.currentShopOffers = null;
+
+            openPerkScreen(false);
+            ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
+            refreshRerollUI();
+        };
         
         ui('start-run-btn').onclick = startNewRun;
 
