@@ -745,6 +745,68 @@
                 rarity:'epic',
                 desc:{en:'Gain Max HP based on current tube capacity at start of floor.', ja:'階層開始時、現在のチューブ容量に応じて最大HPが増加する。'},
             }
+            ,
+            laminar_flow: {
+                id:'laminar_flow',
+                name:{en:'Laminar Flow', ja:'層流制御'},
+                rarity:'common',
+                desc:{en:'Once per floor: Your first pour does not increase Pressure.', ja:'各階層1回：最初の注ぎでは圧力が増加しない。'},
+            },
+            fine_instruments: {
+                id:'fine_instruments',
+                name:{en:'Fine Instruments', ja:'精密器具'},
+                rarity:'common',
+                desc:{en:'Gain a Pipette immediately (if you do not already own one).', ja:'即座にピペットを得る（未所持の場合）。'},
+            },
+            residue_refund: {
+                id:'residue_refund',
+                name:{en:'Residue Refund', ja:'残滓キャッシュバック'},
+                rarity:'common',
+                desc:{en:'Once per floor: Your first shop purchase refunds 1 Essence.', ja:'各階層1回：最初の購入でエッセンスを1返金。'},
+            },
+            volatile_ink: {
+                id:'volatile_ink',
+                name:{en:'Volatile Ink', ja:'揮発性インク'},
+                rarity:'common',
+                desc:{en:'Evaporating Obsidian grants +1 Essence.', ja:'黒インク消滅時、追加でエッセンス+1。'},
+            },
+            wardweaver: {
+                id:'wardweaver',
+                name:{en:'Wardweaver', ja:'護符織り'},
+                rarity:'rare',
+                desc:{en:'At start of each floor, gain 1 Black Ward (prevents corrosion once).', ja:'階層開始時にブラックワード+1（腐食を1回防ぐ）。'},
+            },
+            recycler: {
+                id:'recycler',
+                name:{en:'Recycler', ja:'再利用術'},
+                rarity:'rare',
+                desc:{en:'Consumables have a 20% chance not to be consumed.', ja:'消耗品が20%の確率で消費されない。'},
+            },
+            prime_scavenger: {
+                id:'prime_scavenger',
+                name:{en:'Prime Scavenger', ja:'上級スカベンジャー'},
+                rarity:'rare',
+                desc:{en:'20% chance to find an extra random item when descending.', ja:'階層移動時、20%で追加アイテムを拾う。'},
+            },
+            reroll_savant: {
+                id:'reroll_savant',
+                name:{en:'Reroll Savant', ja:'リロール適性'},
+                rarity:'rare',
+                desc:{en:'Once per floor: Your first REROLL is free.', ja:'各階層1回：最初のREROLLが無料。'},
+            },
+            deep_reservoir: {
+                id:'deep_reservoir',
+                name:{en:'Deep Reservoir', ja:'深層リザーバ'},
+                rarity:'epic',
+                desc:{en:'Pressure max +6.', ja:'圧力の最大許容量が+6される。'},
+            },
+            abyssal_patron: {
+                id:'abyssal_patron',
+                name:{en:'Abyssal Patron', ja:'深淵の後援'},
+                rarity:'epic',
+                desc:{en:'At start of each floor, gain +2 Essence.', ja:'階層開始時にエッセンス+2。'},
+            }
+
         };
 
         const ITEMS = {
@@ -796,18 +858,121 @@
                 icon: '⏫',
                 cost: 9
             }
+            ,
+            micro_siphon: {
+                id: 'micro_siphon',
+                type: 'consumable',
+                name: {en:'Micro Siphon', ja:'微小サイフォン'},
+                desc: {en:'【Use】Move top to bottom.', ja:'【使用】一番上を一番下へ'},
+                icon: '⏬',
+                cost: 7
+            },
+            top_swapper: {
+                id: 'top_swapper',
+                type: 'consumable',
+                name: {en:'Top Swapper', ja:'頂部スワッパー'},
+                desc: {en:'【Use】Swap top two segments.', ja:'【使用】一番上の2つを入れ替え'},
+                icon: '🔃',
+                cost: 7
+            },
+            black_magnet: {
+                id: 'black_magnet',
+                type: 'consumable',
+                name: {en:'Black Magnet', ja:'黒磁石'},
+                desc: {en:'【Use】Pull all Black to the top.', ja:'【使用】黒を上に集める'},
+                icon: '🧲',
+                cost: 11
+            }
+
         };
 
         const SHOP_ITEMS = [
             { id:'heal', type:'stat', name:{en:'Stabilizer', ja:'安定剤'}, cost:8, desc:{en:'Heal +1 HP', ja:'HP+1'}, apply(gs){ gs.hp += 1; showToast('HP Recovered!', 'rose'); } },
+            { id:'heal2', type:'stat', name:{en:'Coagulant', ja:'凝固剤'}, cost:13, desc:{en:'Heal +2 HP', ja:'HP+2'}, apply(gs){ gs.hp += 2; showToast('HP Recovered!', 'rose'); } },
+            { id:'heal3', type:'stat', name:{en:'Panacea', ja:'万能薬'}, cost:19, desc:{en:'Heal +3 HP', ja:'HP+3'}, apply(gs){ gs.hp += 3; showToast('HP Recovered!', 'rose'); } },
+
+            { id:'maxhp1', type:'stat', name:{en:'Reinforced Heart', ja:'強化心臓'}, cost:18, desc:{en:'Max HP +1 (also heal +1)', ja:'最大HP+1（同時にHP+1）'}, apply(gs){ gs.maxHp += 1; gs.hp += 1; showToast(currentLang==='ja'?'最大HPが増加！':'Max HP increased!', 'rose'); } },
+            { id:'maxhp2', type:'stat', name:{en:'Twin Hearts', ja:'二重心臓'}, cost:30, desc:{en:'Max HP +2 (also heal +2)', ja:'最大HP+2（同時にHP+2）'}, apply(gs){ gs.maxHp += 2; gs.hp += 2; showToast(currentLang==='ja'?'最大HPが増加！':'Max HP increased!', 'rose'); } },
+
             { id:'relief', type:'stat', name:{en:'Vent Valve', ja:'圧力弁'}, cost:5, desc:{en:'Pressure -5', ja:'圧力-5'}, apply(gs){ gs.pressure = Math.max(0, gs.pressure-5); showToast('Pressure Released!', 'sky'); } },
+            { id:'relief2', type:'stat', name:{en:'Relief Manifold', ja:'減圧マニホールド'}, cost:9, desc:{en:'Pressure -10', ja:'圧力-10'}, apply(gs){ gs.pressure = Math.max(0, gs.pressure-10); showToast('Pressure Released!', 'sky'); } },
+            { id:'relief3', type:'stat', name:{en:'Emergency Purge', ja:'緊急排気'}, cost:14, desc:{en:'Pressure -18', ja:'圧力-18'}, apply(gs){ gs.pressure = Math.max(0, gs.pressure-18); showToast('Pressure Released!', 'sky'); } },
+            { id:'relief0', type:'stat', name:{en:'Full Vent', ja:'全排気'}, cost:12, desc:{en:'Set Pressure to 0', ja:'圧力を0にする'}, apply(gs){ gs.pressure = 0; showToast('Pressure Released!', 'sky'); } },
+
+            { id:'cap2', type:'stat', name:{en:'Pressure Reservoir', ja:'圧力リザーバ'}, cost:14, desc:{en:'Pressure max +2', ja:'圧力上限+2'}, apply(gs){ gs.pressureMax += 2; showToast(currentLang==='ja'?'圧力上限が増加！':'Pressure max increased!', 'sky'); } },
+            { id:'cap4', type:'stat', name:{en:'Reinforced Chamber', ja:'強化チャンバー'}, cost:22, desc:{en:'Pressure max +4', ja:'圧力上限+4'}, apply(gs){ gs.pressureMax += 4; showToast(currentLang==='ja'?'圧力上限が増加！':'Pressure max increased!', 'sky'); } },
+            { id:'cap6', type:'stat', name:{en:'Deep Chamber', ja:'深層チャンバー'}, cost:30, desc:{en:'Pressure max +6', ja:'圧力上限+6'}, apply(gs){ gs.pressureMax += 6; showToast(currentLang==='ja'?'圧力上限が増加！':'Pressure max increased!', 'sky'); } },
+
+            { id:'blackward1', type:'stat', name:{en:'Black Ward', ja:'ブラックワード'}, cost:10, desc:{en:'Prevent corrosion once.', ja:'腐食（黒化）を1回防ぐ'}, apply(gs){ gs.blackWard = (gs.blackWard||0) + 1; showToast(currentLang==='ja'?'護符が脈動している…':'A ward hums softly…', 'purple'); } },
+            { id:'blackward2', type:'stat', name:{en:'Black Ward x2', ja:'ブラックワード×2'}, cost:18, desc:{en:'Prevent corrosion twice.', ja:'腐食（黒化）を2回防ぐ'}, apply(gs){ gs.blackWard = (gs.blackWard||0) + 2; showToast(currentLang==='ja'?'護符が脈動している…':'A ward hums softly…', 'purple'); } },
+
+            { id:'coupon1', type:'stat', name:{en:'Reroll Coupon', ja:'リロールクーポン'}, cost:7, desc:{en:'Your next REROLL is free.', ja:'次回のREROLLが無料になる'}, apply(gs){ gs.rerollCoupons = (gs.rerollCoupons||0) + 1; showToast(currentLang==='ja'?'クーポンを獲得！':'Coupon acquired!', 'emerald'); } },
+            { id:'coupon2', type:'stat', name:{en:'Reroll Coupon x2', ja:'リロールクーポン×2'}, cost:12, desc:{en:'Gain 2 coupons.', ja:'クーポンを2枚得る'}, apply(gs){ gs.rerollCoupons = (gs.rerollCoupons||0) + 2; showToast(currentLang==='ja'?'クーポンを獲得！':'Coupon acquired!', 'emerald'); } },
+
             { id:'buy_pipette', type:'item', ref: ITEMS.pipette },
             { id:'buy_inverter', type:'item', ref: ITEMS.inverter },
             { id:'buy_separator', type:'item', ref: ITEMS.separator },
             { id:'buy_siphon', type:'item', ref: ITEMS.cycle_siphon },
+            { id:'buy_micro', type:'item', ref: ITEMS.micro_siphon },
+            { id:'buy_swap', type:'item', ref: ITEMS.top_swapper },
+            { id:'buy_magnet', type:'item', ref: ITEMS.black_magnet },
             { id:'buy_void', type:'item', ref: ITEMS.void_salt },
             { id:'buy_summon', type:'item', ref: ITEMS.summon_vial },
+
+            { id:'void_bundle', type:'stat', name:{en:'Void Salt x2', ja:'虚無の塩×2'}, cost:14, desc:{en:'Gain 2 Void Salts.', ja:'虚無の塩を2つ得る'}, apply(gs){ const id='void_salt'; if(!gs.inventory[id]) gs.inventory[id]=0; gs.inventory[id]+=2; showToast(currentLang==='ja'?'虚無の塩を補給！':'Void Salt stocked!', 'sky'); } },
+            { id:'salvage_pack', type:'stat', name:{en:'Salvage Pack', ja:'回収パック'}, cost:11, desc:{en:'Gain 2 random consumables.', ja:'ランダムな消耗品を2つ得る'}, apply(gs){
+                const pool = ['inverter','void_salt','separator','cycle_siphon','micro_siphon','top_swapper','black_magnet'];
+                for(let k=0;k<2;k++){ const gift = pick(pool); if(!gs.inventory[gift]) gs.inventory[gift]=0; gs.inventory[gift]++; }
+                showToast(currentLang==='ja'?'回収パックを開封！':'Salvage acquired!', 'sky');
+            } },
+            { id:'adept_pack', type:'stat', name:{en:'Adept Pack', ja:'熟練パック'}, cost:16, desc:{en:'Gain 3 random consumables.', ja:'ランダムな消耗品を3つ得る'}, apply(gs){
+                const pool = ['inverter','void_salt','separator','cycle_siphon','micro_siphon','top_swapper','black_magnet'];
+                for(let k=0;k<3;k++){ const gift = pick(pool); if(!gs.inventory[gift]) gs.inventory[gift]=0; gs.inventory[gift]++; }
+                showToast(currentLang==='ja'?'熟練パックを開封！':'Adept stash acquired!', 'sky');
+            } },
         ];
+
+        const SHOP_DISPLAY_COUNT = 8;
+
+        function rollShopOffers(){
+            const all = SHOP_ITEMS;
+
+            const toolFiltered = all.filter(it => {
+                if(it.type !== 'item') return true;
+                const def = it.ref;
+                if(def?.type === 'tool' && gameState.inventory?.[def.id]) return false;
+                return true;
+            });
+
+            const pool = toolFiltered.length >= SHOP_DISPLAY_COUNT ? toolFiltered : all;
+
+            const picks = [];
+            const safe = [...pool];
+            while(picks.length < SHOP_DISPLAY_COUNT && safe.length > 0){
+                const idx = randInt(safe.length);
+                picks.push(safe[idx]);
+                safe.splice(idx, 1);
+            }
+            return picks;
+        }
+
+        function getRerollMeta(){
+            const coupons = gameState.rerollCoupons || 0;
+            const free = !!gameState.freeRerollThisFloor;
+            const can = free || coupons > 0 || gameState.essence >= 5;
+            let label = 'Reroll (-5✨)';
+            if(free) label = 'Reroll (FREE)';
+            else if(coupons > 0) label = `Reroll (COUPON x${coupons})`;
+            return {can, label};
+        }
+
+        function refreshRerollUI(){
+            if(!rerollBtn) return;
+            const meta = getRerollMeta();
+            rerollBtn.classList.toggle('hidden', !meta.can);
+            rerollBtn.textContent = meta.label;
+        }
+
 
         // --- ゲーム状態 ---
         const gameState = {
@@ -836,6 +1001,12 @@
             currentPerkChoices: null,
             pipetteMode: false,
             targetMode: null, 
+            blackWard: 0,
+            rerollCoupons: 0,
+            currentShopOffers: null,
+            residueRefundUsedThisFloor: false,
+            laminarUsedThisFloor: false,
+            freeRerollThisFloor: false,
         };
 
         // --- DOM ---
@@ -1228,11 +1399,19 @@
         async function applySkillEffect(idx){
             const skillKey = gameState.targetMode;
             const tube = gameState.tubes[idx];
-            
+
             if(!skillKey || !gameState.inventory[skillKey] || gameState.inventory[skillKey] <= 0) return;
-            
+
             let success = false;
-            
+
+            const tryConsume = () => {
+                if(gameState.perks.has('recycler') && Math.random() < 0.20){
+                    showFloatText(idx, currentLang==='ja' ? "再利用!" : "Recycled!", "#22c55e");
+                    return; // not consumed
+                }
+                gameState.inventory[skillKey]--;
+            };
+
             try {
                 gameState.busy = true;
 
@@ -1241,8 +1420,8 @@
                         showFloatText(idx, "Too Empty!", "#ef4444");
                     } else {
                         pushHistory();
-                        gameState.inventory[skillKey]--;
-                        tube.reverse(); 
+                        tryConsume();
+                        tube.reverse();
                         showFloatText(idx, "Inverted!", "#a855f7");
                         success = true;
                     }
@@ -1255,7 +1434,7 @@
                             showFloatText(idx, "Pure Element!", "#ef4444");
                         } else {
                             pushHistory();
-                            gameState.inventory[skillKey]--;
+                            tryConsume();
                             tube.pop();
                             showFloatText(idx, "Voided!", "#a855f7");
                             success = true;
@@ -1266,7 +1445,7 @@
                         showFloatText(idx, "No need!", "#ef4444");
                     } else {
                         pushHistory();
-                        gameState.inventory[skillKey]--;
+                        tryConsume();
                         const counts = {};
                         const order = [];
                         for(const c of tube){
@@ -1278,31 +1457,69 @@
                             for(let i=0; i<counts[c]; i++) newTube.push(c);
                         }
                         gameState.tubes[idx] = newTube;
-                        
                         showFloatText(idx, "Separated!", "#a855f7");
                         success = true;
                     }
                 } else if (skillKey === 'cycle_siphon'){
-                     if(tube.length === 0) {
+                    if(tube.length === 0) {
                         showFloatText(idx, "Empty!", "#ef4444");
-                     } else {
+                    } else {
                         pushHistory();
-                        gameState.inventory[skillKey]--;
-                        const bottom = tube.shift(); // Remove bottom
-                        tube.push(bottom); // Add to top
+                        tryConsume();
+                        const bottom = tube.shift();
+                        tube.push(bottom);
                         showFloatText(idx, "Cycled!", "#a855f7");
                         success = true;
-                     }
+                    }
+                } else if (skillKey === 'micro_siphon'){
+                    if(tube.length === 0) {
+                        showFloatText(idx, "Empty!", "#ef4444");
+                    } else {
+                        pushHistory();
+                        tryConsume();
+                        const top = tube.pop();
+                        tube.unshift(top);
+                        showFloatText(idx, currentLang==='ja' ? "移送!" : "Shifted!", "#a855f7");
+                        success = true;
+                    }
+                } else if (skillKey === 'top_swapper'){
+                    if(tube.length < 2) {
+                        showFloatText(idx, "Too Empty!", "#ef4444");
+                    } else {
+                        pushHistory();
+                        tryConsume();
+                        const a = tube.pop();
+                        const b = tube.pop();
+                        tube.push(a);
+                        tube.push(b);
+                        showFloatText(idx, currentLang==='ja' ? "交換!" : "Swapped!", "#a855f7");
+                        success = true;
+                    }
+                } else if (skillKey === 'black_magnet'){
+                    const blacks = tube.filter(c => c === 'K').length;
+                    if(blacks === 0){
+                        showFloatText(idx, currentLang==='ja' ? "黒なし" : "No Black", "#ef4444");
+                    } else if (tube.length < 2){
+                        showFloatText(idx, "No need!", "#ef4444");
+                    } else {
+                        pushHistory();
+                        tryConsume();
+                        const others = tube.filter(c => c !== 'K');
+                        const ks = new Array(blacks).fill('K');
+                        gameState.tubes[idx] = others.concat(ks);
+                        showFloatText(idx, currentLang==='ja' ? "吸着!" : "Magnetized!", "#a855f7");
+                        success = true;
+                    }
                 }
             } finally {
                 gameState.busy = false;
             }
-            
+
             if(success){
                 gameState.targetMode = null;
                 renderHUD();
                 renderBoard();
-                
+
                 // Check if skill caused completion
                 if(isCompleteTube(gameState.tubes[idx])){
                     await handleCompletion(idx, gameState.tubes[idx][0]);
@@ -1348,6 +1565,12 @@
                 catalystAvailable: gameState.catalystAvailable,
                 essence: gameState.essence,
                 inventory: {...gameState.inventory},
+                blackWard: gameState.blackWard || 0,
+                rerollCoupons: gameState.rerollCoupons || 0,
+                residueRefundUsedThisFloor: !!gameState.residueRefundUsedThisFloor,
+                laminarUsedThisFloor: !!gameState.laminarUsedThisFloor,
+                capacity: gameState.capacity,
+                freeRerollThisFloor: !!gameState.freeRerollThisFloor,
                 tubeCount: gameState.tubeCount,
                 momentumActive: gameState.momentumActive 
             });
@@ -1372,11 +1595,14 @@
                 pushHistory();
                 gameState.busy = true;
                 
-                // --- Momentum Check ---
+                // --- Momentum / Laminar Check ---
                 if(gameState.momentumActive){
                     // 圧力上昇なし
                     gameState.momentumActive = false; // 消費
                     showFloatText(toIdx, "Momentum!", "#a855f7");
+                } else if (gameState.perks.has('laminar_flow') && !gameState.laminarUsedThisFloor){
+                    gameState.laminarUsedThisFloor = true; // First pour this floor
+                    showFloatText(toIdx, currentLang==='ja' ? "層流!" : "Laminar!", "#38bdf8");
                 } else {
                     gameState.pressure += 1;
                 }
@@ -1406,7 +1632,15 @@
                     gameState.hp -= 1;
                     ui('game-container').classList.add('animate-shake');
                     setTimeout(()=>ui('game-container').classList.remove('animate-shake'), 500);
-                    corruptRandomSegment();
+                    let warded = false;
+                    if((gameState.blackWard||0) > 0){
+                        gameState.blackWard -= 1;
+                        warded = true;
+                        showFloatText(toIdx, currentLang==='ja' ? "護符!" : "Ward!", "#a855f7");
+                    }
+                    if(!warded){
+                        corruptRandomSegment();
+                    }
                 }
             } catch (e) {
                 console.error("Game Logic Error:", e);
@@ -1446,6 +1680,12 @@
                     showFloatText(tubeIdx, "Purified! (-3 Pressure)", "#38bdf8");
                 }
                 
+                // Perk: Volatile Ink
+                if(gameState.perks.has('volatile_ink')){
+                    gameState.essence += 1;
+                    showFloatText(tubeIdx, currentLang==='ja' ? "+1✨" : "+1✨", "#22c55e");
+                }
+
                 // エフェクト待機
                 tubeEl.classList.add('evaporating');
                 await new Promise(r => setTimeout(r, 600));
@@ -1730,27 +1970,59 @@
             }
             gameState.currentPerkChoices.forEach(p => perkCards.appendChild(buildPerkCard(p)));
             
-            ui('reroll-btn').classList.toggle('hidden', gameState.essence < 5);
+            if (!gameState.currentShopOffers) {
+                gameState.currentShopOffers = rollShopOffers();
+            }
+            refreshRerollUI();
 
-            SHOP_ITEMS.forEach(item => shopCards.appendChild(buildShopCard(item)));
+            gameState.currentShopOffers.forEach(item => shopCards.appendChild(buildShopCard(item)));
         }
 
         function rollPerkChoices(){
             const all = Object.values(PERKS);
             const candidates = all.filter(p => !gameState.perks.has(p.id));
-            const pool = candidates.length >= 3 ? candidates : all;
-            
-            const picks = [];
-            const safePool = [...pool];
-            while(picks.length < 3 && safePool.length > 0){
-                const idx = randInt(safePool.length);
-                picks.push(safePool[idx]);
-                safePool.splice(idx, 1);
-            }
-            return picks;
-        }
+            const basePool = candidates.length ? candidates : all;
 
-        function buildPerkCard(perk){
+            const floor = gameState.floor || 1;
+            const boost = clamp((floor - 1) / 12, 0, 1); // 深層ほどRare/Epicほんの少し増
+            let wC = 0.70 - 0.12 * boost;
+            let wR = 0.25 + 0.08 * boost;
+            let wE = 0.05 + 0.04 * boost;
+            const sum = wC + wR + wE;
+            wC /= sum; wR /= sum; wE /= sum;
+
+            function pickByRarity(pool){
+                const r = Math.random();
+                let rar = 'common';
+                if(r < wE) rar = 'epic';
+                else if(r < wE + wR) rar = 'rare';
+
+                const bucket = pool.filter(p => p.rarity === rar);
+                return bucket.length ? pick(bucket) : pick(pool);
+            }
+
+            const picks = [];
+            let pool = [...basePool];
+
+            // 最低1枠Common保証（可能なら）
+            const commons = pool.filter(p => p.rarity === 'common');
+            if(commons.length){
+                const p0 = pick(commons);
+                picks.push(p0);
+                pool = pool.filter(p => p.id !== p0.id);
+            }
+
+            while(picks.length < 3 && pool.length){
+                const p = pickByRarity(pool);
+                picks.push(p);
+                pool = pool.filter(x => x.id !== p.id);
+            }
+
+            while(picks.length < 3){
+                picks.push(pick(all));
+            }
+            return picks.slice(0,3);
+        }function buildPerkCard(perk){
             const card = document.createElement('div');
             card.className = `perk-card glass-panel p-3 cursor-pointer rarity-${perk.rarity} relative hover:bg-white/5 transition-all`;
             const name = currentLang==='ja' ? perk.name.ja : perk.name.en;
@@ -1848,22 +2120,49 @@
                     ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
                     ui('ui-essence').textContent = `${gameState.essence} ✨`;
                     
-                    // Re-render shop to update buttons/owned counts
+                    // Residue Refund (first purchase per floor)
+                    if(gameState.perks.has('residue_refund') && !gameState.residueRefundUsedThisFloor){
+                        gameState.essence += 1;
+                        gameState.residueRefundUsedThisFloor = true;
+                        showToast(currentLang==='ja'?'返金：+1✨':'Refund: +1✨', 'emerald');
+                    }
+
+                    // Update Essence UI
+                    ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
+                    ui('ui-essence').textContent = `${gameState.essence} ✨`;
+
+                    // Re-render shop: keep same 8 offers
                     shopCards.innerHTML = '';
-                    SHOP_ITEMS.forEach(i => shopCards.appendChild(buildShopCard(i)));
-                };
+                    (gameState.currentShopOffers || []).forEach(i => shopCards.appendChild(buildShopCard(i)));
+
+                    refreshRerollUI();};
             }
             return card;
         }
 
         function acquirePerk(id){
             gameState.perks.add(id);
+
             if(id === 'unseal') gameState.unsealActive = true;
             if(id === 'reflux') gameState.refluxArmed = true;
+
+            // Immediate perk effects
             if(id === 'overflow') {
                 gameState.pressureMax += 4;
-                renderHUD(); 
             }
+            if(id === 'deep_reservoir'){
+                gameState.pressureMax += 6;
+            }
+            if(id === 'fine_instruments'){
+                if(!gameState.inventory.pipette) gameState.inventory.pipette = 1;
+                showToast(currentLang==='ja'?'ピペットを獲得！':'Pipette acquired!', 'sky');
+            }
+            if(id === 'reroll_savant'){
+                // Enable a free reroll immediately on this perk screen as well
+                gameState.freeRerollThisFloor = true;
+                refreshRerollUI();
+            }
+
             renderHUD();
         }
 
@@ -1878,7 +2177,13 @@
             gameState.pressure = 0;
             gameState.pressureMax = 14;
             gameState.history = [];
-            gameState.inventory = {}; 
+            gameState.inventory = {};
+            gameState.blackWard = 0;
+            gameState.rerollCoupons = 0;
+            gameState.currentShopOffers = null;
+            gameState.residueRefundUsedThisFloor = false;
+            gameState.laminarUsedThisFloor = false;
+            gameState.freeRerollThisFloor = false; 
             gameState.unsealActive = false;
             gameState.refluxArmed = false;
             gameState.momentumActive = false;
@@ -1900,11 +2205,28 @@
             if (gameState.floor >= 8) gameState.capacity = 6;
             else if (gameState.floor >= 4) gameState.capacity = 5;
             else gameState.capacity = 4;
-            
+            // --- Floor start flags / shop offers ---
+            gameState.currentShopOffers = null;
+            gameState.residueRefundUsedThisFloor = false;
+            gameState.laminarUsedThisFloor = false;
+            gameState.freeRerollThisFloor = gameState.perks.has('reroll_savant');
+
+            // Perk: Wardweaver (Black Ward)
+            if(gameState.perks.has('wardweaver')){
+                gameState.blackWard = (gameState.blackWard||0) + 1;
+                showToast(currentLang==='ja'?'ブラックワード +1':'Black Ward +1', 'purple');
+            }
+
+            // Perk: Abyssal Patron
+            if(gameState.perks.has('abyssal_patron')){
+                gameState.essence += 2;
+                showToast(currentLang==='ja'?'後援：+2✨':'Patron: +2✨', 'emerald');
+            }
+
             // Perk: Scavenger logic
             if(!isFirst && gameState.perks.has('scavenger')){
                 if(Math.random() < 0.15){
-                    const items = ['inverter', 'void_salt', 'separator', 'cycle_siphon']; 
+                    const items = ['inverter', 'void_salt', 'separator', 'cycle_siphon', 'micro_siphon', 'top_swapper', 'black_magnet']; 
                     const gift = pick(items);
                     if(!gameState.inventory[gift]) gameState.inventory[gift] = 0;
                     gameState.inventory[gift]++;
@@ -1913,9 +2235,20 @@
                 }
             }
             
+            // Perk: Prime Scavenger logic
+            if(!isFirst && gameState.perks.has('prime_scavenger')){
+                if(Math.random() < 0.20){
+                    const items = ['inverter', 'void_salt', 'separator', 'cycle_siphon', 'micro_siphon', 'top_swapper', 'black_magnet'];
+                    const gift = pick(items);
+                    if(!gameState.inventory[gift]) gameState.inventory[gift] = 0;
+                    gameState.inventory[gift]++;
+                    showToast("Prime found: " + ITEMS[gift].name[currentLang==='ja'?'ja':'en'], 'emerald');
+                }
+            }
+
             // Perk: Transmutation Logic (NEW)
             if(!isFirst && gameState.perks.has('transmutation')){
-                const items = ['inverter', 'void_salt', 'separator', 'cycle_siphon']; 
+                const items = ['inverter', 'void_salt', 'separator', 'cycle_siphon', 'micro_siphon', 'top_swapper', 'black_magnet']; 
                 const gift = pick(items);
                 if(!gameState.inventory[gift]) gameState.inventory[gift] = 0;
                 gameState.inventory[gift]++;
@@ -1974,6 +2307,11 @@
             gameState.catalystAvailable = prev.catalystAvailable;
             gameState.essence = prev.essence;
             gameState.inventory = prev.inventory; 
+            gameState.blackWard = prev.blackWard || 0;
+            gameState.rerollCoupons = prev.rerollCoupons || 0;
+            gameState.residueRefundUsedThisFloor = !!prev.residueRefundUsedThisFloor;
+            gameState.laminarUsedThisFloor = !!prev.laminarUsedThisFloor;
+            gameState.freeRerollThisFloor = !!prev.freeRerollThisFloor;
             gameState.tubeCount = prev.tubeCount;
             gameState.capacity = prev.capacity || 4; // Restore capacity
             gameState.momentumActive = prev.momentumActive;
@@ -2072,12 +2410,27 @@
         if(undoBtn) undoBtn.onclick = () => tryUndo();
         
         ui('reroll-btn').onclick = () => {
-            if(gameState.essence >= 5){
+            const meta = getRerollMeta();
+            if(!meta.can) return;
+
+            if(gameState.freeRerollThisFloor){
+                gameState.freeRerollThisFloor = false;
+                showToast(currentLang==='ja'?'無料リロール！':'Free reroll!', 'emerald');
+            } else if((gameState.rerollCoupons||0) > 0){
+                gameState.rerollCoupons--;
+                showToast(currentLang==='ja'?'クーポンを使用！':'Coupon used!', 'emerald');
+            } else if(gameState.essence >= 5){
                 gameState.essence -= 5;
-                gameState.currentPerkChoices = null; 
-                openPerkScreen(false); 
-                ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
+            } else {
+                return;
             }
+
+            gameState.currentPerkChoices = null;
+            gameState.currentShopOffers = null;
+
+            openPerkScreen(false);
+            ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
+            refreshRerollUI();
         };
 
         ui('toggle-tests').onchange = (e) => {
