@@ -442,8 +442,17 @@
             <h1 class="relative text-5xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-sky-300 via-sky-500 to-indigo-600 drop-shadow-2xl leading-tight">ABYSSAL<br>ALCHEMY</h1>
             <p id="start-subtitle" class="relative text-sky-200/60 font-medium tracking-[0.5em] uppercase text-xs mt-4">錬金術の深淵</p>
         </div>
-        <button id="start-run-btn" class="w-full max-w-xs py-5 bg-sky-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-sky-500/20 hover:bg-sky-500 hover:shadow-sky-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0">探索を開始</button>
-        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.2.1 Stable Chemistry</p>
+        
+        <div class="flex flex-col gap-3 w-full max-w-xs">
+            <button id="continue-run-btn" class="hidden w-full py-4 bg-emerald-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-emerald-500/20 hover:bg-emerald-500 hover:shadow-emerald-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0 flex items-center justify-center gap-2">
+                <span>▶</span> <span id="continue-btn-text">つづきから</span>
+            </button>
+            <button id="start-run-btn" class="w-full py-4 bg-sky-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-sky-500/20 hover:bg-sky-500 hover:shadow-sky-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0">
+                探索を開始
+            </button>
+        </div>
+
+        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.3.0 Auto Save</p>
     </div>
 
     <!-- 変異選択 & ショップ画面 -->
@@ -540,11 +549,63 @@
             }, 3000);
         }
 
+        // --- セーブ機能 (LocalStorage) ---
+        const SAVE_KEY = 'abyssal_alchemy_save_v1';
+
+        function saveGame() {
+            try {
+                // セーブデータを作成 (gameState全体)
+                const data = JSON.stringify(gameState);
+                localStorage.setItem(SAVE_KEY, data);
+                // console.log("Game Saved");
+            } catch (e) {
+                console.error("Save failed:", e);
+                showToast("Save failed (Storage Full?)", "red");
+            }
+        }
+
+        function loadGame() {
+            try {
+                const data = localStorage.getItem(SAVE_KEY);
+                if (data) {
+                    const loadedState = JSON.parse(data);
+                    // 既存のgameStateにマージ (新しいプロパティが増えた場合のため)
+                    Object.assign(gameState, loadedState);
+                    
+                    // UI更新関連
+                    updateTubeLayout();
+                    
+                    // ショップ画面が開いていた場合は閉じる（あるいは復元する）
+                    // 今回はシンプルにゲーム画面に戻す
+                    perkScreen.classList.add('hidden');
+                    startScreen.classList.add('hidden');
+                    
+                    renderHUD();
+                    renderBoard();
+                    showToast(currentLang==='ja'?'再開しました':'Game Loaded', 'emerald');
+                    return true;
+                }
+            } catch (e) {
+                console.error("Load failed:", e);
+                showToast("Save data corrupted", "red");
+            }
+            return false;
+        }
+
+        function clearSave() {
+            localStorage.removeItem(SAVE_KEY);
+        }
+
+        function hasSaveData() {
+            return !!localStorage.getItem(SAVE_KEY);
+        }
+
         // --- 翻訳データ ---
         const translations = {
             en: {
                 subtitle: "Abyssal Alchemy",
-                startBtn: "Begin Descent",
+                startBtn: "New Descent",
+                continueBtn: "Continue",
                 vitality: "HP",
                 floor: "FLOOR",
                 essence: "Essence",
@@ -577,7 +638,8 @@
             },
             ja: {
                 subtitle: "錬金術の深淵",
-                startBtn: "探索を開始",
+                startBtn: "新たな探索",
+                continueBtn: "つづきから",
                 vitality: "HP",
                 floor: "階層",
                 essence: "エッセンス",
@@ -617,6 +679,7 @@
             document.getElementById('lang-en').classList.toggle('active', lang==='en');
             document.getElementById('lang-ja').classList.toggle('active', lang==='ja');
             applyLang();
+            updateStartScreenButtons();
             renderHUD();
         }
 
@@ -627,6 +690,7 @@
         function applyLang(){
             setText('start-subtitle', t('subtitle'));
             setText('start-run-btn', t('startBtn'));
+            setText('continue-btn-text', t('continueBtn'));
             setText('ui-subtitle', t('subtitle'));
             setText('ui-title', translations.en.subtitle);
             setText('ui-goal-title', t('goalTitle'));
@@ -927,6 +991,7 @@
         const devTests = ui('dev-tests');
         const alertBanner = ui('alert-banner');
         const undoBtn = ui('btn-undo');
+        const continueRunBtn = ui('continue-run-btn');
 
         // --- Helper ---
         function getPerkLevel(id){ return gameState.perks[id] || 0; }
@@ -1031,6 +1096,9 @@
                 : `Area Cleared! +${base}✨${bonus>0 ? ` (Bonus +${bonus}✨)` : ''}`;
             
             showToast(msg, bonus>0 ? 'emerald' : 'sky');
+            
+            // Auto Save
+            saveGame();
             
             // 少し待ってから次へ
             setTimeout(() => openPerkScreen(false), 1500);
@@ -1252,6 +1320,7 @@
                      gameState.inventory[key]--;
                      gameState.tubeCount++;
                      gameState.tubes.push([]);
+                     saveGame(); // SAVE
                      renderBoard();
                      showFloatText(gameState.tubes.length-1, "Summoned!", "#a855f7");
                      showToast(currentLang==='ja'?'空き瓶を追加しました！':'Extra Tube Added!', 'purple');
@@ -1262,6 +1331,7 @@
                  if(gameState.inventory[key] > 0){
                      gameState.inventory[key]--;
                      gameState.pressure = 0;
+                     saveGame(); // SAVE
                      renderHUD();
                      showToast("Sedated! Pressure 0.", 'purple');
                  }
@@ -1463,6 +1533,10 @@
                 gameState.targetMode = null;
                 renderHUD();
                 renderBoard();
+                
+                // Auto Save on successful item use
+                saveGame();
+                
                 if(isCompleteTube(gameState.tubes[idx])){
                     await handleCompletion(idx, gameState.tubes[idx][0]);
                 }
@@ -1556,6 +1630,9 @@
                 for (let i=0;i<moveCount;i++){
                     to.push(from.pop());
                 }
+                
+                // Auto Save after move
+                saveGame();
 
                 if(isCompleteTube(to)){
                     await handleCompletion(toIdx, to[0]);
@@ -1580,6 +1657,7 @@
                         ui('game-container').classList.add('animate-shake');
                         setTimeout(()=>ui('game-container').classList.remove('animate-shake'), 500);
                         corruptRandomSegment();
+                        saveGame(); // Save HP loss
                     }
                 }
             } catch (e) {
@@ -1590,6 +1668,7 @@
             }
 
             if (gameState.hp <= 0){
+                clearSave(); // DELETE SAVE ON DEATH
                 openPerkScreen(true);
                 return;
             }
@@ -1649,6 +1728,8 @@
             }
             
             checkSecondaryGoalOnComplete();
+            
+            saveGame(); // Save progress before event
             await showCompletionEvent(colorKey);
         }
 
@@ -1777,6 +1858,7 @@
                     `;
                     card.onclick = () => {
                         ch.apply();
+                        saveGame(); // Save event choice result
                         eventScreen.classList.add('hidden');
                         eventScreen.classList.remove('flex');
                         renderHUD();
@@ -1934,6 +2016,8 @@
             refreshRerollUI();
             gameState.currentShopOffers.forEach(item => shopCards.appendChild(buildShopCard(item)));
             updateShopButtons(); // Init button states
+            
+            saveGame(); // Save state at shop
         }
 
         function generateShareText(){
@@ -1990,8 +2074,6 @@
                 btn.textContent = `Reroll (-5✨)`;
                 btn.classList.toggle('hidden', gameState.essence < 5);
             }
-            // Ensure shop buttons are updated when essence changes via reroll logic if needed,
-            // though reroll rebuilds the shop anyway.
         }
 
         function rollPerkChoices(){
@@ -2140,6 +2222,7 @@
                         btn.innerHTML = `<span>BUY</span> <span class="bg-black/40 px-1 rounded text-white/70">x${count}</span>`;
                     }
                     
+                    saveGame(); // Save after purchase
                     refreshRerollUI();
                     updateShopButtons(); // Refresh ALL buttons based on new essence
                 };
@@ -2177,10 +2260,12 @@
                 renderHUD(); 
             }
             renderHUD();
+            saveGame(); // Save Perk acquisition
         }
 
         // --- Core Loop ---
         function startNewRun(){
+            clearSave(); // CLEAR OLD SAVE
             startScreen.classList.add('hidden');
             gameState.floor = 1;
             gameState.essence = 0;
@@ -2262,6 +2347,8 @@
             
             renderHUD();
             renderBoard();
+            
+            saveGame(); // SAVE ON NEW FLOOR
         }
 
         function tryUndo(){
@@ -2304,6 +2391,8 @@
             updateTubeLayout();
             renderHUD();
             renderBoard();
+            
+            saveGame(); // Save state after Undo
         }
 
         // --- HUD ---
@@ -2376,6 +2465,15 @@
             }
             renderBoard();
         }
+        
+        // Start Screen Buttons logic
+        function updateStartScreenButtons() {
+            if (hasSaveData()) {
+                continueRunBtn.classList.remove('hidden');
+            } else {
+                continueRunBtn.classList.add('hidden');
+            }
+        }
 
         ui('btn-help').onclick = () => ui('help-screen').classList.replace('hidden', 'flex');
         ui('help-close').onclick = () => ui('help-screen').classList.replace('flex', 'hidden');
@@ -2397,9 +2495,14 @@
             openPerkScreen(false);
             ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
             refreshRerollUI();
+            saveGame(); // Save Reroll cost
         };
         
         ui('start-run-btn').onclick = startNewRun;
+        ui('continue-run-btn').onclick = () => {
+            startScreen.classList.add('hidden');
+            loadGame();
+        };
 
         window.onkeydown = (e) => {
             if(!perkScreen.classList.contains('hidden')) return;
@@ -2415,7 +2518,9 @@
             if (e.key === 'Backspace' || e.key === 'z') tryUndo();
         };
 
+        // Init
         applyLang();
+        updateStartScreenButtons();
         
     </script>
 </body>
