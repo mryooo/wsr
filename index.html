@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Abyssal Alchemy</title>
+    <title>Abyssal Alchemy - Water Sort Rogue</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
@@ -164,15 +164,15 @@
             overflow: hidden;
         }
         .perk-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
             border-color: rgba(56,189,248,0.35);
         }
 
         /* レアリティ */
-        .rarity-common{ border-left: 4px solid var(--rarity-common); }
-        .rarity-rare{ border-left: 4px solid var(--rarity-rare); }
-        .rarity-epic{ border-left: 4px solid var(--rarity-epic); }
+        .rarity-common{ border-left: 3px solid var(--rarity-common); }
+        .rarity-rare{ border-left: 3px solid var(--rarity-rare); }
+        .rarity-epic{ border-left: 3px solid var(--rarity-epic); }
         
         /* スキルボタン & ツールチップ */
         .skill-btn {
@@ -347,7 +347,7 @@
             <div class="flex items-center gap-4">
                 <div>
                     <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]" id="ui-subtitle">錬金術の深淵</div>
-                    <div class="text-xl md:text-2xl font-black tracking-tight leading-none bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent" id="ui-title">Alchemical Descent</div>
+                    <div class="text-xl md:text-2xl font-black tracking-tight leading-none bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent" id="ui-title">Abyssal Alchemy</div>
                 </div>
                 <div class="hidden md:flex items-center gap-3 ml-4">
                     <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold border border-white/5" id="ui-floor">FLOOR 1</span>
@@ -444,46 +444,62 @@
 
         <div class="text-center mb-16 floating relative">
             <div class="absolute inset-0 bg-sky-500/20 blur-[100px] rounded-full"></div>
-            <h1 class="relative text-7xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-sky-300 via-sky-500 to-indigo-600 drop-shadow-2xl">Abyssal Alchemy</h1>
+            <h1 class="relative text-5xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-sky-300 via-sky-500 to-indigo-600 drop-shadow-2xl leading-tight">ABYSSAL<br>ALCHEMY</h1>
             <p id="start-subtitle" class="relative text-sky-200/60 font-medium tracking-[0.5em] uppercase text-xs mt-4">錬金術の深淵</p>
         </div>
         <button id="start-run-btn" class="w-full max-w-xs py-5 bg-sky-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-sky-500/20 hover:bg-sky-500 hover:shadow-sky-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0">探索を開始</button>
-        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 1.6.2 Language Fix</p>
+        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 1.7.0 Layout Fix</p>
     </div>
 
-    <!-- 変異選択 & ショップ画面 -->
-    <div id="perk-screen" class="fixed inset-0 z-[150] bg-slate-950 flex flex-col items-center justify-start p-6 hidden overflow-y-auto">
-        <div class="w-full max-w-4xl mt-4 md:mt-8 pb-10">
-            <div class="flex justify-between items-end mb-6 pb-4 border-b border-white/5">
+    <!-- 変異選択 & ショップ画面 (Layout Revised: 1-screen fit) -->
+    <div id="perk-screen" class="fixed inset-0 z-[150] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
+        <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
+            
+            <!-- Header -->
+            <div class="flex justify-between items-center p-4 md:p-6 border-b border-white/5 shrink-0 bg-slate-900/40">
                 <div>
-                    <h2 id="perk-title" class="text-3xl md:text-4xl font-black text-white italic uppercase leading-none">変異の兆し</h2>
-                    <p id="perk-subtitle" class="text-slate-400 text-xs mt-2 uppercase tracking-widest">無料の強化を1つ選択</p>
+                    <h2 id="perk-title" class="text-xl md:text-3xl font-black text-white italic uppercase leading-none">変異の兆し</h2>
+                    <p id="perk-subtitle" class="text-slate-400 text-[10px] md:text-xs mt-1 uppercase tracking-widest">無料の強化を1つ選択</p>
                 </div>
-                <div class="text-right">
-                    <button id="reroll-btn" class="px-4 py-2 glass-panel border border-white/5 text-xs font-black uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all hidden">Reroll (-5 ✨)</button>
-                    <div class="text-xs font-bold text-sky-400 mt-2 uppercase tracking-[0.2em] bg-sky-900/30 px-3 py-1 rounded" id="perk-essence">Essence: 0 ✨</div>
+                <div class="text-right flex flex-col items-end gap-2">
+                    <button id="reroll-btn" class="px-3 py-1 glass-panel border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all hidden">Reroll (-5✨)</button>
+                    <!-- スマホ用のEssence表示はショップ内に統合することも検討したが、ここが見やすい -->
                 </div>
             </div>
 
-            <!-- Perks Section -->
-            <div id="perk-section-container">
-                <div class="grid md:grid-cols-3 gap-4" id="perk-cards"></div>
+            <!-- Main Content (Split Layout) -->
+            <div class="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+                
+                <!-- Left: Perks -->
+                <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-white/5 bg-slate-900/20">
+                    <div class="text-sm font-bold mb-3 text-sky-300 uppercase tracking-widest flex items-center gap-2">
+                        <span>🧬 Mutations</span>
+                        <span class="text-[10px] text-slate-500 font-normal normal-case">Pick One</span>
+                    </div>
+                    <div class="grid gap-3" id="perk-cards">
+                        <!-- Perks injected here -->
+                    </div>
+                </div>
+
+                <!-- Right: Shop -->
+                <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="text-sm font-bold text-yellow-500 uppercase tracking-widest flex items-center gap-2">
+                            <span>◈ Shop</span>
+                        </div>
+                        <div class="text-[10px] font-bold text-sky-400 bg-sky-900/30 px-2 py-1 rounded border border-sky-500/20" id="perk-essence">Essence: 0 ✨</div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3" id="shop-cards">
+                        <!-- Shop Items injected here -->
+                    </div>
+
+                    <div class="mt-auto pt-6 flex justify-center">
+                        <button id="continue-btn" class="w-full py-3 bg-indigo-600 rounded-xl font-black text-white text-sm uppercase tracking-widest shadow-lg shadow-indigo-900/40 hover:bg-indigo-500 transition-all active:scale-95">Next Floor</button>
+                    </div>
+                </div>
             </div>
 
-            <!-- Shop Section -->
-            <div class="mt-12 pt-6 border-t border-white/5">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xl font-black tracking-tight text-white/90 uppercase flex items-center gap-2">
-                        <span class="text-yellow-500">◈</span> Shop
-                    </h3>
-                    <div class="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Trade Essence for survival</div>
-                </div>
-                <div class="grid md:grid-cols-3 gap-4" id="shop-cards"></div>
-
-                <div class="mt-8 flex justify-center">
-                    <button id="continue-btn" class="w-full max-w-md py-4 bg-indigo-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-lg shadow-indigo-900/40 hover:bg-indigo-500 transition-all active:scale-95">Continue</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -551,7 +567,7 @@
         // --- 翻訳データ ---
         const translations = {
             en: {
-                subtitle: "Alchemical Descent",
+                subtitle: "Abyssal Alchemy",
                 startBtn: "Begin Descent",
                 vitality: "HP",
                 floor: "FLOOR",
@@ -730,7 +746,7 @@
                 id: 'inverter',
                 type: 'consumable',
                 name: {en:'Gravity Coil', ja:'重力反転機'},
-                desc: {en:'【Use】Invert contents.', ja:'【使用品】中身を上下反転'},
+                desc: {en:'【Use】Invert contents.', ja:'【使用】中身を上下反転'},
                 icon: '🔄',
                 cost: 6
             },
@@ -738,7 +754,7 @@
                 id: 'void_salt',
                 type: 'consumable',
                 name: {en:'Void Salt', ja:'虚無の塩'},
-                desc: {en:'【Use】Remove top Black.', ja:'【使用品】一番上の【黒】を除去'},
+                desc: {en:'【Use】Remove top Black.', ja:'【使用】一番上の【黒】を除去'},
                 icon: '🧂',
                 cost: 8
             },
@@ -746,7 +762,7 @@
                 id: 'separator',
                 type: 'consumable',
                 name: {en:'Separator', ja:'遠心分離機'},
-                desc: {en:'【Use】Sort tube contents.', ja:'【使用品】中身を整理する'},
+                desc: {en:'【Use】Sort tube contents.', ja:'【使用】中身を整理する'},
                 icon: '🌪️',
                 cost: 12
             },
@@ -754,7 +770,7 @@
                 id: 'summon_vial',
                 type: 'consumable',
                 name: {en:'Extra Vial', ja:'予備フラスコ'},
-                desc: {en:'【Use】Add an empty tube.', ja:'【使用品】空き瓶を1つ追加'},
+                desc: {en:'【Use】Add an empty tube.', ja:'【使用】空き瓶を1つ追加'},
                 icon: '🧪',
                 cost: 15
             },
@@ -763,7 +779,7 @@
                 id: 'cycle_siphon',
                 type: 'consumable',
                 name: {en:'Cycle Siphon', ja:'循環サイフォン'},
-                desc: {en:'【Use】Move bottom to top.', ja:'【使用品】一番下を一番上へ'},
+                desc: {en:'【Use】Move bottom to top.', ja:'【使用】一番下を一番上へ'},
                 icon: '⏫',
                 cost: 9
             }
@@ -1565,27 +1581,27 @@
 
             ui('perk-title').textContent = isDeath ? t('gameOver') : t('victory');
             ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : t('victorySub');
-            ui('perk-essence').textContent = `${t('essence')}: ${gameState.essence} ✨`;
+            ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
 
+            // Reset contents
             perkCards.innerHTML = '';
+            shopCards.innerHTML = '';
             
             if(isDeath){
-                ui('perk-section-container').style.display = 'none';
-                shopCards.innerHTML = ''; 
-                
-                const restartDiv = document.createElement('div');
-                restartDiv.className = 'col-span-3 text-center py-10';
-                restartDiv.innerHTML = `
-                    <p class="text-slate-400 mb-6">Floor Reached: ${gameState.floor}</p>
-                    <button onclick="startNewRun()" class="px-8 py-4 bg-rose-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-rose-500 shadow-lg shadow-rose-900/40">Try Again</button>
+                // シンプルなGameOver画面にするため、shop等は非表示でも良いが
+                // ここではPerkAreaを隠し、ShopAreaにRestartボタンだけ置くなどの処理
+                perkCards.innerHTML = `<div class="text-slate-500 text-sm">No mutations acquired.</div>`; 
+                // shopCardsエリアを使ってリスタートボタンを表示
+                shopCards.innerHTML = `
+                    <div class="col-span-full text-center py-10">
+                        <p class="text-slate-400 mb-6 font-bold text-xl">Floor Reached: ${gameState.floor}</p>
+                        <button onclick="startNewRun()" class="px-8 py-4 bg-rose-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-rose-500 shadow-lg shadow-rose-900/40 transform transition hover:-translate-y-1">Try Again</button>
+                    </div>
                 `;
-                shopCards.appendChild(restartDiv);
-                
                 continueBtn.style.display = 'none';
                 return;
             }
 
-            ui('perk-section-container').style.display = 'block';
             continueBtn.style.display = 'block';
             continueBtn.textContent = t('continue');
             continueBtn.onclick = () => {
@@ -1600,7 +1616,6 @@
             
             ui('reroll-btn').classList.toggle('hidden', gameState.essence < 5);
 
-            shopCards.innerHTML = '';
             SHOP_ITEMS.forEach(item => shopCards.appendChild(buildShopCard(item)));
         }
 
@@ -1621,31 +1636,33 @@
 
         function buildPerkCard(perk){
             const card = document.createElement('div');
-            card.className = `perk-card glass-panel p-5 cursor-pointer rarity-${perk.rarity} relative`;
+            card.className = `perk-card glass-panel p-3 cursor-pointer rarity-${perk.rarity} relative hover:bg-white/5 transition-all`;
             const name = currentLang==='ja' ? perk.name.ja : perk.name.en;
             const desc = currentLang==='ja' ? perk.desc.ja : perk.desc.en;
             const owned = gameState.perks.has(perk.id);
             
             card.innerHTML = `
-                <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]">${perk.rarity}</div>
-                <div class="text-lg font-black mt-2 text-white">${name}</div>
-                <div class="text-slate-400 text-xs mt-2 leading-relaxed h-12">${desc}</div>
-                <div class="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
-                    <span class="text-[10px] text-sky-400 uppercase tracking-widest">${owned ? 'OWNED' : 'FREE'}</span>
-                    <span class="text-2xl text-white/10 font-black absolute bottom-2 right-4 pointer-events-none icon-bg">+</span>
+                <div class="flex justify-between items-start mb-1">
+                    <span class="text-[9px] text-slate-400 uppercase tracking-widest">${perk.rarity}</span>
+                    ${owned ? '<span class="text-[9px] text-sky-400 font-bold uppercase">OWNED</span>' : ''}
                 </div>
+                <div class="text-sm font-black text-white leading-tight mb-1">${name}</div>
+                <div class="text-slate-400 text-[10px] leading-relaxed">${desc}</div>
+                ${!owned ? '<div class="absolute bottom-2 right-2 text-white/10 text-xl font-bold">+</div>' : ''}
             `;
+
             if(!owned){
                 card.onclick = () => {
                     acquirePerk(perk.id);
+                    // 選択済みエフェクト
                     Array.from(perkCards.children).forEach(c => {
                         c.style.pointerEvents = 'none';
                         c.style.opacity = '0.4';
+                        c.classList.remove('border-sky-500');
                     });
                     card.style.opacity = '1';
                     card.style.borderColor = '#38bdf8';
-                    card.style.transform = 'scale(1.05)';
-                    card.style.boxShadow = '0 0 20px rgba(56,189,248,0.2)';
+                    card.classList.add('bg-sky-500/10');
                 };
             } else {
                 card.style.opacity = '0.5';
@@ -1656,7 +1673,7 @@
 
         function buildShopCard(item){
             const card = document.createElement('div');
-            card.className = 'glass-panel p-5 flex flex-col justify-between';
+            card.className = 'glass-panel p-3 flex flex-col justify-between relative group hover:border-white/20 transition-all';
             
             const def = item.type==='item' ? item.ref : item;
             
@@ -1670,24 +1687,23 @@
             const canBuy = gameState.essence >= cost;
             
             let ownedText = '';
-            if(item.type==='item' && def.type==='tool'){
-                if(gameState.inventory[def.id]) ownedText = '(OWNED)';
-            }
             if(item.type==='item' && def.type==='consumable'){
                  const count = gameState.inventory[def.id] || 0;
-                 if(count > 0) ownedText = `(Held: ${count})`;
+                 if(count > 0) ownedText = `x${count}`;
             }
 
+            // Compact Shop Card Layout
             card.innerHTML = `
                 <div>
-                    <div class="flex items-center justify-between">
-                        <div class="text-base font-black text-white">${name} ${ownedText}</div>
-                        <div class="text-sky-300 text-sm font-black">${cost} ✨</div>
+                    <div class="flex items-start justify-between mb-1">
+                        <div class="text-xs font-black text-white truncate pr-1">${name}</div>
+                        <div class="text-sky-300 text-[10px] font-bold whitespace-nowrap">${cost}✨</div>
                     </div>
-                    <div class="text-slate-400 text-xs mt-2">${desc}</div>
+                    <div class="text-slate-500 text-[9px] leading-tight h-8 overflow-hidden">${desc}</div>
                 </div>
-                <button class="mt-4 w-full py-2 bg-white/5 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${canBuy ? 'hover:bg-sky-500 hover:text-white' : 'opacity-50 cursor-not-allowed'}">
-                    BUY
+                <button class="mt-2 w-full py-1.5 bg-white/5 rounded font-bold text-[10px] uppercase tracking-widest transition-all ${canBuy ? 'hover:bg-sky-500 hover:text-white' : 'opacity-30 cursor-not-allowed'} flex items-center justify-center gap-1">
+                    <span>BUY</span>
+                    ${ownedText ? `<span class="bg-black/40 px-1 rounded text-white/70">${ownedText}</span>` : ''}
                 </button>
             `;
             
@@ -1695,7 +1711,7 @@
             if(canBuy){
                 btn.onclick = () => {
                     if(item.type === 'item' && def.type==='tool' && gameState.inventory[def.id]){
-                        btn.textContent = "OWNED";
+                        // One time tool
                         return;
                     }
                 
@@ -1712,9 +1728,13 @@
                         item.apply(gameState);
                     }
                     
-                    ui('perk-essence').textContent = `${t('essence')}: ${gameState.essence} ✨`;
-                    renderHUD();
-                    openPerkScreen(false);
+                    // Update Essence UI
+                    ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
+                    ui('ui-essence').textContent = `${gameState.essence} ✨`;
+                    
+                    // Re-render shop to update buttons/owned counts
+                    shopCards.innerHTML = '';
+                    SHOP_ITEMS.forEach(i => shopCards.appendChild(buildShopCard(i)));
                 };
             }
             return card;
@@ -1930,7 +1950,7 @@
                 gameState.essence -= 5;
                 gameState.currentPerkChoices = null; 
                 openPerkScreen(false); 
-                ui('perk-essence').textContent = `${t('essence')}: ${gameState.essence} ✨`;
+                ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
             }
         };
 
