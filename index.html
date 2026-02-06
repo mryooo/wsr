@@ -522,7 +522,7 @@
             </button>
         </div>
 
-        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.9.3 Bug Fix (Variable Scope)</p>
+        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.10.0 Perk Selection Update</p>
     </div>
 
     <!-- 変異選択 & ショップ画面 -->
@@ -681,7 +681,7 @@
         }
 
         // --- セーブ機能 (LocalStorage) ---
-        const SAVE_KEY = 'abyss_alchemy_save_v1';
+        const SAVE_KEY = 'abyssal_alchemy_save_v1';
         function saveGame() {
             try {
                 const data = JSON.stringify(gameState);
@@ -795,6 +795,19 @@
         };
 
         let currentLang = 'ja';
+
+        function updateStartScreenButtons(){
+        const hasSave = hasSaveData();
+
+        // 「つづきから」ボタンの表示/非表示
+        const cbtn = ui('continue-run-btn');
+        if (cbtn) cbtn.classList.toggle('hidden', !hasSave);
+
+        // 文言は applyLang() が更新しているが、保険で再設定
+        setText('start-run-btn', t('startBtn'));
+        setText('continue-btn-text', t('continueBtn'));
+        }
+
         function setLang(lang){
             currentLang = lang;
             document.getElementById('lang-en').classList.toggle('active', lang==='en');
@@ -1088,56 +1101,21 @@
                 } 
             },
             { 
-                id:'relief', type:'stat', cost:5, 
-                name:{en:'Vent Valve', ja:'圧力弁'}, 
-                desc:{en:'Pressure -5', ja:'圧力-5'}, 
-                apply(gs){ gs.pressure = Math.max(0, gs.pressure-5); showToast('Pressure Released!', 'sky'); } 
-            },
-            { 
-                id:'relief_small', type:'stat', cost:2, 
-                name:{en:'Tiny Vent', ja:'微小ベント'}, 
-                desc:{en:'Pressure -2', ja:'圧力-2'}, 
-                apply(gs){ gs.pressure = Math.max(0, gs.pressure-2); showToast('Minor Relief.', 'sky'); } 
-            },
-            { 
-                id:'sedative_pill', type:'stat', cost:6, 
-                name:{en:'Sedative Pill', ja:'鎮静カプセル'}, 
-                desc:{en:'Pressure / 2', ja:'圧力を半分にする'}, 
-                apply(gs){ gs.pressure = Math.floor(gs.pressure/2); showToast('Feeling Calm...', 'sky'); } 
-            },
-            { 
-                id:'risky_tonic', type:'stat', cost:0, 
-                name:{en:'Risky Tonic', ja:'気付け薬'}, 
-                desc:{en:'P+2, Essence+5', ja:'圧力+2、代わりにエッセンス+5'}, 
-                apply(gs){ gs.pressure += 2; gs.essence += 5; showToast('Burst of energy!', 'emerald'); } 
-            },
-            { 
-                id:'emergency_repair', type:'stat', cost:12, 
-                name:{en:'Emergency Aid', ja:'緊急搬送'}, 
-                desc:{en:'HP+1, Pressure+2', ja:'HP+1, ただし圧力+2'}, 
-                apply(gs){ 
-                    gs.hp = Math.min(gs.maxHp, gs.hp + 1);
-                    gs.pressure += 2;
-                    showToast('Survival comes at a cost.', 'rose'); 
-                } 
-            },
-            { 
                 id:'panacea', type:'stat', cost:20, 
                 name:{en:'Panacea', ja:'万能薬'}, 
-                desc:{en:'HP+1, Pressure=0', ja:'HP+1, 圧力全回復'}, 
+                desc:{en:'HP+2', ja:'HP+2'}, 
                 apply(gs){ 
-                    gs.hp = Math.min(gs.maxHp, gs.hp + 1);
-                    gs.pressure = 0; 
+                    gs.hp = Math.min(gs.maxHp, gs.hp + 2);
                     showToast('Full Restore!', 'emerald'); 
                 } 
             },
             { 
                 id:'dark_pact', type:'stat', cost:0, 
                 name:{en:'Dark Pact', ja:'黒の契約'}, 
-                desc:{en:'HP-1, +20 Ess', ja:'HP-1, +20エッセンス'}, 
+                desc:{en:'HP-1, +20 Ess', ja:'HP-2, +20エッセンス'}, 
                 apply(gs){ 
-                    if(gs.hp > 1){
-                        gs.hp -= 1; gs.essence += 20; 
+                    if(gs.hp > 2){
+                        gs.hp -= 2; gs.essence += 20; 
                         showToast('Power at a cost...', 'purple'); 
                     } else {
                         showToast('Too weak...', 'red');
@@ -1145,7 +1123,7 @@
                 } 
             },
             { 
-                id:'mystery_box', type:'stat', cost:5, 
+                id:'mystery_box', type:'stat', cost:8, 
                 name:{en:'Mystery Box', ja:'福袋'}, 
                 desc:{en:'Random Item', ja:'ランダムアイテム'}, 
                 apply(gs){ 
@@ -1194,6 +1172,7 @@
             pendingSkill: null, 
             extractorHeldColor: null, 
             rerollCoupons: 0,
+            pendingPerkId: null, // Track selected perk before confirmation
         };
 
         // --- DOM ---
@@ -1241,10 +1220,26 @@
         // --- Game Logic ---
         function tubeTop(t){ return t.length ? t[t.length-1] : null; }
         function tubeFree(t){ return gameState.capacity - t.length; }
-        function isCompleteTube(t){
-            if (t.length !== gameState.capacity) return false;
-            return t.every(c => c === t[0]);
+        
+        // Added: count remaining segments for dynamic completion logic
+        function getBoardCounts(){
+            const counts = {};
+            gameState.tubes.forEach(t => t.forEach(c => counts[c] = (counts[c]||0)+1));
+            return counts;
         }
+
+        function isCompleteTube(t, counts=null){
+            if (!t || t.length === 0) return false;
+            if(!counts) counts = getBoardCounts();
+
+            const c = t[0];
+            if (!t.every(x => x === c)) return false;
+            
+            const total = counts[c] || 0;
+            // Complete if full capacity OR all remaining segments are here
+            return t.length >= Math.min(gameState.capacity, total);
+        }
+        
         function colorMeta(key){ return COLOR_POOL.find(c => c.key===key); }
         function colorName(key){ const m=colorMeta(key); return currentLang==='ja' ? m.name.ja : m.name.en; }
 
@@ -1293,19 +1288,21 @@
         }
 
         function checkPrimaryGoal(){
+            const counts = getBoardCounts();
             if (gameState.primaryGoal.type === 'completeN') {
-                return countCompletedTubes() >= gameState.primaryGoal.n;
+                return countCompletedTubes(counts) >= gameState.primaryGoal.n;
             }
             if (gameState.primaryGoal.type === 'completeColor'){
-                return gameState.tubes.some(t => isCompleteTube(t) && t[0] === gameState.primaryGoal.color);
+                return gameState.tubes.some(t => isCompleteTube(t, counts) && t[0] === gameState.primaryGoal.color);
             }
             if (gameState.primaryGoal.type === 'survive') return false; 
             return false;
         }
         
         function checkLevelClear(){
+            const counts = getBoardCounts();
             if (checkPrimaryGoal()) return true;
-            const allClean = gameState.tubes.every(t => t.length === 0 || (isCompleteTube(t) && t[0] !== 'K'));
+            const allClean = gameState.tubes.every(t => t.length === 0 || (isCompleteTube(t, counts) && t[0] !== 'K'));
             if (allClean) return true;
             return false;
         }
@@ -1414,6 +1411,9 @@
             tubesContainer.innerHTML = '';
             const deadlocked = isDeadlocked();
             if (alertBanner) alertBanner.style.opacity = deadlocked ? '1' : '0';
+            
+            const counts = getBoardCounts(); // For rendering status
+
             gameState.tubes.forEach((segments, i) => {
                 const tube = document.createElement('div');
                 tube.className = 'tube';
@@ -1437,7 +1437,7 @@
                         tube.style.cursor = 'crosshair';
                     }
                 }
-                if (isCompleteTube(segments)) {
+                if (isCompleteTube(segments, counts)) {
                     if (segments[0] !== 'K') {
                         tube.style.boxShadow = `0 0 15px ${colorMeta(segments[0]).hex}`;
                         tube.style.borderColor = `rgba(255,255,255,0.5)`;
@@ -1623,8 +1623,9 @@
                 return;
             }
             if (gameState.selectedIdx === null) {
+                const counts = getBoardCounts();
                 if (content.length === 0) return;
-                if (isCompleteTube(content)) return; 
+                if (isCompleteTube(content, counts)) return; 
                 gameState.selectedIdx = idx;
                 renderBoard();
             } else {
@@ -1676,7 +1677,9 @@
                 saveGame();
                 renderHUD();
                 renderBoard();
-                if(isCompleteTube(tube)){
+                
+                const counts = getBoardCounts();
+                if(isCompleteTube(tube, counts)){
                     await handleCompletion(idx, tube[0]);
                 }
             }
@@ -1724,7 +1727,7 @@
                         const bottom = tube.shift(); tube.push(bottom);
                         showFloatText(idx, "Cycled!", "#a855f7"); success = true;
                      }
-                } else if (skillKey === 'sediment'){ 
+                } else if (skillKey === 'sedative'){ 
                      if(tube.length < 2) showFloatText(idx, "No need!", "#ef4444");
                      else {
                         pushHistory(); if(consume) gameState.inventory[skillKey]--;
@@ -1784,6 +1787,14 @@
                     if(tube.length === 0) showFloatText(idx, "Empty!", "#ef4444");
                     else if(tube.length >= gameState.capacity) showFloatText(idx, "Full!", "#ef4444");
                     else {
+                        // バグ修正: 現在のボード上の総数を確認。容量以上なら追加禁止
+                        const color = tube[tube.length-1];
+                        const counts = getBoardCounts();
+                        if ((counts[color] || 0) >= gameState.capacity) {
+                            showFloatText(idx, "Maxed Out!", "#ef4444");
+                            return; // 処理中断
+                        }
+                        
                         pushHistory(); if(consume) gameState.inventory[skillKey]--;
                         tube.push(tube[tube.length-1]); gameState.pressure += 3;
                         showFloatText(idx, "Boosted! (+3 P)", "#3b82f6"); success = true;
@@ -1794,7 +1805,8 @@
             }
             if(success){
                 gameState.targetMode = null; renderHUD(); renderBoard(); saveGame();
-                if(isCompleteTube(gameState.tubes[idx])) await handleCompletion(idx, gameState.tubes[idx][0]);
+                const counts = getBoardCounts();
+                if(isCompleteTube(gameState.tubes[idx], counts)) await handleCompletion(idx, gameState.tubes[idx][0]);
             }
         }
 
@@ -1823,7 +1835,8 @@
             const check = canPour(fromIdx, toIdx);
             if (!check.ok){
                 const content = gameState.tubes[toIdx];
-                gameState.selectedIdx = (content.length > 0 && !isCompleteTube(content)) ? toIdx : null;
+                const counts = getBoardCounts();
+                gameState.selectedIdx = (content.length > 0 && !isCompleteTube(content, counts)) ? toIdx : null;
                 renderBoard(); return;
             }
             try {
@@ -1837,7 +1850,8 @@
                 const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
                 for (let i=0;i<check.moveCount;i++) to.push(from.pop());
                 saveGame();
-                if(isCompleteTube(to)) await handleCompletion(toIdx, to[0]);
+                const counts = getBoardCounts();
+                if(isCompleteTube(to, counts)) await handleCompletion(toIdx, to[0]);
                 else if (gameState.secondaryGoal?.type === 'combo') gameState.secondaryProgress = 0;
                 if (gameState.pressure >= gameState.pressureMax){
                     if(hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
@@ -1927,13 +1941,19 @@
             checkSecondaryGoalOnComplete(); saveGame(); await showCompletionEvent(colorKey);
         }
 
-        function countCompletedTubes(){ return gameState.tubes.filter(t => isCompleteTube(t) && t[0] !== 'K').length; }
+        function countCompletedTubes(counts=null){
+            if(!counts) counts = getBoardCounts();
+            return gameState.tubes.filter(t => isCompleteTube(t, counts) && t[0] !== 'K').length;
+        }
+
+        // --- Animations and Visuals ---
         function corruptRandomSegment(){
             const candidates = [];
             for (let i=0;i<gameState.tubes.length;i++) if (gameState.tubes[i].length < gameState.capacity && (gameState.tubes[i].length === 0 || gameState.tubes[i][gameState.tubes[i].length-1] !== 'K')) candidates.push(i);
             if (!candidates.length) return;
             const idx = pick(candidates); gameState.tubes[idx].push('K'); showFloatText(idx, "CORRUPTED!", "#ef4444");
         }
+
         function showFloatText(tubeIdx, text, color="#38bdf8"){
             const el = ui('tubes-container').children[tubeIdx]; if(!el) return;
             const rect = el.getBoundingClientRect(), float = document.createElement('div');
@@ -1943,7 +1963,9 @@
             float.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(-30px)', opacity: 0 }], { duration: 1000, easing: 'ease-out' });
             document.body.appendChild(float); setTimeout(()=>float.remove(), 1000);
         }
+
         function tubeCenterEl(idx){ return ui('tubes-container').querySelector(`[data-idx="${idx}"]`); }
+
         function animatePour(fromIdx, toIdx, colorKey, count){
             return new Promise((resolve) => {
                 const fromEl = tubeCenterEl(fromIdx), toEl = tubeCenterEl(toIdx); if (!fromEl || !toEl){ resolve(); return; }
@@ -1981,14 +2003,281 @@
             if (colorKey === 'R'){ return [{ kicker: currentLang==='ja'?'活力':'Vitality', title: currentLang==='ja'?'HP +1 / 圧力 +3':'HP +1 / Pressure +3', desc: currentLang==='ja'?'回復するが負荷がかかる':'Heal yourself, but strain the system.', apply(){ gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1); gameState.pressure += 3; } }, { kicker: currentLang==='ja'?'平静':'Calm', title: currentLang==='ja'?'圧力 -6':'Pressure -6', desc: currentLang==='ja'?'心を落ち着ける':'Significantly reduce pressure.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-6); } }]; }
             return [{ kicker: currentLang==='ja'?'浄化':'Purify', title: currentLang==='ja'?'圧力 -2':'Pressure -2', desc: currentLang==='ja'?'少し落ち着く':'Minor relief.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-2); } }, { kicker: currentLang==='ja'?'貪欲':'Greed', title: currentLang==='ja'?'エッセンス +3 / 圧力 +1':'Essence +3 / Pressure +1', desc: currentLang==='ja'?'小さな代償で富を':'Wealth at a cost.', apply(){ gameState.essence += 3; gameState.pressure += 1; } }];
         }
+        // ------------------------------
+        // Perk / Shop (missing functions)
+        // ------------------------------
+        function rarityWeight(r){
+        if(r === 'epic') return 0.45;
+        if(r === 'rare') return 0.80;
+        return 1.00;
+        }
 
-        // --- UI Screens ---
+        // buildPerkCard(perk) が perk.id を参照するので PERKS[id] を返す
+        function rollPerkChoices(count=3){
+        const ids = Object.keys(PERKS);
+        const f = clamp((gameState.floor - 1) / 10, 0, 1);
+
+        // 重み：後半ほどrare/epicが少し出やすい（やりすぎない）
+        const pool = ids.slice();
+        const w = pool.map(id=>{
+            const r = PERKS[id].rarity;
+            let base = rarityWeight(r);
+            if(r === 'rare') base += 0.15 * f;
+            if(r === 'epic') base += 0.10 * f;
+
+            // 未取得を少し優遇
+            if(getPerkLevel(id) === 0) base *= 1.10;
+            return base;
+        });
+
+        const chosen = [];
+        while(chosen.length < Math.min(count, pool.length)){
+            const total = w.reduce((a,b)=>a+b,0);
+            let r = Math.random() * total;
+            let idx = 0;
+            while(idx < w.length && (r -= w[idx]) > 0) idx++;
+            idx = Math.min(idx, w.length-1);
+
+            const perkId = pool[idx];
+            chosen.push(PERKS[perkId]); // ← オブジェクト返し
+
+            pool.splice(idx,1);
+            w.splice(idx,1);
+        }
+        return chosen;
+        }
+
+        // ショップは “関数持ちオブジェクト” を state に保持すると save/load で壊れやすいので、
+        // state には最低限の {kind,id,purchased} だけ入れる（JSON安全）
+        function generateShopOffers(n=4){
+        const entries = [];
+        INSTANT_ITEMS.forEach(x => entries.push({kind:'instant', id:x.id}));
+        Object.values(ITEMS).forEach(x => entries.push({kind:'item', id:x.id}));
+
+        const pool = entries.slice();
+        const picks = [];
+        while(picks.length < Math.min(n, pool.length)){
+            const p = pool.splice(randInt(pool.length),1)[0];
+            picks.push({ ...p, purchased:false });
+        }
+        return picks;
+        }
+
+        function findInstant(id){
+        return INSTANT_ITEMS.find(x => x.id === id) || null;
+        }
+
+        function refreshRerollUI(){
+        if(!rerollBtn) return;
+        const can = (gameState.rerollCoupons > 0) || (gameState.essence >= 5);
+        rerollBtn.classList.toggle('hidden', !can);
+
+        if(gameState.rerollCoupons > 0){
+            rerollBtn.textContent = `Reroll (Coupon x${gameState.rerollCoupons})`;
+        }else{
+            rerollBtn.textContent = `Reroll (-5✨)`;
+        }
+
+        const pe = ui('perk-essence');
+        if(pe) pe.textContent = `Essence: ${gameState.essence} ✨`;
+        }
+
+        // あなたの updateShopButtons() が .shop-card / .shop-btn を探すので、それに合わせる
+        function buildShopCard(offer){
+        let name='', desc='', icon='◈', baseCost=0;
+
+        if(offer.kind === 'instant'){
+            const inst = findInstant(offer.id);
+            if(!inst){
+            // 壊れたoffer（ロード後など）
+            const dummy = document.createElement('div');
+            dummy.className = 'shop-card glass-panel perk-card p-3 opacity-40';
+            dummy.innerHTML = `<div class="text-xs text-slate-400">Broken Offer</div>`;
+            dummy.dataset.cost = "9999";
+            return dummy;
+            }
+            name = currentLang==='ja' ? inst.name.ja : inst.name.en;
+            desc = currentLang==='ja' ? inst.desc.ja : inst.desc.en;
+            baseCost = inst.cost;
+            icon = '✦';
+        }else{
+            const it = ITEMS[offer.id];
+            if(!it){
+            const dummy = document.createElement('div');
+            dummy.className = 'shop-card glass-panel perk-card p-3 opacity-40';
+            dummy.innerHTML = `<div class="text-xs text-slate-400">Broken Item</div>`;
+            dummy.dataset.cost = "9999";
+            return dummy;
+            }
+            name = currentLang==='ja' ? it.name.ja : it.name.en;
+            desc = currentLang==='ja' ? it.desc.ja : it.desc.en;
+            baseCost = it.cost;
+            icon = it.icon;
+        }
+
+        const cost = getDiscountedCost(baseCost);
+        const affordable = gameState.essence >= cost;
+
+        // toolは1回だけにしたい（多重所持を防ぐ）
+        const ownedTool = (offer.kind==='item' && ITEMS[offer.id]?.type==='tool' && (gameState.inventory[offer.id]||0) > 0);
+
+        const disabled = !!offer.purchased || ownedTool || !affordable;
+
+        const card = document.createElement('div');
+        card.className = 'shop-card glass-panel perk-card p-3 flex flex-col gap-2';
+        card.dataset.cost = String(cost);
+
+        const discountLine = (hasPerk('bargain') && cost !== baseCost)
+            ? `<div class="text-[10px] text-slate-500">Discount: ${baseCost} → ${cost}</div>`
+            : `<div class="text-[10px] text-slate-500">&nbsp;</div>`;
+
+        const btnLabel = offer.purchased ? (currentLang==='ja'?'購入済':'BOUGHT')
+                        : ownedTool ? (currentLang==='ja'?'所持済':'OWNED')
+                        : (currentLang==='ja'?'購入':'BUY');
+
+        card.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-xl glass-panel flex items-center justify-center text-xl shrink-0 border border-white/10">${icon}</div>
+                <div class="min-w-0">
+                <div class="text-sm font-black text-white">${name}</div>
+                <div class="text-slate-400 text-[10px] leading-relaxed mt-1">${desc}</div>
+                </div>
+            </div>
+            <div class="text-right shrink-0">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest">${currentLang==='ja'?'コスト':'COST'}</div>
+                <div class="text-lg font-black text-yellow-400">${cost}</div>
+            </div>
+            </div>
+            ${discountLine}
+            <button class="shop-btn py-2 rounded-xl font-black text-xs uppercase tracking-widest border border-white/10 ${disabled?'opacity-30 cursor-not-allowed':'hover:bg-white/5'}">
+            ${btnLabel}
+            </button>
+        `;
+
+        const btn = card.querySelector('.shop-btn');
+        btn.disabled = disabled;
+
+        btn.onclick = () => {
+            if(btn.disabled) return;
+            const finalCost = getDiscountedCost(baseCost);
+            if(gameState.essence < finalCost) return;
+
+            gameState.essence -= finalCost;
+
+            if(offer.kind === 'instant'){
+            const inst = findInstant(offer.id);
+            if(inst && typeof inst.apply === 'function') inst.apply(gameState);
+            else showToast("Broken instant item.", "red");
+            }else{
+            const it = ITEMS[offer.id];
+            if(it.type === 'tool'){
+                gameState.inventory[offer.id] = 1;
+            }else{
+                gameState.inventory[offer.id] = (gameState.inventory[offer.id]||0) + 1;
+            }
+            showToast(currentLang==='ja'?'購入しました':'Purchased', 'yellow');
+            }
+
+            offer.purchased = true;
+            saveGame();
+            refreshRerollUI();
+            renderHUD();
+            updateShopButtons();
+        };
+
+        return card;
+        }
+
+        // death screen helpers
+        function generateShareText(){
+        const perkList = Object.entries(gameState.perks || {})
+            .filter(([_,lv]) => (lv||0)>0)
+            .map(([id,lv]) => `${(currentLang==='ja'?PERKS[id].name.ja:PERKS[id].name.en)} Lv.${lv}`)
+            .join(', ');
+        return `Abyss Alchemy | FLOOR ${gameState.floor} | ESSENCE ${gameState.essence} | ${perkList || 'No Mutations'}`;
+        }
+
+        function copyResult(){
+        const ta = ui('share-text-area');
+        if(!ta) return;
+        const txt = ta.value;
+        if(navigator.clipboard?.writeText){
+            navigator.clipboard.writeText(txt).then(
+            ()=>showToast(currentLang==='ja'?'コピーしました':'Copied', 'emerald'),
+            ()=>{ document.execCommand('copy'); showToast(currentLang==='ja'?'コピーしました':'Copied', 'emerald'); }
+            );
+        }else{
+            ta.select();
+            document.execCommand('copy');
+            showToast(currentLang==='ja'?'コピーしました':'Copied', 'emerald');
+        }
+        }
+
+        // Status screen (btn-mutations)
+        function openMutationsScreen(){
+        const sum = ui('mutations-stats-summary');
+        const list = ui('mutations-list-container');
+        if(!sum || !list) return;
+
+        const totalLevels = Object.values(gameState.perks).reduce((a,b)=>a+(b||0), 0);
+        const discount = hasPerk('bargain') ? (15 + getPerkLevel('bargain')*5) : 0;
+
+        sum.innerHTML = '';
+        const stats = [
+            {k:'FLOOR', v:String(gameState.floor)},
+            {k:'HP', v:`${gameState.hp} / ${gameState.maxHp}`},
+            {k:'CAPACITY', v:String(gameState.capacity)},
+            {k:'TUBES', v:String(gameState.tubeCount)},
+            {k:'PRESSURE MAX', v:String(gameState.pressureMax)},
+            {k:'ESSENCE', v:`${gameState.essence} ✨`},
+            {k:'MUTATIONS', v:String(totalLevels)},
+            {k:'SHOP DISCOUNT', v:`${discount}%`},
+            {k:'REROLL COUPON', v:String(gameState.rerollCoupons||0)},
+        ];
+        stats.forEach(s=>{
+            const d = document.createElement('div');
+            d.className = 'stat-item';
+            d.innerHTML = `<div class="text-[10px] text-slate-500 uppercase tracking-widest">${s.k}</div><div class="text-lg font-black text-white">${s.v}</div>`;
+            sum.appendChild(d);
+        });
+
+        list.innerHTML = '';
+        const entries = Object.entries(gameState.perks||{}).filter(([_,lv]) => (lv||0)>0);
+        if(entries.length === 0){
+            list.innerHTML = `<div class="text-slate-500 text-xs italic py-3">${currentLang==='ja'?'変異なし':'No mutations'}</div>`;
+        }else{
+            entries
+            .sort((a,b)=>b[1]-a[1])
+            .forEach(([id,lv])=>{
+                const row = document.createElement('div');
+                row.className = 'glass-panel p-3 border border-white/10';
+                row.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="text-sm font-black text-white">${currentLang==='ja'?PERKS[id].name.ja:PERKS[id].name.en}</div>
+                    <div class="text-xs font-black text-sky-300">Lv.${lv}</div>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-1 leading-relaxed">${getPerkDesc(id, lv)}</div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        mutationsScreen.classList.replace('hidden','flex');
+        }
+
         function openPerkScreen(isDeath){
             perkScreen.classList.remove('hidden');
             ui('perk-title').textContent = isDeath ? t('gameOver') : t('victory');
             ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : t('victorySub');
             ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
-            perkCards.innerHTML = ''; shopCards.innerHTML = '';
+            
+            // Reset pending selection
+            gameState.pendingPerkId = null;
+
+            perkCards.innerHTML = ''; 
+            shopCards.innerHTML = '';
+            
             if(isDeath){
                 perkCards.innerHTML = `<div class="flex flex-col gap-4 h-full"><div class="text-sm font-bold text-rose-400 uppercase tracking-widest border-b border-white/10 pb-2">${currentLang==='ja'?'探索記録':'Exploration Log'}</div><div class="grid grid-cols-2 gap-4"><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">FLOOR</div><div class="text-4xl font-black text-white">${gameState.floor}</div></div><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">ESSENCE</div><div class="text-4xl font-black text-sky-300">${gameState.essence}</div></div></div><div class="mt-auto"><div class="text-[10px] text-slate-500 mb-2 uppercase tracking-widest">Result String</div><textarea id="share-text-area" class="w-full h-24 bg-black/50 border border-white/10 rounded p-2 text-[10px] text-slate-400 font-mono resize-none" readonly>${generateShareText()}</textarea></div></div>`;
                 const perkList = Object.entries(gameState.perks).map(([id, lv]) => `<div class="flex justify-between items-center py-2 border-b border-white/5"><span class="text-sm font-bold text-slate-200">${currentLang==='ja'?PERKS[id].name.ja:PERKS[id].name.en}</span><span class="text-xs font-bold text-sky-400">Lv.${lv}</span></div>`).join('');
@@ -1996,7 +2285,22 @@
                 shopCards.innerHTML = `<div class="flex-1 overflow-y-auto min-h-[120px]"><div class="text-sm font-bold text-sky-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-2">${currentLang==='ja'?'獲得した変異':'Acquired Mutations'}</div>${perkList || `<div class="text-slate-500 text-xs italic py-4">${currentLang==='ja'?'変異なし':'No mutations'}</div>`}</div><div class="grid grid-cols-2 gap-3 mt-4 shrink-0"><button onclick="copyResult()" class="py-4 bg-indigo-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-indigo-500 shadow-lg shadow-indigo-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'結果をコピー':'Copy Result'}</button><button onclick="startNewRun()" class="py-4 bg-rose-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-rose-500 shadow-lg shadow-rose-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'リトライ':'Try Again'}</button></div>`;
                 continueBtn.style.display = 'none'; return;
             }
-            continueBtn.style.display = 'block'; continueBtn.textContent = t('continue'); continueBtn.onclick = () => { perkScreen.classList.add('hidden'); nextFloor(); };
+            
+            continueBtn.style.display = 'block'; 
+            continueBtn.textContent = t('continue');
+            // Disable button initially
+            continueBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            continueBtn.onclick = () => { 
+                if(!gameState.pendingPerkId) {
+                    showToast(currentLang==='ja'?'変異を選択してください':'Select a Mutation!', 'rose');
+                    return;
+                }
+                acquirePerk(gameState.pendingPerkId);
+                perkScreen.classList.add('hidden'); 
+                nextFloor(); 
+            };
+            
             shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"; shopCards.className = "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3";
             if (!gameState.currentPerkChoices) gameState.currentPerkChoices = rollPerkChoices();
             if (!gameState.currentShopOffers) gameState.currentShopOffers = generateShopOffers();
@@ -2005,168 +2309,39 @@
             saveGame();
         }
 
-        function buildShopCard(item){
-            // アイテムタイプ判定（即時使用 or 所持アイテム）
-            const isInstant = item.type === 'stat';
-            const def = item.type==='item' ? item.ref : item;
-            
-            // 色分けとラベルの決定
-            const borderColor = isInstant ? 'border-amber-500/50' : 'border-sky-500/50';
-            const bgColor = isInstant ? 'bg-amber-900/10' : 'bg-sky-900/10';
-            const typeLabelText = isInstant 
-                ? (currentLang==='ja'?'⚡ 即時効果':'⚡ INSTANT') 
-                : (currentLang==='ja'?'🎒 所持アイテム':'🎒 HELD ITEM');
-            const typeClass = isInstant 
-                ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' 
-                : 'text-sky-300 bg-sky-500/10 border-sky-500/30';
-            
-            const card = document.createElement('div');
-            // 全体を色付きボーダーと背景で囲む
-            card.className = `glass-panel p-3 flex flex-col justify-between relative group transition-all shop-card border ${borderColor} ${bgColor} hover:bg-opacity-20`;
-            
-            const name = currentLang==='ja' ? def.name.ja : def.name.en;
-            const desc = currentLang==='ja' ? def.desc.ja : def.desc.en;
-            const cost = getDiscountedCost(item.cost || def.cost);
-            card.dataset.cost = cost;
-            
-            let ownedText = '';
-            if(item.type==='item' && def.type==='consumable') ownedText = gameState.inventory[def.id] ? `x${gameState.inventory[def.id]}` : '';
-            else if (item.type==='item' && def.type==='tool') ownedText = gameState.inventory[def.id] ? 'OWNED' : '';
-
-            card.innerHTML = `
-                <div>
-                    <!-- タイプバッジ -->
-                    <div class="mb-2">
-                         <span class="text-[9px] font-black px-1.5 py-0.5 rounded border ${typeClass} tracking-widest">${typeLabelText}</span>
-                    </div>
-                    <div class="flex items-start justify-between mb-1">
-                        <div class="text-xs font-black text-white truncate pr-1">${name}</div>
-                        <div class="text-sky-300 text-[10px] font-bold whitespace-nowrap">${cost}✨</div>
-                    </div>
-                    <div class="text-slate-500 text-[9px] leading-tight h-8 overflow-hidden">${desc}</div>
-                </div>
-                <button class="mt-2 w-full py-1.5 bg-white/5 rounded font-bold text-[10px] uppercase tracking-widest transition-all shop-btn flex items-center justify-center gap-1">
-                    <span>BUY</span>${ownedText ? `<span class="bg-black/40 px-1 rounded text-white/70">${ownedText}</span>` : ''}
-                </button>
-            `;
-            const btn = card.querySelector('.shop-btn');
-            if(item.type === 'item' && def.type==='tool' && gameState.inventory[def.id]){ btn.innerHTML = `<span>BOUGHT</span>`; btn.classList.add('opacity-50'); btn.disabled = true; }
-            else {
-                btn.onclick = () => {
-                    if (gameState.essence < cost) { showToast(currentLang==='ja'?'不足！':'Shortage!', 'rose'); return; }
-                    gameState.essence -= cost;
-                    if(item.type === 'item'){
-                        if(!gameState.inventory[def.id]) gameState.inventory[def.id] = 0;
-                        if(def.type === 'tool') gameState.inventory[def.id] = 1; else gameState.inventory[def.id]++;
-                        showToast(currentLang==='ja'?'購入！':'Bought!', 'sky');
-                    } else item.apply(gameState);
-                    ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
-                    if(item.type === 'item' && def.type==='tool'){ btn.innerHTML = `<span>BOUGHT</span>`; btn.classList.add('opacity-50'); btn.disabled = true; }
-                    if(item.type === 'item' && def.type==='consumable') btn.innerHTML = `<span>BUY</span> <span class="bg-black/40 px-1 rounded text-white/70">x${gameState.inventory[def.id]}</span>`;
-                    saveGame(); refreshRerollUI(); updateShopButtons();
-                };
-            }
-            return card;
-        }
-
-        // --- Status (Mutations Summary) Logic ---
-        function openMutationsScreen() {
-            updateMutationsUI();
-            mutationsScreen.classList.replace('hidden', 'flex');
-        }
-
-        function updateMutationsUI() {
-            const summaryContainer = ui('mutations-stats-summary');
-            const listContainer = ui('mutations-list-container');
-            summaryContainer.innerHTML = '';
-            listContainer.innerHTML = '';
-
-            // 変異リストのレンダリング
-            const acquiredKeys = Object.keys(gameState.perks).filter(k => gameState.perks[k] > 0);
-            if(acquiredKeys.length === 0) {
-                listContainer.innerHTML = `<div class="text-slate-600 text-xs italic py-4">No mutations acquired yet.</div>`;
-            } else {
-                acquiredKeys.forEach(key => {
-                    const p = PERKS[key];
-                    const lv = gameState.perks[key];
-                    const item = document.createElement('div');
-                    item.className = 'glass-panel p-3 border-l-2 border-l-sky-500/50 flex justify-between items-center';
-                    item.innerHTML = `
-                        <div>
-                            <div class="text-sm font-bold text-white">${currentLang==='ja' ? p.name.ja : p.name.en}</div>
-                            <div class="text-[10px] text-slate-400">${getPerkDesc(key, lv)}</div>
-                        </div>
-                        <div class="text-sky-400 font-black text-xs px-2 py-1 bg-sky-900/20 rounded">Lv.${lv}</div>
-                    `;
-                    listContainer.appendChild(item);
-                });
-            }
-
-            // 合計パラメーターの集計 (より詳細に)
-            const stats = [];
-            const lv = (id) => getPerkLevel(id);
-
-            // ステータス関連
-            if(hasPerk('overflow')) stats.push({ label: currentLang==='ja'?'最大圧力増加':'Pressure Max +', val: lv('overflow')*4 });
-            if(hasPerk('catalyst')) stats.push({ label: currentLang==='ja'?'触媒反応(圧力減少)':'Catalyst Reduction', val: 4 + lv('catalyst') });
-            if(hasPerk('azure_cycle')) stats.push({ label: currentLang==='ja'?'蒼の冷却(圧力減少)':'Azure Additional', val: lv('azure_cycle')*3 });
-            if(hasPerk('crimson_resonance')) stats.push({ label: currentLang==='ja'?'紅の代償(回復時圧力)':'Crimson Cost', val: `+${6 - lv('crimson_resonance')} P` });
-            
-            // ユーティリティ関連
-            if(hasPerk('reflux')) stats.push({ label: currentLang==='ja'?'無料UNDO回数':'Reflux Undo Charges', val: lv('reflux') });
-            if(hasPerk('transmutation')) stats.push({ label: currentLang==='ja'?'開始時アイテム数':'Start Items', val: lv('transmutation') });
-            if(hasPerk('coupon')) stats.push({ label: currentLang==='ja'?'フロアリロール券':'Floor Reroll Coupons', val: lv('coupon') });
-
-            // 確率関連
-            if(hasPerk('efficiency')) stats.push({ label: currentLang==='ja'?'抽出確率(エッセンス)':'Efficiency Chance', val: (lv('efficiency')*20) + '%' });
-            if(hasPerk('void_shield')) stats.push({ label: currentLang==='ja'?'虚空回避率':'Void Shield Chance', val: (lv('void_shield')*15) + '%' });
-            if(hasPerk('scavenger')) stats.push({ label: currentLang==='ja'?'アイテム発見率':'Scavenge Chance', val: (10 + lv('scavenger')*5) + '%' });
-            if(hasPerk('recycler')) stats.push({ label: currentLang==='ja'?'アイテム温存率':'Recycle Chance', val: (lv('recycler')*10) + '%' });
-            if(hasPerk('pink_luck')) stats.push({ label: currentLang==='ja'?'桃ドロップ率':'Pink Luck', val: (lv('pink_luck')*10) + '%' });
-
-            // ターン/効果関連
-            if(hasPerk('momentum')) stats.push({ label: currentLang==='ja'?'慣性(圧力停止)':'Momentum Turns', val: lv('momentum') + ' Turns' });
-            if(hasPerk('steady_hand')) stats.push({ label: currentLang==='ja'?'開幕圧力停止':'Steady Hand', val: (lv('steady_hand')*3) + ' Turns' });
-            if(hasPerk('bargain')) stats.push({ label: currentLang==='ja'?'価格割引率':'Shop Discount', val: (15+lv('bargain')*5) + '%' });
-            if(hasPerk('amber_greed')) stats.push({ label: currentLang==='ja'?'琥珀ボーナス':'Amber Essence', val: lv('amber_greed')*2 });
-
-            stats.forEach(s => {
-                const div = document.createElement('div');
-                div.className = 'stat-item';
-                div.innerHTML = `<span class="text-[9px] text-slate-500 uppercase">${s.label}</span><span class="text-lg font-black text-sky-300">${s.val}</span>`;
-                summaryContainer.appendChild(div);
-            });
-            if(stats.length === 0) summaryContainer.innerHTML = `<div class="text-slate-600 text-xs italic col-span-full">No cumulative bonuses active.</div>`;
-        }
-
-        // --- Core ---
-        function generateShareText(){
-            const perks = Object.entries(gameState.perks).map(([id, lv]) => `${currentLang==='ja'?PERKS[id].name.ja:PERKS[id].name.en} Lv.${lv}`).join('\n');
-            return `Abyss Alchemy\nFloor: ${gameState.floor}\nEssence: ${gameState.essence}✨\n\n[Mutations]\n${perks || '(None)'}\n\n#AbyssAlchemy #WaterSortRogue`;
-        }
-        function copyResult(){ const t = ui('share-text-area'); if(!t) return; t.select(); document.execCommand('copy'); showToast(currentLang==='ja'?'コピー！':'Copied!', 'emerald'); }
-        function generateShopOffers(){
-            const cand = [...SHOP_POOL], off = [];
-            for(let i=0; i<4; i++){
-                if(!cand.length) break; let idx = randInt(cand.length), sel = cand[idx];
-                if(sel.type==='item' && sel.ref.type==='tool' && gameState.inventory[sel.ref.id]){ cand.splice(idx, 1); i--; continue; }
-                off.push(sel); cand.splice(idx, 1);
-            } return off;
-        }
-        function refreshRerollUI(){
-            const btn = ui('reroll-btn');
-            if(gameState.rerollCoupons > 0){ btn.textContent = `Reroll (Coupon: ${gameState.rerollCoupons})`; btn.classList.remove('hidden'); }
-            else { btn.textContent = `Reroll (-5✨)`; btn.classList.toggle('hidden', gameState.essence < 5); }
-        }
-        function rollPerkChoices(){ const all = Object.values(PERKS), picks = [], pool = [...all]; while(picks.length < 3 && pool.length > 0){ picks.push(pool.splice(randInt(pool.length), 1)[0]); } return picks; }
         function buildPerkCard(perk){
             const card = document.createElement('div'), owned = getPerkLevel(perk.id), next = owned + 1;
             card.className = `perk-card glass-panel p-3 cursor-pointer rarity-${perk.rarity} relative hover:bg-white/5 transition-all`;
             card.innerHTML = `<div class="flex justify-between items-start mb-1"><span class="text-[9px] text-slate-400 uppercase tracking-widest">${perk.rarity}</span><span class="text-[9px] ${owned>0?'text-emerald-400':'text-sky-400'} font-bold uppercase">${owned>0?'UPGRADE':'NEW'}</span></div><div class="text-sm font-black text-white leading-tight mb-1">${currentLang==='ja'?perk.name.ja:perk.name.en} <span class="text-[10px] text-slate-500">Lv.${owned}→${next}</span></div><div class="text-slate-400 text-[10px] leading-relaxed">${getPerkDesc(perk.id, next)}</div>`;
-            card.onclick = () => { acquirePerk(perk.id); Array.from(perkCards.children).forEach(c => { c.style.pointerEvents = 'none'; c.style.opacity = '0.4'; }); card.style.opacity = '1'; card.style.borderColor = '#38bdf8'; card.classList.add('bg-sky-500/10'); };
+            
+            card.onclick = () => { 
+                // Set pending selection
+                gameState.pendingPerkId = perk.id;
+                
+                // Clear other selections
+                Array.from(perkCards.children).forEach(c => { 
+                    c.classList.remove('border-sky-500', 'bg-sky-500/20', 'ring-2', 'ring-sky-500');
+                    c.classList.add('border-white/10');
+                    c.style.opacity = '0.6';
+                }); 
+                
+                // Highlight this one
+                card.style.opacity = '1'; 
+                card.classList.remove('border-white/10');
+                card.classList.add('border-sky-500', 'bg-sky-500/20', 'ring-2', 'ring-sky-500');
+                
+                // Enable continue button
+                continueBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            };
             return card;
         }
-        function getDiscountedCost(base) { if(hasPerk('bargain')) return Math.floor(base * (1 - (15+getPerkLevel('bargain')*5)/100)); return base; }
+        
+        // 修正箇所: lv() -> getPerkLevel()
+        function getDiscountedCost(base) { 
+            if(hasPerk('bargain')) return Math.floor(base * (1 - (15+getPerkLevel('bargain')*5)/100)); 
+            return base; 
+        }
+        
         function updateShopButtons() {
             document.querySelectorAll('.shop-card').forEach(card => {
                 const btn = card.querySelector('.shop-btn'); if(btn.disabled && btn.textContent.includes('BOUGHT')) return;
@@ -2175,7 +2350,17 @@
             });
         }
         function acquirePerk(id){ if(!gameState.perks[id]) gameState.perks[id] = 0; gameState.perks[id]++; if(id === 'overflow') gameState.pressureMax += 4; renderHUD(); saveGame(); }
-        function startNewRun(){ clearSave(); startScreen.classList.add('hidden'); Object.assign(gameState, { floor:1, essence:0, hp:3, maxHp:3, perks:{}, pressure:0, pressureMax:14, history:[], inventory:{}, catalystAvailable:true, refluxUses:0, momentumTurns:0, rerollCoupons:0 }); perkScreen.classList.add('hidden'); nextFloor(true); }
+        function startNewRun(){ 
+            clearSave(); 
+            startScreen.classList.add('hidden'); 
+            Object.assign(gameState, { 
+                floor:1, essence:0, hp:3, maxHp:3, capacity:4, 
+                perks:{}, pressure:0, pressureMax:14, history:[], inventory:{}, 
+                catalystAvailable:true, refluxUses:0, momentumTurns:0, rerollCoupons:0 
+            }); 
+            perkScreen.classList.add('hidden'); 
+            nextFloor(true); 
+        }
         function nextFloor(isFirst=false){
             if(!isFirst) {
                 gameState.floor++; if (gameState.floor >= 8) gameState.capacity = 6; else if (gameState.floor >= 4) gameState.capacity = 5; else gameState.capacity = 4;
