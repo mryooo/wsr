@@ -233,27 +233,26 @@
             100% { box-shadow: 0 0 5px currentColor; }
         }
 
-        .skill-tooltip {
-            position: absolute;
-            bottom: 115%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(2, 6, 23, 0.95);
+        /* ツールチップをグローバル化して最前面表示にするため、
+           従来のCSSホバー式ツールチップスタイルは削除・変更 */
+        #global-tooltip {
+            position: fixed;
+            background: rgba(2, 6, 23, 0.98);
             border: 1px solid rgba(56, 189, 248, 0.3);
             padding: 8px 12px;
             border-radius: 8px;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
             pointer-events: none;
             width: max-content;
             max-width: 220px;
             text-align: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-            backdrop-filter: blur(4px);
-            z-index: 100;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            z-index: 9999; /* 最前面 */
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            transform: translateX(-50%); /* 中央揃え調整用 */
         }
-        .skill-tooltip::after {
+        #global-tooltip::after {
             content: '';
             position: absolute;
             top: 100%;
@@ -262,11 +261,6 @@
             border-width: 6px;
             border-style: solid;
             border-color: rgba(56, 189, 248, 0.3) transparent transparent transparent;
-        }
-        .skill-btn:hover .skill-tooltip {
-            opacity: 1;
-            visibility: visible;
-            bottom: 125%;
         }
 
         #btn-undo {
@@ -343,8 +337,7 @@
             overflow-x: auto;
             overflow-y: hidden;
             display: flex;
-            align-items: center; /* 縦方向中央 */
-            /* スクロールバー装飾 */
+            align-items: center; 
             scrollbar-width: thin;
             scrollbar-color: rgba(255,255,255,0.1) transparent;
         }
@@ -356,43 +349,32 @@
             border-radius: 3px;
         }
 
-        /* 修正箇所：スクロール時に左端が見切れないように最適化 */
         #tubes-container {
             display: flex;
-            flex-wrap: nowrap; /* 折り返しなし */
+            flex-wrap: nowrap;
             gap: 12px;
-            padding: 0 24px; /* 端の余白 */
-            
-            /* 重要: justify-content: center を削除 */
-            
-            /* コンテンツ幅に合わせる */
+            padding: 0 24px;
             width: max-content; 
-            
-            /* 親より小さいときは中央、大きいときは左詰め（スクロール可能）にする魔法 */
             margin: auto; 
-            
             transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
             transform-origin: center center;
         }
         
-        /* スキルコンテナのレスポンシブ対応 */
         #skills-container {
             display: flex;
             align-items: center;
-            justify-content: flex-start; /* 左寄せにしてスクロールさせる */
+            justify-content: flex-start;
             gap: 0.75rem;
-            overflow-x: auto; /* 横スクロール有効 */
+            overflow-x: auto;
             padding-left: 1rem;
             padding-right: 1rem;
-            padding-bottom: 0.5rem; /* スクロールバー余白 */
-            
-            /* 左右の端をフェードアウト */
+            padding-bottom: 0.5rem;
             mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
             -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
-            
-            /* スクロールバーを隠す */
             -ms-overflow-style: none;
             scrollbar-width: none;
+            position: relative; /* z-indexを効かせるため */
+            z-index: 30; /* 優先度 */
         }
         #skills-container::-webkit-scrollbar {
             display: none;
@@ -406,6 +388,9 @@
 <body>
     
     <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 w-full max-w-sm px-4"></div>
+    
+    <!-- グローバルツールチップ (最前面) -->
+    <div id="global-tooltip"></div>
 
     <div id="game-container" class="flex flex-col items-center justify-between h-screen w-screen p-2 md:p-4 overflow-hidden relative">
         <div id="alert-banner">NO MOVES LEFT</div>
@@ -458,11 +443,11 @@
         </div>
         
         <!-- スキルバー (Scrollable) -->
-        <div id="skills-container" class="w-full max-w-2xl z-20 mb-2 min-h-[60px] shrink-0">
+        <div id="skills-container" class="w-full max-w-2xl mb-2 min-h-[60px] shrink-0">
             <!-- JSでボタン生成 -->
         </div>
 
-        <!-- 下HUD (修正: スタイル統一) -->
+        <!-- 下HUD -->
         <div id="bottom-hud" class="w-full max-w-5xl glass-panel p-3 md:p-4 shrink-0 z-20 mb-safe">
             <div class="md:hidden flex items-center justify-between mb-3 px-1 gap-2 text-sm font-bold">
                  <span class="text-slate-300 bg-white/5 px-2 py-1 rounded border border-white/10" id="ui-floor-mobile">1F</span>
@@ -475,7 +460,6 @@
 
             <div class="flex items-center justify-between gap-3 relative">
                 <div class="flex items-center gap-2 md:gap-3 flex-wrap">
-                    <!-- 修正: 上部のGoalと同じスタイル（text-sm font-black text-white）に変更 -->
                     <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-white border border-white/5" id="ui-turn">TURN 0</span>
                     <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-white border border-white/5" id="ui-secondary">BONUS —</span>
                     <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-sky-300 border border-white/5 hidden sm:block" id="ui-perks">PERKS 0</span>
@@ -527,7 +511,7 @@
             </button>
         </div>
 
-        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.6.0 Fix Scroll & Fonts</p>
+        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.8.0 Global Tooltip</p>
     </div>
 
     <!-- 変異選択 & ショップ画面 -->
@@ -609,6 +593,44 @@
         function setText(id, text){
             const el = document.getElementById(id);
             if(el) el.textContent = text;
+        }
+
+        // --- ツールチップ制御 (Global) ---
+        const tooltipEl = document.getElementById('global-tooltip');
+        
+        function showGlobalTooltip(targetEl, title, desc) {
+            if(!targetEl || !title) {
+                hideGlobalTooltip();
+                return;
+            }
+            
+            tooltipEl.innerHTML = `
+                <div class="font-bold text-sky-300 text-xs mb-1">${title}</div>
+                <div class="text-slate-300 text-[10px] leading-tight whitespace-pre-wrap">${desc}</div>
+            `;
+            
+            const rect = targetEl.getBoundingClientRect();
+            
+            // とりあえず表示してサイズを取得
+            tooltipEl.style.opacity = '1';
+            
+            const ttWidth = tooltipEl.offsetWidth;
+            const ttHeight = tooltipEl.offsetHeight;
+            
+            // ボタンの中央、かつ上に配置
+            let left = rect.left + (rect.width / 2);
+            let top = rect.top - ttHeight - 8;
+            
+            // 画面端の調整
+            if (left - (ttWidth/2) < 4) left = 4 + (ttWidth/2);
+            if (left + (ttWidth/2) > window.innerWidth - 4) left = window.innerWidth - 4 - (ttWidth/2);
+            
+            tooltipEl.style.left = `${left}px`;
+            tooltipEl.style.top = `${top}px`;
+        }
+        
+        function hideGlobalTooltip() {
+            tooltipEl.style.opacity = '0';
         }
 
         // --- トースト通知 ---
@@ -1356,6 +1378,7 @@
                     const def = ITEMS[key];
                     const btn = document.createElement('button');
                     btn.className = 'skill-btn w-12 h-12 glass-panel flex items-center justify-center text-xl rounded-full border border-white/10 shrink-0';
+                    btn.dataset.id = key; 
                     
                     const name = currentLang==='ja' ? def.name.ja : def.name.en;
                     const desc = currentLang==='ja' ? def.desc.ja : def.desc.en;
@@ -1368,10 +1391,6 @@
                     btn.innerHTML = `
                         ${def.icon}
                         ${badgeHtml}
-                        <div class="skill-tooltip">
-                            <div class="font-bold text-sky-300 text-xs mb-1">${name}</div>
-                            <div class="text-slate-300 text-[10px] leading-tight whitespace-pre-wrap">${desc}</div>
-                        </div>
                     `;
                     
                     // Style states
@@ -1388,9 +1407,38 @@
                     }
 
                     btn.onclick = () => activateSkill(key);
+                    
+                    // ツールチップイベント
+                    btn.onmouseenter = () => showGlobalTooltip(btn, name, desc);
+                    btn.onmouseleave = () => {
+                        // Pending中なら消さない、またはPending中のボタンに戻す
+                        if(gameState.pendingSkill){
+                           const pBtn = document.querySelector(`.skill-btn[data-id="${gameState.pendingSkill}"]`);
+                           if(pBtn) {
+                               const pDef = ITEMS[gameState.pendingSkill];
+                               const pName = currentLang==='ja' ? pDef.name.ja : pDef.name.en;
+                               const pDesc = currentLang==='ja' ? pDef.desc.ja : pDef.desc.en;
+                               showGlobalTooltip(pBtn, pName, pDesc);
+                               return;
+                           }
+                        }
+                        hideGlobalTooltip();
+                    };
+
                     skillsContainer.appendChild(btn);
                 }
             });
+            
+            // Pending中のスキルがあればツールチップを表示
+            if(gameState.pendingSkill){
+                const pBtn = document.querySelector(`.skill-btn[data-id="${gameState.pendingSkill}"]`);
+                if(pBtn){
+                    const pDef = ITEMS[gameState.pendingSkill];
+                    const pName = currentLang==='ja' ? pDef.name.ja : pDef.name.en;
+                    const pDesc = currentLang==='ja' ? pDef.desc.ja : pDef.desc.en;
+                    showGlobalTooltip(pBtn, pName, pDesc);
+                }
+            }
         }
 
         function activateSkill(key){
@@ -1412,6 +1460,7 @@
             }
 
             gameState.pendingSkill = null; 
+            hideGlobalTooltip(); // 実行したら消す
             
             // --- Instant Skills ---
             if(key === 'summon_vial'){
