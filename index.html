@@ -72,10 +72,20 @@
             box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
             animation: pulse-purple 1.5s infinite;
         }
+        
+        .tube.source-mode {
+            border-color: #fbbf24;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+            animation: pulse-yellow 1.5s infinite;
+        }
 
         @keyframes pulse-purple {
             0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); }
             50% { box-shadow: 0 0 30px rgba(168, 85, 247, 0.7); }
+        }
+        @keyframes pulse-yellow {
+            0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.7); }
         }
 
         .tube-focused {
@@ -185,6 +195,30 @@
             transform: translateY(-2px);
             z-index: 50;
         }
+        /* 選択中（確認待ち） */
+        .skill-btn.pending {
+            filter: grayscale(0);
+            opacity: 1;
+            border-color: #fbbf24;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+            background: rgba(251, 191, 36, 0.1);
+            animation: pulse-btn 1s infinite;
+        }
+        /* 発動モード中 */
+        .skill-btn.active-mode {
+            filter: grayscale(0);
+            opacity: 1;
+            border-color: #a855f7;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+            background: rgba(168, 85, 247, 0.2);
+        }
+        /* 抽出中 */
+        .skill-btn.extracting {
+            border-color: #22c55e;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+            background: rgba(34, 197, 94, 0.2);
+            animation: pulse-btn 1.5s infinite;
+        }
         .skill-btn.active {
             filter: grayscale(0);
             opacity: 1;
@@ -192,18 +226,11 @@
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
             background: rgba(56, 189, 248, 0.2);
         }
-        .skill-btn.active-mode {
-            filter: grayscale(0);
-            opacity: 1;
-            border-color: #a855f7;
-            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
-            background: rgba(168, 85, 247, 0.2);
-            animation: pulse-btn 1.5s infinite;
-        }
+        
         @keyframes pulse-btn {
-            0% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
-            50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.8); }
-            100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
+            0% { box-shadow: 0 0 5px currentColor; }
+            50% { box-shadow: 0 0 15px currentColor; }
+            100% { box-shadow: 0 0 5px currentColor; }
         }
 
         .skill-tooltip {
@@ -224,6 +251,7 @@
             text-align: center;
             box-shadow: 0 4px 20px rgba(0,0,0,0.6);
             backdrop-filter: blur(4px);
+            z-index: 100;
         }
         .skill-tooltip::after {
             content: '';
@@ -308,26 +336,70 @@
             50%{ transform: translateY(-10px); }
         }
 
+        /* 横スクロール対応のボードエリア */
+        #board-scroll-area {
+            width: 100%;
+            height: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            align-items: center; /* 縦方向中央 */
+            /* スクロールバー装飾 */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.1) transparent;
+        }
+        #board-scroll-area::-webkit-scrollbar {
+            height: 6px;
+        }
+        #board-scroll-area::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+
+        /* 修正箇所：スクロール時に左端が見切れないように最適化 */
         #tubes-container {
+            display: flex;
+            flex-wrap: nowrap; /* 折り返しなし */
+            gap: 12px;
+            padding: 0 24px; /* 端の余白 */
+            
+            /* 重要: justify-content: center を削除 */
+            
+            /* コンテンツ幅に合わせる */
+            width: max-content; 
+            
+            /* 親より小さいときは中央、大きいときは左詰め（スクロール可能）にする魔法 */
+            margin: auto; 
+            
             transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
             transform-origin: center center;
         }
+        
+        /* スキルコンテナのレスポンシブ対応 */
+        #skills-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; /* 左寄せにしてスクロールさせる */
+            gap: 0.75rem;
+            overflow-x: auto; /* 横スクロール有効 */
+            padding-left: 1rem;
+            padding-right: 1rem;
+            padding-bottom: 0.5rem; /* スクロールバー余白 */
+            
+            /* 左右の端をフェードアウト */
+            mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+            
+            /* スクロールバーを隠す */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        #skills-container::-webkit-scrollbar {
+            display: none;
+        }
 
         #dev-tests {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            z-index: 999;
-            font-family: ui-monospace, Menlo, Consolas, monospace;
-            font-size: 11px;
-            color: rgba(255,255,255,0.75);
-            background: rgba(0,0,0,0.8);
-            border: 1px solid rgba(255,255,255,0.08);
-            padding: 8px 10px;
-            border-radius: 8px;
-            max-width: min(560px, 92vw);
-            white-space: pre-wrap;
-            display:none;
+            display: none;
         }
     </style>
 </head>
@@ -379,16 +451,18 @@
         </div>
 
         <!-- 盤面エリア -->
-        <div id="board-area" class="flex-1 w-full flex items-center justify-center relative z-10 overflow-hidden my-2">
-            <div id="tubes-container" class="flex flex-wrap items-center justify-center content-center max-w-5xl"></div>
+        <div id="board-area" class="flex-1 w-full relative z-10 overflow-hidden my-2">
+            <div id="board-scroll-area">
+                <div id="tubes-container"></div>
+            </div>
         </div>
         
-        <!-- スキルバー -->
-        <div id="skills-container" class="w-full max-w-lg flex justify-center gap-3 z-20 mb-2 min-h-[50px] shrink-0">
+        <!-- スキルバー (Scrollable) -->
+        <div id="skills-container" class="w-full max-w-2xl z-20 mb-2 min-h-[60px] shrink-0">
             <!-- JSでボタン生成 -->
         </div>
 
-        <!-- 下HUD -->
+        <!-- 下HUD (修正: スタイル統一) -->
         <div id="bottom-hud" class="w-full max-w-5xl glass-panel p-3 md:p-4 shrink-0 z-20 mb-safe">
             <div class="md:hidden flex items-center justify-between mb-3 px-1 gap-2 text-sm font-bold">
                  <span class="text-slate-300 bg-white/5 px-2 py-1 rounded border border-white/10" id="ui-floor-mobile">1F</span>
@@ -401,9 +475,10 @@
 
             <div class="flex items-center justify-between gap-3 relative">
                 <div class="flex items-center gap-2 md:gap-3 flex-wrap">
-                    <span class="px-4 py-2 rounded-xl glass-panel text-lg font-black uppercase tracking-widest bg-black/20" id="ui-turn">TURN 0</span>
-                    <span class="px-4 py-2 rounded-xl glass-panel text-lg font-black uppercase tracking-widest bg-black/20" id="ui-secondary">BONUS —</span>
-                    <span class="px-4 py-2 rounded-xl glass-panel text-lg font-black uppercase tracking-widest text-sky-300 bg-black/20 hidden sm:block" id="ui-perks">PERKS 0</span>
+                    <!-- 修正: 上部のGoalと同じスタイル（text-sm font-black text-white）に変更 -->
+                    <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-white border border-white/5" id="ui-turn">TURN 0</span>
+                    <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-white border border-white/5" id="ui-secondary">BONUS —</span>
+                    <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-sky-300 border border-white/5 hidden sm:block" id="ui-perks">PERKS 0</span>
                 </div>
                 
                 <button id="btn-undo" class="px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest text-slate-300 flex items-center gap-2">
@@ -452,7 +527,7 @@
             </button>
         </div>
 
-        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.3.0 Auto Save</p>
+        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.6.0 Fix Scroll & Fonts</p>
     </div>
 
     <!-- 変異選択 & ショップ画面 -->
@@ -554,10 +629,8 @@
 
         function saveGame() {
             try {
-                // セーブデータを作成 (gameState全体)
                 const data = JSON.stringify(gameState);
                 localStorage.setItem(SAVE_KEY, data);
-                // console.log("Game Saved");
             } catch (e) {
                 console.error("Save failed:", e);
                 showToast("Save failed (Storage Full?)", "red");
@@ -569,17 +642,10 @@
                 const data = localStorage.getItem(SAVE_KEY);
                 if (data) {
                     const loadedState = JSON.parse(data);
-                    // 既存のgameStateにマージ (新しいプロパティが増えた場合のため)
                     Object.assign(gameState, loadedState);
-                    
-                    // UI更新関連
                     updateTubeLayout();
-                    
-                    // ショップ画面が開いていた場合は閉じる（あるいは復元する）
-                    // 今回はシンプルにゲーム画面に戻す
                     perkScreen.classList.add('hidden');
                     startScreen.classList.add('hidden');
-                    
                     renderHUD();
                     renderBoard();
                     showToast(currentLang==='ja'?'再開しました':'Game Loaded', 'emerald');
@@ -659,6 +725,7 @@
                     "・生存：手数制限はありません。HPが尽きない限り探索を続けられます。",
                     "・道具と秘術：ショップでスキルを購入し、画面下部から使用します",
                     "・やり直し：右下のUNDOボタンを使用します（消費：5エッセンス）",
+                    "・アイテム：アイコンを1回タップで選択(確認)、2回目で使用/モード移行します。",
                 ].join("\n"),
                 helpClose: "閉じる",
                 settings: "設定",
@@ -813,8 +880,12 @@
         };
 
         // --- Items & Skills ---
-        // 修正: 色を消滅させるスキルを廃止・変更し、総量保存の法則を守る
         const ITEMS = {
+            extractor: {
+                id: 'extractor', type: 'consumable', cost: 12, icon: '💉',
+                name: {en:'Extractor', ja:'スポイト抽出'},
+                desc: {en:'Move top color to any empty space.', ja:'一番上の色を吸い取り、空きがある好きな場所へ移す'}
+            },
             pipette: {
                 id: 'pipette', type: 'tool', cost: 10, icon: '⚗️',
                 name: {en:'Pipette', ja:'精密ピペット'},
@@ -845,28 +916,27 @@
                 name: {en:'Cycle Siphon', ja:'循環サイフォン'},
                 desc: {en:'Move bottom to top.', ja:'一番下を一番上へ'}
             },
-            // --- NEW ITEMS (Revised for Safety) ---
             sedative: {
                 id: 'sedative', type: 'consumable', cost: 12, icon: '💤',
                 name: {en:'Sedative', ja:'鎮静剤'},
                 desc: {en:'Set Pressure to 0.', ja:'圧力を0にする'}
             },
-            sediment: { // Replaced 'extraction'
+            sediment: {
                 id: 'sediment', type: 'consumable', cost: 10, icon: '⏬',
                 name: {en:'Sediment', ja:'沈殿'},
                 desc: {en:'Move top to bottom.', ja:'一番上を一番下へ'}
             },
-            layer_swap: { // Replaced 'unifier'
+            layer_swap: {
                 id: 'layer_swap', type: 'consumable', cost: 12, icon: '🔗',
                 name: {en:'Layer Swap', ja:'層交換'},
                 desc: {en:'Swap top 2 layers.', ja:'上2つの層を入れ替え'}
             },
-            vacuum: { // Modified to be Black Ink only
+            vacuum: {
                 id: 'vacuum', type: 'consumable', cost: 14, icon: '🌀',
                 name: {en:'Obsidian Vacuum', ja:'黒吸引機'},
                 desc: {en:'Remove all top Obsidian.', ja:'一番上の黒インクを全除去'}
             },
-            midas: { // Modified to be Black Ink only
+            midas: {
                 id: 'midas', type: 'consumable', cost: 8, icon: '🖐️',
                 name: {en:'Alchemy Stone', ja:'対黒変成'},
                 desc: {en:'Obsidian > Essence.', ja:'一番上の黒をエッセンスに'}
@@ -876,21 +946,19 @@
                 name: {en:'Shaker', ja:'シェイカー'},
                 desc: {en:'Shuffle tube.', ja:'中身をシャッフル'}
             },
-            cursed_sludge: { // Replaced 'black_dye' to avoid deleting color
+            cursed_sludge: {
                 id: 'cursed_sludge', type: 'consumable', cost: 6, icon: '⚫',
                 name: {en:'Cursed Sludge', ja:'呪いの泥'},
                 desc: {en:'Add Obsidian if space.', ja:'空きがあれば黒を追加'}
             }
         };
 
-        // Instant Shop Items (Stat boosts / Events)
         const INSTANT_ITEMS = [
             { 
                 id:'heal', type:'stat', cost:8, 
                 name:{en:'Stabilizer', ja:'安定剤'}, 
                 desc:{en:'Heal +1 HP', ja:'HP+1'}, 
                 apply(gs){ 
-                    // Caps at MaxHP unless Perk increases max
                     gs.hp = Math.min(gs.maxHp, gs.hp + 1);
                     showToast('HP Recovered!', 'rose'); 
                 } 
@@ -938,7 +1006,6 @@
             }
         ];
 
-        // Combine for pool
         const SHOP_POOL = [
             ...INSTANT_ITEMS,
             ...Object.values(ITEMS).map(i => ({ id: `buy_${i.id}`, type: 'item', ref: i }))
@@ -972,12 +1039,15 @@
             currentShopOffers: null,
             pipetteMode: false,
             targetMode: null, 
+            pendingSkill: null, // 新規: 確認待ちのスキルID
+            extractorHeldColor: null, // 新規: 抽出中の色
             rerollCoupons: 0,
         };
 
         // --- DOM ---
         const tubesContainer = ui('tubes-container');
         const boardArea = ui('board-area');
+        const boardScrollArea = ui('board-scroll-area');
         const skillsContainer = ui('skills-container');
         const startScreen = ui('start-screen');
         const perkScreen = ui('perk-screen');
@@ -1096,11 +1166,7 @@
                 : `Area Cleared! +${base}✨${bonus>0 ? ` (Bonus +${bonus}✨)` : ''}`;
             
             showToast(msg, bonus>0 ? 'emerald' : 'sky');
-            
-            // Auto Save
             saveGame();
-            
-            // 少し待ってから次へ
             setTimeout(() => openPerkScreen(false), 1500);
         }
 
@@ -1212,16 +1278,24 @@
                 tube.dataset.idx = String(i);
 
                 if (i === gameState.selectedIdx) tube.classList.add('selected');
-                
                 if (gameState.focusIdx !== null && i === gameState.focusIdx) {
                     tube.classList.add('tube-focused');
                 }
-                
                 if (deadlocked) tube.classList.add('deadlock-glow');
                 
-                if (gameState.targetMode) {
-                    tube.classList.add('target-mode');
-                    tube.style.cursor = 'crosshair';
+                if (gameState.targetMode === 'extractor' && gameState.extractorHeldColor) {
+                    if(segments.length < gameState.capacity) {
+                        tube.classList.add('target-mode');
+                        tube.style.cursor = 'crosshair';
+                    }
+                } 
+                else if (gameState.targetMode) {
+                    if(gameState.targetMode === 'extractor' && segments.length === 0) {
+                        // skip style
+                    } else {
+                        tube.classList.add('target-mode');
+                        tube.style.cursor = 'crosshair';
+                    }
                 }
 
                 if (isCompleteTube(segments)) {
@@ -1251,21 +1325,20 @@
             requestAnimationFrame(adjustBoardScale);
         }
         
+        // 修正: 横スクロール前提のスケール調整（縦のみチェック）
         function adjustBoardScale() {
             if (!boardArea || !tubesContainer) return;
             tubesContainer.style.transform = 'none';
-            const availableW = boardArea.clientWidth;
+            
             const availableH = boardArea.clientHeight;
-            const contentW = tubesContainer.scrollWidth;
             const contentH = tubesContainer.scrollHeight;
-            const safeW = availableW * 0.95;
+            
+            // 縦がはみ出る場合のみ縮小する
             const safeH = availableH * 0.95;
             let scale = 1;
-            if (contentW > safeW || contentH > safeH) {
-                scale = Math.min(safeW / contentW, safeH / contentH);
-            }
-            scale = Math.max(scale, 0.4);
-            if (scale < 1) {
+            
+            if (contentH > safeH) {
+                scale = Math.max(0.6, safeH / contentH); // 最小0.6倍まで
                 tubesContainer.style.transform = `scale(${scale})`;
             }
         }
@@ -1301,8 +1374,18 @@
                         </div>
                     `;
                     
-                    if(key === 'pipette' && gameState.pipetteMode) btn.classList.add('active');
-                    if(gameState.targetMode === key) btn.classList.add('active-mode');
+                    // Style states
+                    if (key === 'pipette' && gameState.pipetteMode) btn.classList.add('active');
+                    if (gameState.pendingSkill === key) btn.classList.add('pending');
+                    if (gameState.targetMode === key) btn.classList.add('active-mode');
+                    if (gameState.targetMode === 'extractor' && key === 'extractor') {
+                        if(gameState.extractorHeldColor) {
+                            btn.classList.add('extracting');
+                            btn.innerHTML = `<div style="width:16px;height:16px;border-radius:50%;background:${colorMeta(gameState.extractorHeldColor).hex};border:2px solid white;"></div>` + badgeHtml;
+                        } else {
+                            btn.classList.add('active-mode');
+                        }
+                    }
 
                     btn.onclick = () => activateSkill(key);
                     skillsContainer.appendChild(btn);
@@ -1313,14 +1396,30 @@
         function activateSkill(key){
             if(gameState.busy) return;
             const def = ITEMS[key];
+
+            // 1. Pending Check
+            const isPending = (gameState.pendingSkill === key);
+            const isActive = (gameState.targetMode === key) || (key === 'pipette' && gameState.pipetteMode) || (key==='extractor' && gameState.targetMode==='extractor');
+
+            if (!isPending && !isActive) {
+                gameState.pendingSkill = key;
+                gameState.targetMode = null;
+                gameState.extractorHeldColor = null; 
+                showToast(currentLang==='ja'?'もう一度タップして使用':'Tap again to use', 'yellow');
+                renderSkills();
+                renderBoard(); 
+                return;
+            }
+
+            gameState.pendingSkill = null; 
             
-            // Non-targetable Instant items (if any in inventory)
+            // --- Instant Skills ---
             if(key === 'summon_vial'){
                  if(gameState.inventory[key] > 0){
                      gameState.inventory[key]--;
                      gameState.tubeCount++;
                      gameState.tubes.push([]);
-                     saveGame(); // SAVE
+                     saveGame();
                      renderBoard();
                      showFloatText(gameState.tubes.length-1, "Summoned!", "#a855f7");
                      showToast(currentLang==='ja'?'空き瓶を追加しました！':'Extra Tube Added!', 'purple');
@@ -1331,35 +1430,57 @@
                  if(gameState.inventory[key] > 0){
                      gameState.inventory[key]--;
                      gameState.pressure = 0;
-                     saveGame(); // SAVE
+                     saveGame();
                      renderHUD();
                      showToast("Sedated! Pressure 0.", 'purple');
                  }
                  return;
             }
-            
+
+            // --- Toggle / Target Skills ---
             if(def.type === 'tool' && key === 'pipette'){
-                // Toggle
                 gameState.pipetteMode = !gameState.pipetteMode;
                 gameState.targetMode = null; 
                 gameState.selectedIdx = null; 
             } else if (def.type === 'consumable'){
-                // Toggle Target Mode
-                if(gameState.targetMode === key){
-                    gameState.targetMode = null; 
-                } else {
-                    gameState.targetMode = key;
-                    gameState.selectedIdx = null; 
-                    gameState.pipetteMode = false; 
-                    showToast(currentLang==='ja' ? "対象を選択してください" : "Select a target tube", 'sky');
+                if (key === 'extractor') {
+                     if (gameState.targetMode === 'extractor') {
+                         if(gameState.extractorHeldColor){
+                             showToast(currentLang==='ja'?'抽出中のためキャンセル不可！':'Cannot cancel while holding color!', 'red');
+                             return; 
+                         }
+                         gameState.targetMode = null;
+                     } else {
+                         gameState.targetMode = 'extractor';
+                         gameState.extractorHeldColor = null;
+                         gameState.selectedIdx = null; 
+                         gameState.pipetteMode = false;
+                         showToast(currentLang==='ja' ? "抽出元を選択してください" : "Select source tube", 'emerald');
+                     }
+                } 
+                else {
+                    if(gameState.targetMode === key){
+                        gameState.targetMode = null; 
+                    } else {
+                        gameState.targetMode = key;
+                        gameState.selectedIdx = null; 
+                        gameState.pipetteMode = false; 
+                        showToast(currentLang==='ja' ? "対象を選択してください" : "Select a target tube", 'sky');
+                    }
                 }
             }
+            renderSkills();
             renderBoard();
         }
 
         async function handleTubeClick(idx) {
             if (gameState.busy) return;
             
+            if (gameState.targetMode === 'extractor') {
+                await handleExtractorStep(idx);
+                return;
+            }
+
             if (gameState.targetMode) {
                 await applySkillEffect(idx);
                 return;
@@ -1384,6 +1505,61 @@
             }
         }
         
+        async function handleExtractorStep(idx) {
+            const tube = gameState.tubes[idx];
+            
+            if (!gameState.extractorHeldColor) {
+                if (tube.length === 0) {
+                    showFloatText(idx, "Empty!", "#ef4444");
+                    return;
+                }
+                
+                gameState.busy = true;
+                const color = tube.pop();
+                gameState.extractorHeldColor = color;
+                
+                showFloatText(idx, "Extracted!", "#22c55e");
+                renderBoard(); 
+                gameState.busy = false;
+                
+                showToast(currentLang==='ja' ? "移動先を選択してください" : "Select destination", 'emerald');
+            } 
+            else {
+                if (tubeFree(tube) <= 0) {
+                    showFloatText(idx, "Full!", "#ef4444");
+                    return;
+                }
+                
+                pushHistory();
+                
+                tube.push(gameState.extractorHeldColor);
+                gameState.extractorHeldColor = null;
+                
+                if (gameState.inventory['extractor'] > 0) {
+                    let consume = true;
+                    if(hasPerk('recycler')){
+                        const lv = getPerkLevel('recycler');
+                        if(Math.random() < lv * 0.1){
+                            consume = false;
+                            showToast("Recycled! Item saved.", 'purple');
+                        }
+                    }
+                    if(consume) gameState.inventory['extractor']--;
+                }
+                
+                gameState.targetMode = null; 
+                showFloatText(idx, "Injected!", "#22c55e");
+                
+                saveGame();
+                renderHUD();
+                renderBoard();
+                
+                if(isCompleteTube(tube)){
+                    await handleCompletion(idx, tube[0]);
+                }
+            }
+        }
+        
         async function applySkillEffect(idx){
             const skillKey = gameState.targetMode;
             const tube = gameState.tubes[idx];
@@ -1393,7 +1569,6 @@
             let success = false;
             let consume = true;
 
-            // Perk: Recycler
             if(hasPerk('recycler')){
                 const lv = getPerkLevel('recycler');
                 if(Math.random() < lv * 0.1){
@@ -1405,7 +1580,6 @@
             try {
                 gameState.busy = true;
 
-                // --- Effect Logic ---
                 if(skillKey === 'inverter'){
                     if(tube.length < 2) showFloatText(idx, "Too Empty!", "#ef4444");
                     else {
@@ -1432,11 +1606,9 @@
                     else {
                         pushHistory();
                         if(consume) gameState.inventory[skillKey]--;
-                        // Sort
                         const counts = {};
                         tube.forEach(c => counts[c] = (counts[c]||0)+1);
                         const newTube = [];
-                        // Rebuild sorted (simple alpha sort for stability)
                         Object.keys(counts).sort().forEach(c => {
                              for(let i=0; i<counts[c]; i++) newTube.push(c);
                         });
@@ -1460,7 +1632,7 @@
                         pushHistory();
                         if(consume) gameState.inventory[skillKey]--;
                         const top = tube.pop();
-                        tube.unshift(top); // Top to bottom
+                        tube.unshift(top); 
                         showFloatText(idx, "Sunk!", "#a855f7");
                         success = true;
                      }
@@ -1469,7 +1641,6 @@
                     else {
                         pushHistory();
                         if(consume) gameState.inventory[skillKey]--;
-                        // Swap top 2
                         const t1 = tube[tube.length-1];
                         const t2 = tube[tube.length-2];
                         tube[tube.length-1] = t2;
@@ -1477,26 +1648,25 @@
                         showFloatText(idx, "Swapped!", "#a855f7");
                         success = true;
                     }
-                } else if (skillKey === 'vacuum'){ // Obsidian only
+                } else if (skillKey === 'vacuum'){ 
                     if(tube.length === 0) showFloatText(idx, "Empty!", "#ef4444");
                     else if(tube[tube.length-1] !== 'K') showFloatText(idx, "Obsidian Only!", "#ef4444");
                     else {
                         pushHistory();
                         if(consume) gameState.inventory[skillKey]--;
-                        // Remove all top K
                         while(tube.length > 0 && tube[tube.length-1] === 'K'){
                             tube.pop();
                         }
                         showFloatText(idx, "Vacuumed!", "#a855f7");
                         success = true;
                     }
-                } else if (skillKey === 'midas'){ // Obsidian only
+                } else if (skillKey === 'midas'){ 
                     if(tube.length === 0) showFloatText(idx, "Empty!", "#ef4444");
                     else if(tube[tube.length-1] !== 'K') showFloatText(idx, "Obsidian Only!", "#ef4444");
                     else {
                         pushHistory();
                         if(consume) gameState.inventory[skillKey]--;
-                        tube.pop(); // Remove 1 K
+                        tube.pop(); 
                         gameState.essence += 2; 
                         showFloatText(idx, "Transmuted! (+2✨)", "#fbbf24");
                         success = true;
@@ -1506,7 +1676,6 @@
                     else {
                         pushHistory();
                         if(consume) gameState.inventory[skillKey]--;
-                        // Shuffle
                         for (let i = tube.length - 1; i > 0; i--) {
                             const j = Math.floor(Math.random() * (i + 1));
                             [tube[i], tube[j]] = [tube[j], tube[i]];
@@ -1514,7 +1683,7 @@
                         showFloatText(idx, "Shaken!", "#a855f7");
                         success = true;
                     }
-                } else if (skillKey === 'cursed_sludge'){ // Add K, don't replace
+                } else if (skillKey === 'cursed_sludge'){ 
                     if(tube.length >= gameState.capacity) showFloatText(idx, "Full!", "#ef4444");
                     else {
                         pushHistory();
@@ -1534,7 +1703,6 @@
                 renderHUD();
                 renderBoard();
                 
-                // Auto Save on successful item use
                 saveGame();
                 
                 if(isCompleteTube(gameState.tubes[idx])){
@@ -2181,7 +2349,6 @@
                  btn.disabled = true;
             } else {
                 btn.onclick = () => {
-                    // CRITICAL FIX: Re-check essence at moment of click
                     if (gameState.essence < cost) {
                         showToast(currentLang==='ja'?'エッセンスが足りません！':'Not enough Essence!', 'rose');
                         return;
@@ -2212,8 +2379,6 @@
                          btn.classList.add('opacity-50', 'cursor-not-allowed');
                          btn.onclick = null;
                          btn.disabled = true;
-                    } else if (item.id === 'dark_pact' && gameState.hp <= 1){
-                         // Do nothing special, updateShopButtons checks logic
                     }
                     
                     // Update owned counts for consumables
@@ -2242,12 +2407,10 @@
                 if(gameState.essence >= cost) {
                     btn.classList.remove('opacity-30', 'cursor-not-allowed');
                     btn.classList.add('hover:bg-sky-500', 'hover:text-white');
-                    // Re-enable pointer events if needed
                     btn.style.pointerEvents = 'auto';
                 } else {
                     btn.classList.add('opacity-30', 'cursor-not-allowed');
                     btn.classList.remove('hover:bg-sky-500', 'hover:text-white');
-                    // btn.style.pointerEvents = 'none'; // Optional: pure CSS disable
                 }
             });
         }
@@ -2283,6 +2446,8 @@
             gameState.currentShopOffers = null; 
             gameState.pipetteMode = false;
             gameState.targetMode = null;
+            gameState.pendingSkill = null;
+            gameState.extractorHeldColor = null;
             gameState.rerollCoupons = 0;
             
             perkScreen.classList.add('hidden'); 
@@ -2344,6 +2509,8 @@
             gameState.busy = false;
             gameState.targetMode = null;
             gameState.pipetteMode = false;
+            gameState.pendingSkill = null;
+            gameState.extractorHeldColor = null;
             
             renderHUD();
             renderBoard();
@@ -2378,6 +2545,10 @@
             gameState.capacity = prev.capacity || 4; 
             gameState.momentumTurns = prev.momentumTurns;
             gameState.refluxUses = prev.refluxUses;
+            
+            gameState.targetMode = null;
+            gameState.pendingSkill = null;
+            gameState.extractorHeldColor = null;
             
             if(isFree){
                 gameState.pressure += 2;
@@ -2418,8 +2589,8 @@
             const secondaryEl = ui('ui-secondary');
             if (secondaryEl) {
                 secondaryEl.className = secondarySucceeded() 
-                    ? "px-4 py-2 rounded-xl glass-panel text-lg font-black uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
-                    : "px-4 py-2 rounded-xl glass-panel text-lg font-black uppercase tracking-widest bg-black/20";
+                    ? "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
+                    : "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-black/20 text-white border border-white/5";
             }
 
             setText('ui-pressure', String(gameState.pressure));
