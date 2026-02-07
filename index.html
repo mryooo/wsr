@@ -996,16 +996,16 @@
         };
 
         const ITEMS = {
-            extractor: {
-                id: 'extractor', type: 'consumable', cost: 12, icon: '💉',
-                name: {en:'Extractor', ja:'スポイト抽出'},
-                desc: {en:'Move top color to any empty space.', ja:'一番上の色を吸い取り、空きがある好きな場所へ移す'}
-            },
-            pipette: {
-                id: 'pipette', type: 'tool', cost: 10, icon: '⚗️',
-                name: {en:'Pipette', ja:'精密ピペット'},
-                desc: {en:'Toggle: Pour 1 segment.', ja:'切替：1目盛りだけ注ぐ'}
-            },
+            // extractor: {
+            //     id: 'extractor', type: 'consumable', cost: 12, icon: '💉',
+            //     name: {en:'Extractor', ja:'スポイト抽出'},
+            //     desc: {en:'Move top color to any empty space.', ja:'一番上の色を吸い取り、空きがある好きな場所へ移す'}
+            // },
+            // pipette: {
+            //     id: 'pipette', type: 'tool', cost: 10, icon: '⚗️',
+            //     name: {en:'Pipette', ja:'精密ピペット'},
+            //     desc: {en:'Toggle: Pour 1 segment.', ja:'切替：1目盛りだけ注ぐ'}
+            // },
             inverter: {
                 id: 'inverter', type: 'consumable', cost: 6, icon: '🔄',
                 name: {en:'Gravity Coil', ja:'重力反転機'},
@@ -1077,15 +1077,15 @@
                 desc: {en:'Move top 1 segment anywhere.', ja:'最上段の1層を色を無視して空きのある場所へ移す'}
             },
             vaporizer: {
-                id: 'vaporizer', type: 'consumable', cost: 7, icon: '🌫️',
+                id: 'vaporizer', type: 'consumable', cost: 7, icon: '♨️',
                 name: {en:'Vaporizer', ja:'微量蒸発'},
                 desc: {en:'Delete top 1 segment.', ja:'最上段の1層を消滅させる'}
             },
-            booster: {
-                id: 'booster', type: 'consumable', cost: 6, icon: '🌡️',
-                name: {en:'Condenser', ja:'逆微量凝縮'},
-                desc: {en:'Add 1 top color (Pressure +3).', ja:'最上段と同じ色を1層追加する。代償：圧力+3'}
-            }
+            // booster: {
+            //     id: 'booster', type: 'consumable', cost: 6, icon: '🌡️',
+            //     name: {en:'Condenser', ja:'逆微量凝縮'},
+            //     desc: {en:'Add 1 top color (Pressure +3).', ja:'最上段と同じ色を1層追加する。代償：圧力+3'}
+            // }
         };
 
         const INSTANT_ITEMS = [
@@ -1249,19 +1249,19 @@
 
             const roll = Math.random();
 
-            if (roll < 0.65) { // 例: 15%の確率で「すべての色」を目標にする
+            if (roll < 0.65) { // 65%の確率で「すべての色」を目標
                 gameState.primaryGoal = {
                     type: 'completeAll',
                     text: currentLang === 'ja' ? 'すべての色を完成' : 'Complete All Colors'
                 };
-            } else if (roll < 0.30) { // 確率の残りを既存の目標に割り振る
+            } else if (roll < 0.30) { // 30%の確率で「すべての色」を目標
                 const maxN = colors.length;
                 const n = clamp(Math.floor(maxN / 1.5), 1, maxN);
                 gameState.primaryGoal = {
                     type:'completeN', n:n,
                     text: currentLang==='ja' ? `いずれか${n}色を完成` : `Complete any ${n} colors`
                 };
-            } else {
+            } else { // 残り
                 const c = pick(colors);
                 gameState.primaryGoal = {
                     type:'completeColor', color:c,
