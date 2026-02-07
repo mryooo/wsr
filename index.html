@@ -566,7 +566,7 @@
                 </button>
             </div>
 
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.0.23 Tube Update</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.0.24 Tube Update</p>
         </div>
 
         <!-- 変異選択 & ショップ画面 -->
@@ -742,10 +742,21 @@
                     const loadedState = JSON.parse(data);
                     Object.assign(gameState, loadedState);
                     updateTubeLayout();
-                    perkScreen.classList.add('hidden');
+                    
+                    // ▼▼▼ 修正箇所：初期化時の画面表示ロジックを変更 ▼▼▼
                     startScreen.classList.add('hidden');
                     renderHUD();
                     renderBoard();
+                    
+                    // もしロード時点でレベルクリア状態なら、変異画面(PerkScreen)を開く
+                    if (checkLevelClear()) {
+                        openPerkScreen(false);
+                    } else {
+                        // クリアしてなければ普通に隠す
+                        perkScreen.classList.add('hidden');
+                    }
+                    // ▲▲▲ 修正箇所ここまで ▲▲▲
+
                     showToast(currentLang==='ja'?'再開しました':'Game Loaded', 'emerald');
                     return true;
                 }
@@ -2160,20 +2171,77 @@
         
         function animatePour(fromIdx, toIdx, colorKey, count){
             return new Promise((resolve) => {
-                const fromEl = tubeCenterEl(fromIdx), toEl = tubeCenterEl(toIdx); if (!fromEl || !toEl){ resolve(); return; }
-                const fromWater = fromEl.querySelector('.water-container'), toWater = toEl.querySelector('.water-container'), shrinkSegments = [];
-                for(let i=0; i<count; i++) if(fromWater.children.length > i) shrinkSegments.push(fromWater.children[fromWater.children.length - 1 - i]);
-                const isRight = toEl.getBoundingClientRect().left > fromEl.getBoundingClientRect().left;
-                fromEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)'; fromEl.style.transform = `translateY(-10px) rotate(${isRight ? 45 : -45}deg)`; fromEl.style.zIndex = 50; 
-                setTimeout(() => {
-                    shrinkSegments.forEach(seg => { if(seg) { seg.style.height = '0px'; seg.style.opacity = '0'; seg.style.borderTop = 'none'; } });
-                    for(let i=0; i<count; i++){
-                        const newSeg = document.createElement('div'); newSeg.className = 'water-segment'; newSeg.style.backgroundColor = colorMeta(colorKey).hex;
-                        newSeg.style.height = '0px'; newSeg.style.opacity = '0.5'; toWater.appendChild(newSeg); void newSeg.offsetWidth;
-                        newSeg.style.height = 'var(--segment-height)'; newSeg.style.opacity = '1';
+                // 方向判定のために、現在画面中央に最も近い「メインの」ペアを取得して位置関係を計算
+                const primaryFrom = tubeCenterEl(fromIdx);
+                const primaryTo = tubeCenterEl(toIdx);
+                
+                // 万が一見つからない場合は処理中断
+                if (!primaryFrom || !primaryTo){ resolve(); return; }
+
+                // 傾ける方向を決める（右にあるなら右へ、左なら左へ傾ける）
+                const isRight = primaryTo.getBoundingClientRect().left > primaryFrom.getBoundingClientRect().left;
+
+                // ★修正: querySelectorAllですべての該当フラスコ（クローン含む）を取得する
+                const fromEls = document.querySelectorAll(`.tube[data-idx="${fromIdx}"]`);
+                const toEls = document.querySelectorAll(`.tube[data-idx="${toIdx}"]`);
+
+                // 1. 注ぐ側のアニメーション（全クローンに適用）
+                fromEls.forEach(fromEl => {
+                    const fromWater = fromEl.querySelector('.water-container');
+                    const shrinkSegments = [];
+                    // 減らす対象のセグメントを特定
+                    for(let i=0; i<count; i++) {
+                        if(fromWater.children.length > i) {
+                            shrinkSegments.push(fromWater.children[fromWater.children.length - 1 - i]);
+                        }
                     }
+
+                    // 傾き適用
+                    fromEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    fromEl.style.transform = `translateY(-10px) rotate(${isRight ? 45 : -45}deg)`;
+                    fromEl.style.zIndex = 50;
+
+                    // 少し遅れて水を減らす
+                    setTimeout(() => {
+                        shrinkSegments.forEach(seg => { 
+                            if(seg) { 
+                                seg.style.height = '0px'; 
+                                seg.style.opacity = '0'; 
+                                seg.style.borderTop = 'none'; 
+                            } 
+                        });
+                    }, 50);
+                });
+
+                // 2. 受け取る側のアニメーション（全クローンに適用）
+                setTimeout(() => {
+                    toEls.forEach(toEl => {
+                        const toWater = toEl.querySelector('.water-container');
+                        for(let i=0; i<count; i++){
+                            const newSeg = document.createElement('div'); 
+                            newSeg.className = 'water-segment'; 
+                            newSeg.style.backgroundColor = colorMeta(colorKey).hex;
+                            newSeg.style.height = '0px'; 
+                            newSeg.style.opacity = '0.5'; 
+                            toWater.appendChild(newSeg); 
+                            
+                            // アニメーション用リフロー
+                            void newSeg.offsetWidth;
+                            
+                            newSeg.style.height = 'var(--segment-height)'; 
+                            newSeg.style.opacity = '1';
+                        }
+                    });
                 }, 50);
-                setTimeout(() => { fromEl.style.transform = ''; fromEl.style.zIndex = ''; resolve(); }, 400); 
+
+                // 3. 終了処理
+                setTimeout(() => { 
+                    fromEls.forEach(fromEl => {
+                        fromEl.style.transform = ''; 
+                        fromEl.style.zIndex = ''; 
+                    });
+                    resolve(); 
+                }, 400); 
             });
         }
 
