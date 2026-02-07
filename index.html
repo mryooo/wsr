@@ -51,7 +51,7 @@
             position: relative;
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
             background: var(--tube-bg);
-            margin: 6px;
+            margin: 3px;
             z-index: 10;
             cursor: pointer;
             overflow: hidden;
@@ -328,25 +328,26 @@
         #board-scroll-area {
             width: 100%;
             height: 100%;
-            overflow-x: auto;
+            overflow-x: scroll; /* autoからscrollへ変更 */
             overflow-y: hidden;
             display: flex;
             align-items: center; 
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,0.1) transparent;
+            /* スクロールバー非表示 */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            cursor: grab; /* ドラッグ可能であることを示す */
+        }
+        #board-scroll-area:active {
+            cursor: grabbing;
         }
         #board-scroll-area::-webkit-scrollbar {
-            height: 6px;
-        }
-        #board-scroll-area::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.1);
-            border-radius: 3px;
+            display: none;
         }
 
         #tubes-container {
             display: flex;
             flex-wrap: nowrap;
-            gap: 12px;
+            gap: 6px;
             padding: 0 24px;
             width: max-content; 
             margin: auto; 
@@ -523,7 +524,7 @@
                 </button>
             </div>
 
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.10.0 Perk Selection Update</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.11.0 Scroll Update</p>
         </div>
 
         <!-- 変異選択 & ショップ画面 -->
@@ -763,8 +764,8 @@
                 vitality: "HP",
                 floor: "階層",
                 essence: "エッセンス",
-                turn: "ターン",
-                secondary: "ボーナス",
+                turn: "Turn",
+                secondary: "Bonus",
                 perks: "変異",
                 hint: "チューブを選択して注ぐ",
                 goalTitle: "目標",
@@ -1031,15 +1032,15 @@
                 name: {en:'Cycle Siphon', ja:'循環サイフォン'},
                 desc: {en:'Move bottom to top.', ja:'一番下を一番上へ'}
             },
-            sedative: {
-                id: 'sedative', type: 'consumable', cost: 12, icon: '💤',
-                name: {en:'Sedative', ja:'鎮静剤'},
-                desc: {en:'Set Pressure to 0.', ja:'圧力を0にする'}
-            },
             sediment: {
                 id: 'sediment', type: 'consumable', cost: 10, icon: '⏬',
                 name: {en:'Sediment', ja:'沈殿'},
                 desc: {en:'Move top to bottom.', ja:'一番上を一番下へ'}
+            },
+            sedative: {
+                id: 'sedative', type: 'consumable', cost: 12, icon: '💤',
+                name: {en:'Sedative', ja:'鎮静剤'},
+                desc: {en:'Set Pressure to 0.', ja:'圧力を0にする'}
             },
             layer_swap: {
                 id: 'layer_swap', type: 'consumable', cost: 12, icon: '🔗',
@@ -1415,22 +1416,52 @@
             document.documentElement.style.setProperty('--tube-height', `${tubeHeight}px`);
         }
 
+        // --- 無限スクロール用定数 ---
+        const CLONE_PADDING = 10; // 左右に配置するクローンの数
+
         function renderBoard(){
             tubesContainer.innerHTML = '';
             const deadlocked = isDeadlocked();
             if (alertBanner) alertBanner.style.opacity = deadlocked ? '1' : '0';
             
-            const counts = getBoardCounts(); // For rendering status
+            const counts = getBoardCounts();
+            const totalTubes = gameState.tubes.length;
 
-            gameState.tubes.forEach((segments, i) => {
+            // 表示リストを作成: [末尾のクローン] + [本体] + [先頭のクローン]
+            const renderList = [];
+            
+            // 左側のクローン (末尾の数個)
+            for(let i = 0; i < CLONE_PADDING; i++) {
+                const idx = (totalTubes - CLONE_PADDING + i) % totalTubes;
+                if(idx >= 0) renderList.push({ idx: idx, isClone: true });
+            }
+            // 本体
+            for(let i = 0; i < totalTubes; i++) {
+                renderList.push({ idx: i, isClone: false });
+            }
+            // 右側のクローン (先頭の数個)
+            for(let i = 0; i < CLONE_PADDING; i++) {
+                renderList.push({ idx: i, isClone: true });
+            }
+
+            renderList.forEach((item) => {
+                const i = item.idx;
+                const segments = gameState.tubes[i];
                 const tube = document.createElement('div');
                 tube.className = 'tube';
                 tube.dataset.idx = String(i);
+                if (item.isClone) tube.classList.add('clone-tube'); // クローン識別用クラス
+
                 if (i === gameState.selectedIdx) tube.classList.add('selected');
+                
+                // フォーカス表示（クローンも含めて表示）
                 if (gameState.focusIdx !== null && i === gameState.focusIdx) {
                     tube.classList.add('tube-focused');
                 }
+
                 if (deadlocked) tube.classList.add('deadlock-glow');
+                
+                // --- スキル・ターゲットモードの表示ロジック ---
                 const isTwoStepSkill = ['extractor', 'transfer'].includes(gameState.targetMode);
                 if (isTwoStepSkill && gameState.extractorHeldColor) {
                     if(segments.length < gameState.capacity) {
@@ -1445,12 +1476,15 @@
                         tube.style.cursor = 'crosshair';
                     }
                 }
+                
                 if (isCompleteTube(segments, counts)) {
                     if (segments[0] !== 'K') {
                         tube.style.boxShadow = `0 0 15px ${colorMeta(segments[0]).hex}`;
                         tube.style.borderColor = `rgba(255,255,255,0.5)`;
                     }
                 }
+
+                // 中身（水）の生成
                 const water = document.createElement('div');
                 water.className = 'water-container';
                 segments.forEach(key => {
@@ -1461,11 +1495,22 @@
                     water.appendChild(seg);
                 });
                 tube.appendChild(water);
-                tube.addEventListener('click', () => handleTubeClick(i));
+                
+                // クリックイベント (クローンでも本体と同じインデックスで動作)
+                tube.addEventListener('click', (e) => {
+                    // ドラッグ中のクリック誤爆防止
+                    if(isDragging) return;
+                    handleTubeClick(i);
+                });
+                
                 tubesContainer.appendChild(tube);
             });
+
             renderSkills();
-            requestAnimationFrame(adjustBoardScale);
+            requestAnimationFrame(() => {
+                adjustBoardScale();
+                initInfiniteScroll(); // スクロール位置の調整とイベント設定
+            });
         }
         
         function adjustBoardScale() {
@@ -1972,8 +2017,30 @@
             document.body.appendChild(float); setTimeout(()=>float.remove(), 1000);
         }
 
-        function tubeCenterEl(idx){ return ui('tubes-container').querySelector(`[data-idx="${idx}"]`); }
+        function tubeCenterEl(idx){ 
+            // 同じdata-idxを持つ要素（本体とクローン）の中から、現在画面内に一番近いものを探す
+            const els = ui('tubes-container').querySelectorAll(`[data-idx="${String(idx)}"]`);
+            if(els.length === 0) return null;
+            if(els.length === 1) return els[0];
 
+            const container = ui('board-scroll-area');
+            const center = container.getBoundingClientRect().left + container.clientWidth / 2;
+            
+            let closest = els[0];
+            let minDist = Infinity;
+
+            els.forEach(el => {
+                const rect = el.getBoundingClientRect();
+                const elCenter = rect.left + rect.width / 2;
+                const dist = Math.abs(center - elCenter);
+                if(dist < minDist){
+                    minDist = dist;
+                    closest = el;
+                }
+            });
+            return closest;
+        }
+        
         function animatePour(fromIdx, toIdx, colorKey, count){
             return new Promise((resolve) => {
                 const fromEl = tubeCenterEl(fromIdx), toEl = tubeCenterEl(toIdx); if (!fromEl || !toEl){ resolve(); return; }
@@ -2409,6 +2476,112 @@
         };
         ui('start-run-btn').onclick = startNewRun;
         ui('continue-run-btn').onclick = () => { startScreen.classList.add('hidden'); loadGame(); };
+
+        // --- 無限スクロール & ドラッグ制御 ---
+        let isDown = false;
+        let startX;
+        let isDragging = false; 
+
+        const slider = ui('board-scroll-area');
+
+        slider.addEventListener('mousedown', (e) => {
+            isDown = true;
+            isDragging = false;
+            slider.style.cursor = 'grabbing';
+            startX = e.pageX - slider.offsetLeft;
+            // ★修正点1: ここで scrollLeft を保存しない
+        });
+
+        slider.addEventListener('mouseleave', () => {
+            isDown = false;
+            slider.style.cursor = 'grab';
+        });
+
+        slider.addEventListener('mouseup', () => {
+            isDown = false;
+            slider.style.cursor = 'grab';
+        });
+
+        slider.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - slider.offsetLeft;
+            
+            // ★修正点2: 「最初の位置からの距離」ではなく「直前の位置からの差分」で動かす
+            // こうすることで、裏でループ処理が走って位置が飛んでも、スムーズに操作が続く
+            const walk = (x - startX) * 1.5; 
+            slider.scrollLeft -= walk; 
+            startX = x; // 基準点を更新
+            
+            if(Math.abs(walk) > 0) isDragging = true;
+        });
+
+        // 無限ループ判定
+        slider.addEventListener('scroll', () => {
+            checkInfiniteScrollLoop();
+        });
+
+        // --- 無限スクロール初期化 ---
+        function initInfiniteScroll() {
+            const tubeEl = tubesContainer.querySelector('.tube');
+            if(!tubeEl) return;
+            
+            const style = window.getComputedStyle(tubesContainer);
+            const gap = parseFloat(style.gap) || 0; 
+            const itemWidth = tubeEl.offsetWidth + gap;
+            
+            const cloneWidth = itemWidth * CLONE_PADDING;
+            const realWidth = itemWidth * gameState.tubes.length;
+            const containerWidth = slider.clientWidth;
+            
+            let targetScroll = cloneWidth;
+
+            // 本体幅が画面より小さい場合、中央に来るようオフセット計算
+            if (realWidth < containerWidth) {
+                const offset = (containerWidth - realWidth) / 2;
+                targetScroll -= offset;
+            }
+
+            if(slider.scrollLeft < 5) {
+                slider.scrollLeft = targetScroll;
+            }
+        }
+        // --- 無限ループ監視 ---
+        function checkInfiniteScrollLoop() {
+            if(!gameState.tubes.length) return;
+            const tubeEl = tubesContainer.querySelector('.tube');
+            if(!tubeEl) return;
+            
+            // CSSのgap値を動的に取得
+            const style = window.getComputedStyle(tubesContainer);
+            const gap = parseFloat(style.gap) || 0;
+
+            const itemWidth = tubeEl.offsetWidth + gap;
+            const realWidth = itemWidth * gameState.tubes.length;
+            
+            // 判定の遊び（バッファ）
+            const buffer = 10; 
+
+            // 左端判定
+            if (slider.scrollLeft < buffer) {
+                // 左端に行き過ぎたら、本体幅分だけ右へワープ
+                slider.scrollLeft += realWidth;
+            }
+            // 右端判定
+            // scrollWidth(全幅) - clientWidth(画面幅) = 最大スクロール値
+            // そこに近づいたら、本体幅分だけ左へワープ
+            else if (slider.scrollLeft > slider.scrollWidth - slider.clientWidth - buffer) {
+                slider.scrollLeft -= realWidth;
+            }
+        }
+        window.onkeydown = (e) => {
+            if(!perkScreen.classList.contains('hidden') || !eventScreen.classList.contains('hidden') || !helpScreen.classList.contains('hidden') || !mutationsScreen.classList.contains('hidden')) return;
+            if (e.key === 'ArrowLeft') moveFocus(-1); if (e.key === 'ArrowRight') moveFocus(1);
+            if ((e.key === 'Enter' || e.key === ' ') && gameState.focusIdx !== null) handleTubeClick(gameState.focusIdx);
+            if (e.key === 'Backspace' || e.key === 'z') tryUndo();
+        };
+        applyLang(); updateStartScreenButtons();
+
         window.onkeydown = (e) => {
             if(!perkScreen.classList.contains('hidden') || !eventScreen.classList.contains('hidden') || !helpScreen.classList.contains('hidden') || !mutationsScreen.classList.contains('hidden')) return;
             if (e.key === 'ArrowLeft') moveFocus(-1); if (e.key === 'ArrowRight') moveFocus(1);
