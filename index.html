@@ -1403,6 +1403,20 @@
                     [tubes[t1][s1], tubes[t2][s2]] = [tubes[t2][s2], tubes[t1][s1]];
                 }
             }
+            for (let t = 0; t < safeNumColors; t++) {
+                if (tubes[t].length === gameState.capacity && tubes[t].every(c => c === tubes[t][0])) {
+                    let target = (t + 1) % safeNumColors;
+                    if (tubes[target].length > 0 && tubes[target][tubes[target].length-1] === tubes[t][0]) {
+                        target = (t + 2) % safeNumColors;
+                    }
+                    const myTop = tubes[t].length - 1;
+                    const targetTop = tubes[target].length - 1;
+                    if (tubes[target].length > 0) {
+                        [tubes[t][myTop], tubes[target][targetTop]] = [tubes[target][targetTop], tubes[t][myTop]];
+                    }
+                }
+            }
+
             gameState.tubes = tubes;
             updateTubeLayout();
         }
