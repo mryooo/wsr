@@ -126,13 +126,23 @@
             content: '';
             position: absolute;
             inset: 0;
+            /* ▼▼▼ 修正: 左右にエッジの効いた白いリムライトを追加 ▼▼▼ */
             background: linear-gradient(90deg, 
-                rgba(255,255,255,0.1) 0%, 
-                rgba(255,255,255,0) 20%, 
-                rgba(0,0,0,0.1) 50%, 
-                rgba(255,255,255,0) 80%, 
-                rgba(255,255,255,0.15) 100%);
-            opacity: 0.6;
+                rgba(255,255,255,0.6) 0%,    /* 左端: クッキリした白 */
+                rgba(255,255,255,0.1) 30%,   /* 急激に薄くなる */
+                rgba(255,255,255,0) 35%,     /* 透明へ */
+                
+                rgba(0,0,0,0.05) 50%,        /* 中央: ほんのり影（立体感用） */
+                
+                rgba(255,255,255,0) 75%,     /* 透明から */
+                rgba(255,255,255,0.1) 90%,   /* 急激に白くなる */
+                rgba(255,255,255,0.6) 100%   /* 右端: クッキリした白 */
+            );
+            opacity: 0.8; /* ハイライトを目立たせるため少し不透明度を上げる */
+            /* ▲▲▲ 修正ここまで ▲▲▲ */
+            
+            /* (オプション) よりガラスっぽく馴染ませたい場合は以下を追加しても良いです */
+            /* mix-blend-mode: overlay; */
         }
 
         .water-segment:last-child {
@@ -1449,9 +1459,12 @@
         
         function updateTubeLayout(){
             const cap = gameState.capacity;
-            let segHeight = 100;
+            
+            let segHeight = 45; 
+
             if(cap >= 6) segHeight = 32;
             else if(cap >= 5) segHeight = 36;
+            
             const tubeHeight = (segHeight * cap) + 40;
             document.documentElement.style.setProperty('--segment-height', `${segHeight}px`);
             document.documentElement.style.setProperty('--tube-height', `${tubeHeight}px`);
@@ -1593,14 +1606,25 @@
             tubesContainer.style.transform = 'none';
             const availableH = boardArea.clientHeight;
             const contentH = tubesContainer.scrollHeight;
-            const safeH = availableH * 0.95;
-            let scale = 1;
-            if (contentH > safeH) {
-                scale = Math.max(0.6, safeH / contentH);
-                tubesContainer.style.transform = `scale(${scale})`;
-            }
+            
+            // ▼▼▼ 修正箇所：ここから下を書き換え ▼▼▼
+            
+            // 画面の高さの85%くらいに収まるように計算（上下マージン確保）
+            const targetH = availableH * 0.85;
+            
+            // 目標の高さ / コンテンツの高さ で倍率を算出（拡大も縮小も許可）
+            let scale = targetH / contentH;
+
+            // ただし極端な拡大縮小は制限する（0.6倍〜1.5倍の範囲など）
+            // これにより「フラスコが小さすぎる」場合は拡大され、
+            // 「大きすぎる」場合は縮小されます。
+            scale = Math.min(Math.max(scale, 0.6), 1.5);
+
+            tubesContainer.style.transform = `scale(${scale})`;
+            
+            // ▲▲▲ 修正箇所ここまで ▲▲▲
         }
-        
+
         window.addEventListener('resize', () => {
             requestAnimationFrame(adjustBoardScale);
         });
@@ -1856,7 +1880,7 @@
                         const bottom = tube.shift(); tube.push(bottom);
                         showFloatText(idx, "Cycled!", "#a855f7"); success = true;
                      }
-                } else if (skillKey === 'sedative'){ 
+                } else if (skillKey === 'sediment'){ 
                      if(tube.length < 2) showFloatText(idx, "No need!", "#ef4444");
                      else {
                         pushHistory(); if(consume) gameState.inventory[skillKey]--;
@@ -1953,10 +1977,20 @@
 
         function pushHistory(){
             gameState.history.push({
-                tubes: deepCopy(gameState.tubes), turnCount: gameState.turnCount, pressure: gameState.pressure, hp: gameState.hp,
-                secondaryProgress: gameState.secondaryProgress, catalystAvailable: gameState.catalystAvailable, essence: gameState.essence,
-                inventory: {...gameState.inventory}, tubeCount: gameState.tubeCount, capacity: gameState.capacity,
-                momentumTurns: gameState.momentumTurns, refluxUses: gameState.refluxUses
+                tubes: deepCopy(gameState.tubes), 
+                turnCount: gameState.turnCount, 
+                pressure: gameState.pressure, 
+                hp: gameState.hp,
+                secondaryProgress: gameState.secondaryProgress, 
+                catalystAvailable: gameState.catalystAvailable, 
+                essence: gameState.essence,
+                inventory: {...gameState.inventory}, 
+                tubeCount: gameState.tubeCount, 
+                capacity: gameState.capacity,
+                momentumTurns: gameState.momentumTurns, 
+                refluxUses: gameState.refluxUses,
+                // ▼ 追加: 完成フラグも履歴に保存する
+                completedFlags: [...gameState.completedFlags] 
             });
             if (gameState.history.length > 50) gameState.history.shift();
         }
@@ -2519,16 +2553,13 @@
         function tryUndo(){
             if (!gameState.history.length) return;
 
-            // 【修正1】戻り先（1手前）の状態を先に参照する
+            // 1つ前の履歴を取得
             const prev = gameState.history[gameState.history.length - 1];
             
-            // 【修正2】コスト判定は「戻った後の自分」が支払えるかで判定する
-            // 現在の gameState.refluxUses や essence を使うと、
-            // 「そのターンで稼いだ分」が含まれてしまい計算が合わなくなる
+            // コスト判定（戻る先の状態で払えるか？）
             let isFree = prev.refluxUses > 0;
 
             if(!isFree && prev.essence < 5) {
-                // 戻った先で支払えない場合はUndo不可とする（マイナス回避）
                 showToast(currentLang==='ja'?'エッセンス不足で戻れません':'Not enough Essence in past state', 'rose');
                 return;
             }
@@ -2549,28 +2580,41 @@
                 tubeCount:prev.tubeCount, 
                 capacity:prev.capacity||4, 
                 momentumTurns:prev.momentumTurns, 
-                refluxUses:prev.refluxUses, // ここで過去の個数に戻る
+                refluxUses:prev.refluxUses,
                 targetMode:null, 
                 pendingSkill:null, 
                 extractorHeldColor:null, 
-                selectedIdx:null 
+                selectedIdx:null,
+                // フラグの復元（履歴に含まれていない場合は空配列で初期化）
+                completedFlags: prev.completedFlags ? [...prev.completedFlags] : [] 
             });
 
-            // 【修正3】復元された状態に対してコストを支払う
+            // コスト支払いと履歴への反映
             if(isFree){ 
                 gameState.pressure += 2; 
                 gameState.refluxUses--; 
                 showFloatText(0, "Reflux Used (+2 P)", "#a855f7"); 
+                
+                // ★修正箇所: 残っている過去の履歴全てからもReflux使用回数を減らす
+                gameState.history.forEach(h => {
+                    if(h.refluxUses > 0) h.refluxUses--;
+                });
+
             } else { 
                 gameState.essence -= 5; 
+                
+                // ★修正箇所: 残っている過去の履歴全てからもエッセンス5を差し引く
+                // これにより、さらに過去へ戻る際も「消費済み」の状態が基準になります
+                gameState.history.forEach(h => {
+                    h.essence -= 5;
+                });
             }
 
             updateTubeLayout(); 
             renderHUD(); 
             renderBoard(); 
             saveGame();
-        }        
-
+        }
         function renderHUD(){
             // テキスト情報の更新
             setText('ui-floor', `${t('floor')} ${gameState.floor}`); 
