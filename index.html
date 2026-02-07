@@ -336,6 +336,7 @@
             scrollbar-width: none;
             -ms-overflow-style: none;
             cursor: grab; /* ドラッグ可能であることを示す */
+            mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
         }
         #board-scroll-area:active {
             cursor: grabbing;
@@ -1427,41 +1428,53 @@
             const counts = getBoardCounts();
             const totalTubes = gameState.tubes.length;
 
+            // チューブが無い場合のエラー回避
+            if (totalTubes === 0) return;
+
             // 表示リストを作成: [末尾のクローン] + [本体] + [先頭のクローン]
             const renderList = [];
             
             // 左側のクローン (末尾の数個)
             for(let i = 0; i < CLONE_PADDING; i++) {
-                const idx = (totalTubes - CLONE_PADDING + i) % totalTubes;
-                if(idx >= 0) renderList.push({ idx: idx, isClone: true });
+                // 負の数にならないよう安全に剰余計算を行う
+                // (totalTubes - CLONE_PADDING + i) だとマイナスになる可能性があるため補正
+                let idx = (totalTubes - CLONE_PADDING + i) % totalTubes;
+                if (idx < 0) idx += totalTubes;
+                renderList.push({ idx: idx, isClone: true });
             }
+            
             // 本体
             for(let i = 0; i < totalTubes; i++) {
                 renderList.push({ idx: i, isClone: false });
             }
+            
             // 右側のクローン (先頭の数個)
             for(let i = 0; i < CLONE_PADDING; i++) {
-                renderList.push({ idx: i, isClone: true });
+                // ★修正箇所: totalTubesを超えたら0に戻るように剰余算を追加
+                const idx = i % totalTubes; 
+                renderList.push({ idx: idx, isClone: true });
             }
 
             renderList.forEach((item) => {
                 const i = item.idx;
                 const segments = gameState.tubes[i];
+                
+                // 万が一 undefined だった場合のガード
+                if (!segments) return;
+
                 const tube = document.createElement('div');
                 tube.className = 'tube';
                 tube.dataset.idx = String(i);
-                if (item.isClone) tube.classList.add('clone-tube'); // クローン識別用クラス
+                if (item.isClone) tube.classList.add('clone-tube');
 
                 if (i === gameState.selectedIdx) tube.classList.add('selected');
                 
-                // フォーカス表示（クローンも含めて表示）
                 if (gameState.focusIdx !== null && i === gameState.focusIdx) {
                     tube.classList.add('tube-focused');
                 }
 
                 if (deadlocked) tube.classList.add('deadlock-glow');
                 
-                // --- スキル・ターゲットモードの表示ロジック ---
                 const isTwoStepSkill = ['extractor', 'transfer'].includes(gameState.targetMode);
                 if (isTwoStepSkill && gameState.extractorHeldColor) {
                     if(segments.length < gameState.capacity) {
@@ -1484,7 +1497,6 @@
                     }
                 }
 
-                // 中身（水）の生成
                 const water = document.createElement('div');
                 water.className = 'water-container';
                 segments.forEach(key => {
@@ -1496,9 +1508,7 @@
                 });
                 tube.appendChild(water);
                 
-                // クリックイベント (クローンでも本体と同じインデックスで動作)
                 tube.addEventListener('click', (e) => {
-                    // ドラッグ中のクリック誤爆防止
                     if(isDragging) return;
                     handleTubeClick(i);
                 });
@@ -1509,10 +1519,10 @@
             renderSkills();
             requestAnimationFrame(() => {
                 adjustBoardScale();
-                initInfiniteScroll(); // スクロール位置の調整とイベント設定
+                initInfiniteScroll();
             });
         }
-        
+
         function adjustBoardScale() {
             if (!boardArea || !tubesContainer) return;
             tubesContainer.style.transform = 'none';
@@ -2479,7 +2489,8 @@
 
         // --- 無限スクロール & ドラッグ制御 ---
         let isDown = false;
-        let startX;
+        let startX;       // スクロール計算用（常に更新）
+        let dragStartX;   // ドラッグ判定用（クリック時の位置で固定）
         let isDragging = false; 
 
         const slider = ui('board-scroll-area');
@@ -2489,7 +2500,7 @@
             isDragging = false;
             slider.style.cursor = 'grabbing';
             startX = e.pageX - slider.offsetLeft;
-            // ★修正点1: ここで scrollLeft を保存しない
+            dragStartX = e.pageX; // ★ドラッグ判定の基準点を保存
         });
 
         slider.addEventListener('mouseleave', () => {
@@ -2507,13 +2518,16 @@
             e.preventDefault();
             const x = e.pageX - slider.offsetLeft;
             
-            // ★修正点2: 「最初の位置からの距離」ではなく「直前の位置からの差分」で動かす
-            // こうすることで、裏でループ処理が走って位置が飛んでも、スムーズに操作が続く
+            // スクロール移動量（前回のフレームからの差分）
             const walk = (x - startX) * 1.5; 
             slider.scrollLeft -= walk; 
-            startX = x; // 基準点を更新
+            startX = x; // 次の計算のために現在位置を更新
             
-            if(Math.abs(walk) > 0) isDragging = true;
+            // ★「押し始めの位置(dragStartX)」から「現在位置(e.pageX)」までの距離が
+            // 5pxを超えた場合のみ、ドラッグ（クリック無効）と判定する
+            if(Math.abs(e.pageX - dragStartX) > 5) {
+                isDragging = true;
+            }
         });
 
         // 無限ループ判定
@@ -2542,44 +2556,44 @@
                 targetScroll -= offset;
             }
 
+            // 初回位置合わせ
             if(slider.scrollLeft < 5) {
                 slider.scrollLeft = targetScroll;
             }
         }
+
         // --- 無限ループ監視 ---
         function checkInfiniteScrollLoop() {
             if(!gameState.tubes.length) return;
             const tubeEl = tubesContainer.querySelector('.tube');
             if(!tubeEl) return;
             
-            // CSSのgap値を動的に取得
             const style = window.getComputedStyle(tubesContainer);
             const gap = parseFloat(style.gap) || 0;
-
             const itemWidth = tubeEl.offsetWidth + gap;
             const realWidth = itemWidth * gameState.tubes.length;
             
-            // 判定の遊び（バッファ）
             const buffer = 10; 
 
-            // 左端判定
             if (slider.scrollLeft < buffer) {
-                // 左端に行き過ぎたら、本体幅分だけ右へワープ
+                // 左端に行き過ぎたら右へワープ
                 slider.scrollLeft += realWidth;
             }
-            // 右端判定
-            // scrollWidth(全幅) - clientWidth(画面幅) = 最大スクロール値
-            // そこに近づいたら、本体幅分だけ左へワープ
             else if (slider.scrollLeft > slider.scrollWidth - slider.clientWidth - buffer) {
+                // 右端に行き過ぎたら左へワープ
                 slider.scrollLeft -= realWidth;
             }
         }
+
+        // キーボード操作
         window.onkeydown = (e) => {
             if(!perkScreen.classList.contains('hidden') || !eventScreen.classList.contains('hidden') || !helpScreen.classList.contains('hidden') || !mutationsScreen.classList.contains('hidden')) return;
             if (e.key === 'ArrowLeft') moveFocus(-1); if (e.key === 'ArrowRight') moveFocus(1);
             if ((e.key === 'Enter' || e.key === ' ') && gameState.focusIdx !== null) handleTubeClick(gameState.focusIdx);
             if (e.key === 'Backspace' || e.key === 'z') tryUndo();
         };
+
+        // 初期化実行
         applyLang(); updateStartScreenButtons();
 
         window.onkeydown = (e) => {
