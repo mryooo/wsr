@@ -525,7 +525,7 @@
                 </button>
             </div>
 
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.0.21 Scroll Update</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.0.22 Scroll Update</p>
         </div>
 
         <!-- 変異選択 & ショップ画面 -->
@@ -2454,24 +2454,124 @@
                 if(hasPerk('deep_adapt') && gameState.capacity > 4){ gameState.maxHp += getPerkLevel('deep_adapt'); gameState.hp += getPerkLevel('deep_adapt'); }
                 if(hasPerk('coupon')) gameState.rerollCoupons += getPerkLevel('coupon');
             }
-            Object.assign(gameState, { turnCount:0, pressure:0, catalystAvailable:true, momentumTurns:0, refluxUses:getPerkLevel('reflux'), currentPerkChoices:null, currentShopOffers:null, selectedIdx:null, busy:false, targetMode:null, pipetteMode:false, pendingSkill:null, extractorHeldColor:null });
+            Object.assign(gameState, { turnCount:0, pressure:0, catalystAvailable:true, momentumTurns:0, refluxUses:getPerkLevel('reflux'), currentPerkChoices:null, currentShopOffers:null, selectedIdx:null, busy:false, targetMode:null, pipetteMode:false, pendingSkill:null, extractorHeldColor:null,history: [] });
             generateBoard(); generateGoals(); renderHUD(); renderBoard(); saveGame();
         }
         function tryUndo(){
-            if (!gameState.history.length) return; let isFree = gameState.refluxUses > 0;
-            if(!isFree && gameState.essence < 5) return;
-            const prev = gameState.history.pop(); Object.assign(gameState, { tubes:deepCopy(prev.tubes), turnCount:prev.turnCount, pressure:prev.pressure, hp:prev.hp, secondaryProgress:prev.secondaryProgress, catalystAvailable:prev.catalystAvailable, essence:prev.essence, inventory:{...prev.inventory}, tubeCount:prev.tubeCount, capacity:prev.capacity||4, momentumTurns:prev.momentumTurns, refluxUses:prev.refluxUses, targetMode:null, pendingSkill:null, extractorHeldColor:null, selectedIdx:null });
-            if(isFree){ gameState.pressure += 2; gameState.refluxUses--; showFloatText(0, "Reflux Used (+2 P)", "#a855f7"); } else gameState.essence -= 5;
-            updateTubeLayout(); renderHUD(); renderBoard(); saveGame();
-        }
+            if (!gameState.history.length) return;
+
+            // 【修正1】戻り先（1手前）の状態を先に参照する
+            const prev = gameState.history[gameState.history.length - 1];
+            
+            // 【修正2】コスト判定は「戻った後の自分」が支払えるかで判定する
+            // 現在の gameState.refluxUses や essence を使うと、
+            // 「そのターンで稼いだ分」が含まれてしまい計算が合わなくなる
+            let isFree = prev.refluxUses > 0;
+
+            if(!isFree && prev.essence < 5) {
+                // 戻った先で支払えない場合はUndo不可とする（マイナス回避）
+                showToast(currentLang==='ja'?'エッセンス不足で戻れません':'Not enough Essence in past state', 'rose');
+                return;
+            }
+
+            // 履歴から取り出す
+            gameState.history.pop();
+
+            // 状態の復元
+            Object.assign(gameState, { 
+                tubes:deepCopy(prev.tubes), 
+                turnCount:prev.turnCount, 
+                pressure:prev.pressure, 
+                hp:prev.hp, 
+                secondaryProgress:prev.secondaryProgress, 
+                catalystAvailable:prev.catalystAvailable, 
+                essence:prev.essence, 
+                inventory:{...prev.inventory}, 
+                tubeCount:prev.tubeCount, 
+                capacity:prev.capacity||4, 
+                momentumTurns:prev.momentumTurns, 
+                refluxUses:prev.refluxUses, // ここで過去の個数に戻る
+                targetMode:null, 
+                pendingSkill:null, 
+                extractorHeldColor:null, 
+                selectedIdx:null 
+            });
+
+            // 【修正3】復元された状態に対してコストを支払う
+            if(isFree){ 
+                gameState.pressure += 2; 
+                gameState.refluxUses--; 
+                showFloatText(0, "Reflux Used (+2 P)", "#a855f7"); 
+            } else { 
+                gameState.essence -= 5; 
+            }
+
+            updateTubeLayout(); 
+            renderHUD(); 
+            renderBoard(); 
+            saveGame();
+        }        
+
         function renderHUD(){
-            setText('ui-floor', `${t('floor')} ${gameState.floor}`); setText('ui-essence', `${gameState.essence} ✨`); setText('ui-hp', `HP ${gameState.hp}`); setText('ui-floor-mobile', `${gameState.floor}F`); setText('ui-essence-mobile', `${gameState.essence} ✨`); setText('ui-hp-mobile', `HP ${gameState.hp}`);
-            const totalLevels = Object.values(gameState.perks).reduce((a,b)=>a+b, 0); setText('ui-perks-mobile', `🧬 ${totalLevels}`); setText('ui-turn', `${t('turn')} ${gameState.turnCount}`); setText('ui-perks', `${t('perks')} ${totalLevels}`);
-            setText('ui-goal', gameState.primaryGoal?.text ?? '—'); setText('ui-goal-sub', gameState.secondaryGoal?.text ?? '—'); setText('ui-secondary', `${t('secondary')} ${secondarySucceeded()?'COMPLETE':'—'}`);
-            ui('ui-secondary').className = secondarySucceeded() ? "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/50" : "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-black/20 text-white border border-white/5";
-            setText('ui-pressure', String(gameState.pressure)); const pct = Math.round((gameState.pressure/gameState.pressureMax)*100), pBar = ui('ui-pressure-bar'); if(pBar){ pBar.style.width=`${clamp(pct,0,100)}%`; if(gameState.pressure >= gameState.pressureMax-3){ pBar.classList.remove('from-sky-400'); pBar.classList.add('bg-rose-600'); } else { pBar.classList.add('from-sky-400'); pBar.classList.remove('bg-rose-600'); } }
-            setText('ui-pressure-sub', `${gameState.pressure} / ${gameState.pressureMax}`); const undoCost = gameState.refluxUses>0?'FREE':'5✨'; if(undoBtn){ undoBtn.innerHTML=`<span>↺</span> UNDO (${undoCost})`; undoBtn.style.opacity=(gameState.history.length===0)?'0.3':'1'; } renderSkills();
+            // テキスト情報の更新
+            setText('ui-floor', `${t('floor')} ${gameState.floor}`); 
+            setText('ui-essence', `${gameState.essence} ✨`); 
+            setText('ui-hp', `HP ${gameState.hp}`); 
+            setText('ui-floor-mobile', `${gameState.floor}F`); 
+            setText('ui-essence-mobile', `${gameState.essence} ✨`); 
+            setText('ui-hp-mobile', `HP ${gameState.hp}`);
+            
+            const totalLevels = Object.values(gameState.perks).reduce((a,b)=>a+b, 0); 
+            setText('ui-perks-mobile', `🧬 ${totalLevels}`); 
+            setText('ui-turn', `${t('turn')} ${gameState.turnCount}`); 
+            setText('ui-perks', `${t('perks')} ${totalLevels}`);
+            
+            // 目標設定
+            setText('ui-goal', gameState.primaryGoal?.text ?? '—'); 
+            setText('ui-goal-sub', gameState.secondaryGoal?.text ?? '—'); 
+            setText('ui-secondary', `${t('secondary')} ${secondarySucceeded()?'COMPLETE':'—'}`);
+            
+            // UIクラス制御
+            ui('ui-secondary').className = secondarySucceeded() 
+                ? "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/50" 
+                : "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-black/20 text-white border border-white/5";
+            
+            // 圧力バー
+            setText('ui-pressure', String(gameState.pressure)); 
+            const pct = Math.round((gameState.pressure/gameState.pressureMax)*100);
+            const pBar = ui('ui-pressure-bar'); 
+            if(pBar){ 
+                pBar.style.width=`${clamp(pct,0,100)}%`; 
+                if(gameState.pressure >= gameState.pressureMax-3){ 
+                    pBar.classList.remove('from-sky-400'); 
+                    pBar.classList.add('bg-rose-600'); 
+                } else { 
+                    pBar.classList.add('from-sky-400'); 
+                    pBar.classList.remove('bg-rose-600'); 
+                } 
+            }
+            setText('ui-pressure-sub', `${gameState.pressure} / ${gameState.pressureMax}`); 
+
+            // --- UNDOボタン制御 (ここを修正・統合しました) ---
+            const undoCost = gameState.refluxUses>0?'FREE':'5✨'; 
+            if(undoBtn){ 
+                undoBtn.innerHTML=`<span>↺</span> UNDO (${undoCost})`; 
+                
+                // 履歴があるかどうかチェック
+                const canUndo = gameState.history.length > 0;
+
+                // ボタンの有効/無効を切り替え
+                undoBtn.disabled = !canUndo; 
+                
+                // 見た目の制御
+                undoBtn.style.opacity = canUndo ? '1' : '0.3';
+                undoBtn.style.cursor = canUndo ? 'pointer' : 'not-allowed';
+                undoBtn.style.pointerEvents = canUndo ? 'auto' : 'none';
+            } 
+            
+            renderSkills();
         }
+
         function moveFocus(dx){ if(!gameState.tubes.length) return; gameState.focusIdx = gameState.focusIdx === null ? 0 : (gameState.focusIdx + dx + gameState.tubeCount) % gameState.tubeCount; renderBoard(); }
         function updateStartScreenButtons(){ continueRunBtn.classList.toggle('hidden', !hasSaveData()); }
 
