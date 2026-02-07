@@ -18,7 +18,6 @@
             --rarity-rare: #3b82f6;
             --rarity-epic: #a855f7;
         }
-
         body {
             background: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 100%);
             color: white;
@@ -31,7 +30,6 @@
             user-select: none;
             -webkit-user-select: none;
         }
-
         .glass-panel {
             background: rgba(15, 23, 42, 0.85);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -39,8 +37,6 @@
             border-radius: 1rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-
-        /* チューブのスタイル */
         .tube {
             width: clamp(40px, 10vw, 56px);
             height: var(--tube-height);
@@ -59,26 +55,22 @@
             box-shadow: inset 2px 0 4px rgba(255,255,255,0.05), inset -2px 0 4px rgba(0,0,0,0.2);
             flex-shrink: 0;
         }
-
         .tube.selected {
             transform: translateY(-15px) scale(1.05);
             border-color: var(--primary-glow);
             box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
             z-index: 20;
         }
-        
         .tube.target-mode {
             border-color: #a855f7;
             box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
             animation: pulse-purple 1.5s infinite;
         }
-        
         .tube.source-mode {
             border-color: #fbbf24;
             box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
             animation: pulse-yellow 1.5s infinite;
         }
-
         @keyframes pulse-purple {
             0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); }
             50% { box-shadow: 0 0 30px rgba(168, 85, 247, 0.7); }
@@ -87,18 +79,14 @@
             0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.4); }
             50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.7); }
         }
-
         .tube-focused {
             border-color: rgba(255, 255, 255, 0.9);
             box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
         }
-
-        /* 詰み警告 */
         .deadlock-glow {
             box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.5) !important;
             border-color: rgba(244, 63, 94, 0.8) !important;
         }
-
         .water-container {
             position: absolute;
             bottom: 0;
@@ -114,34 +102,30 @@
             border-bottom-left-radius: 25px; 
             border-bottom-right-radius: 25px;
         }
-
         .water-segment {
             width: 100%;
             height: var(--segment-height);
             position: relative;
             transition: height 0.3s ease, opacity 0.3s ease;
         }
-
         .water-segment::before {
             content: '';
             position: absolute;
             inset: 0;
-            /* ▼▼▼ 修正: 左右にエッジの効いた白いリムライトを追加 ▼▼▼ */
             background: linear-gradient(90deg, 
-                rgba(255,255,255,1) 0%,    /* 左端: クッキリした白 */
-                rgba(255,255,255,0.1) 20%,   /* 急激に薄くなる */
-                rgba(255,255,255,0) 25%,     /* 透明へ */
+                rgba(255,255,255,1) 0%,
+                rgba(255,255,255,0.1) 20%,
+                rgba(255,255,255,0) 25%,
                 
-                rgba(0,0,0,0.5) 50%,        /* 中央: ほんのり影（立体感用） */
+                rgba(0,0,0,0.5) 50%,
                 
-                rgba(255,255,255,0) 75%,     /* 透明から */
-                rgba(255,255,255,0.1) 90%,   /* 急激に白くなる */
-                rgba(255,255,255,0.6) 100%   /* 右端: クッキリした白 */
+                rgba(255,255,255,0) 75%,
+                rgba(255,255,255,0.1) 90%,
+                rgba(255,255,255,0.6) 100%
             );
-            opacity: 0.8; /* ハイライトを目立たせるため少し不透明度を上げる */
+            opacity: 0.8;
             mix-blend-mode: overlay;
         }
-
         .water-segment:last-child {
             border-top: 1px solid rgba(255,255,255,0.3);
         }
@@ -157,7 +141,6 @@
             border-radius: 50%;
             transform: scaleX(0.9);
         }
-        
         @keyframes evaporate {
             0% { transform: scale(1); opacity: 1; filter: brightness(1); }
             50% { filter: brightness(2); background-color: white; }
@@ -166,7 +149,6 @@
         .evaporating .water-segment {
             animation: evaporate 0.6s forwards;
         }
-
         .lang-btn{
             padding: 6px 10px;
             font-weight: 800;
@@ -176,7 +158,6 @@
             transition: all .2s;
         }
         .lang-btn.active{ opacity: 1; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.35); }
-
         .perk-card {
             transition: all 0.25s ease;
             border: 1px solid rgba(255,255,255,0.06);
@@ -188,11 +169,9 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
             border-color: rgba(56,189,248,0.35);
         }
-
         .rarity-common{ border-left: 3px solid var(--rarity-common); }
         .rarity-rare{ border-left: 3px solid var(--rarity-rare); }
         .rarity-epic{ border-left: 3px solid var(--rarity-epic); }
-        
         .skill-btn {
             position: relative;
             transition: all 0.2s;
@@ -233,13 +212,11 @@
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
             background: rgba(56, 189, 248, 0.2);
         }
-        
         @keyframes pulse-btn {
             0% { box-shadow: 0 0 5px currentColor; }
             50% { box-shadow: 0 0 15px currentColor; }
             100% { box-shadow: 0 0 5px currentColor; }
         }
-
         #global-tooltip {
             position: fixed;
             background: rgba(2, 6, 23, 0.98);
@@ -267,7 +244,6 @@
             border-style: solid;
             border-color: rgba(56, 189, 248, 0.3) transparent transparent transparent;
         }
-
         #btn-undo {
             border: 1px solid rgba(255,255,255,0.1);
             background: rgba(255,255,255,0.05);
@@ -280,7 +256,6 @@
         #btn-undo:active {
             transform: scale(0.95);
         }
-
         #alert-banner {
             position: absolute;
             top: 20%;
@@ -297,7 +272,6 @@
             opacity: 0;
             transition: opacity 0.3s;
         }
-        
         #toast-container {
             pointer-events: none;
         }
@@ -334,18 +308,16 @@
             0%,100%{ transform: translateY(0); }
             50%{ transform: translateY(-10px); }
         }
-
         #board-scroll-area {
             width: 100%;
             height: 100%;
-            overflow-x: scroll; /* autoからscrollへ変更 */
+            overflow-x: scroll;
             overflow-y: hidden;
             display: flex;
             align-items: center; 
-            /* スクロールバー非表示 */
             scrollbar-width: none;
             -ms-overflow-style: none;
-            cursor: grab; /* ドラッグ可能であることを示す */
+            cursor: grab;
             mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
         }
         #board-scroll-area:active {
@@ -354,7 +326,6 @@
         #board-scroll-area::-webkit-scrollbar {
             display: none;
         }
-
         #tubes-container {
             display: flex;
             flex-wrap: nowrap;
@@ -365,7 +336,6 @@
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             transform-origin: left center;
         }
-        
         #skills-container {
             display: flex;
             align-items: center;
@@ -385,11 +355,9 @@
         #skills-container::-webkit-scrollbar {
             display: none;
         }
-
         #dev-tests {
             display: none;
         }
-
         .stat-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -403,7 +371,6 @@
             display: flex;
             flex-direction: column;
         }
-        /* --- 蓋（キャップ）のスタイル --- */
         .tube-cap {
             position: absolute;
             top: -10px; 
@@ -423,15 +390,15 @@
             transform: translate(-50%, 0); 
             opacity: 1;
             background: linear-gradient(90deg, 
-                rgba(255,255,255,1) 0%,    /* 左端: クッキリした白 */
-                rgba(255,255,255,0.1) 20%,   /* 急激に薄くなる */
-                rgba(255,255,255,0) 25%,     /* 透明へ */
+                rgba(255,255,255,1) 0%,
+                rgba(255,255,255,0.1) 20%,
+                rgba(255,255,255,0) 25%,
                 
-                rgba(0,0,0,0.5) 50%,        /* 中央: ほんのり影（立体感用） */
+                rgba(0,0,0,0.5) 50%,
                 
-                rgba(255,255,255,0) 75%,     /* 透明から */
-                rgba(255,255,255,0.1) 90%,   /* 急激に白くなる */
-                rgba(255,255,255,0.6) 100%   /* 右端: クッキリした白 */
+                rgba(255,255,255,0) 75%,
+                rgba(255,255,255,0.1) 90%,
+                rgba(255,255,255,0.6) 100%
             );
         }
     </style>
@@ -440,13 +407,9 @@
 
     <div>
         <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 w-full max-w-sm px-4"></div>
-        
         <div id="global-tooltip"></div>
-
         <div id="game-container" class="flex flex-col items-center justify-between h-screen w-screen p-2 md:p-4 overflow-hidden relative">
             <div id="alert-banner">NO MOVES LEFT</div>
-
-            <!-- トップHUD -->
             <div id="top-hud" class="w-full max-w-5xl glass-panel p-3 md:p-4 flex items-center justify-between z-20 shrink-0 mb-2">
                 <div class="flex items-center gap-4">
                     <div>
@@ -456,10 +419,15 @@
                     <div class="hidden md:flex items-center gap-3 ml-4">
                         <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold border border-white/5" id="ui-floor">FLOOR 1</span>
                         <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold text-sky-300 border border-white/5" id="ui-essence">0 ✨</span>
-                        <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold text-rose-300 border border-white/5" id="ui-hp">HP 3</span>
+                        <div class="relative w-32 h-10 rounded-xl border-2 border-rose-500 bg-slate-900/80 overflow-hidden shadow-[0_0_15px_rgba(244,63,94,0.5)] shrink-0">
+                        <div id="ui-hp-bar" class="absolute top-0 left-0 h-full bg-rose-600 transition-all duration-300" style="width: 100%;"></div>
+                            
+                            <div class="absolute inset-0 flex items-center justify-center z-10">
+                                <span id="ui-hp-text" class="text-lg font-black text-white drop-shadow-md">HP 3</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
                 <div class="flex items-center gap-2">
                     <button id="btn-mutations" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all text-sky-300 border-sky-500/30">
                         <span class="md:hidden">🧬</span><span class="hidden md:inline">Status</span>
@@ -473,8 +441,6 @@
                     </button>
                 </div>
             </div>
-
-            <!-- 目標/圧力 行 -->
             <div id="status-bar" class="w-full max-w-5xl flex gap-2 shrink-0 z-20 mb-2">
                 <div class="flex-1 glass-panel px-4 py-2 border-l-4 border-l-sky-500/50">
                     <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]" id="ui-goal-title">GOAL</div>
@@ -492,20 +458,13 @@
                     <div class="text-[10px] text-slate-500 mt-1 text-right" id="ui-pressure-sub">—</div>
                 </div>
             </div>
-
-            <!-- 盤面エリア -->
             <div id="board-area" class="flex-1 w-full relative z-10 overflow-hidden my-2">
                 <div id="board-scroll-area">
                     <div id="tubes-container"></div>
                 </div>
             </div>
-            
-            <!-- スキルバー (Scrollable) -->
             <div id="skills-container" class="w-full max-w-2xl mb-2 min-h-[60px] shrink-0">
-                <!-- JSでボタン生成 -->
             </div>
-
-            <!-- 下HUD -->
             <div id="bottom-hud" class="w-full max-w-5xl glass-panel p-3 md:p-4 shrink-0 z-20 mb-safe">
                 <div class="md:hidden flex items-center justify-between mb-3 px-1 gap-2 text-sm font-bold">
                     <span class="text-slate-300 bg-white/5 px-2 py-1 rounded border border-white/10" id="ui-floor-mobile">1F</span>
@@ -513,9 +472,13 @@
                         <span class="text-sky-300" id="ui-essence-mobile">0 ✨</span>
                         <span class="text-purple-300" id="ui-perks-mobile">🧬 0</span>
                     </div>
-                    <span class="text-rose-300" id="ui-hp-mobile">HP 3</span>
+                    <div class="relative w-20 h-6 rounded-lg border border-rose-500 bg-slate-900/80 overflow-hidden shadow-[0_0_10px_rgba(244,63,94,0.4)] shrink-0">
+                        <div id="ui-hp-mobile-bar" class="absolute top-0 left-0 h-full bg-rose-600 transition-all duration-300" style="width: 100%;"></div>
+                        <div class="absolute inset-0 flex items-center justify-center z-10">
+                            <span id="ui-hp-mobile-text" class="text-sm font-black text-white drop-shadow-md leading-none pt-0.5">HP 3</span>
+                        </div>
+                    </div>
                 </div>
-
                 <div class="flex items-center justify-between gap-3 relative">
                     <div class="flex items-center gap-2 md:gap-3 flex-wrap">
                         <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-white border border-white/5" id="ui-turn">TURN 0</span>
@@ -529,8 +492,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- 画面：イベント -->
         <div id="event-screen" class="fixed inset-0 z-[140] bg-slate-950/85 backdrop-blur-sm hidden items-center justify-center p-6 transition-opacity">
             <div class="glass-panel w-full max-w-2xl p-6 border border-sky-500/20 shadow-2xl shadow-sky-900/20">
                 <div class="flex items-end justify-between gap-4">
@@ -546,20 +507,16 @@
                 <div class="grid md:grid-cols-2 gap-4 mt-8" id="event-choices"></div>
             </div>
         </div>
-
-        <!-- スタート画面 -->
         <div id="start-screen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950 p-8">
             <div class="absolute top-8 right-8 flex gap-2 glass-panel p-1 z-50">
                 <button onclick="setLang('en')" id="lang-en" class="lang-btn">EN</button>
                 <button onclick="setLang('ja')" id="lang-ja" class="lang-btn active">JP</button>
             </div>
-
             <div class="text-center mb-16 floating relative">
                 <div class="absolute inset-0 bg-sky-500/20 blur-[100px] rounded-full"></div>
                 <h1 class="relative text-5xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-sky-300 via-sky-500 to-indigo-600 drop-shadow-2xl leading-tight">ABYSS<br>ALCHEMY</h1>
                 <p id="start-subtitle" class="relative text-sky-200/60 font-medium tracking-[0.5em] uppercase text-xs mt-4">錬金術の深淵</p>
             </div>
-            
             <div class="flex flex-col gap-3 w-full max-w-xs">
                 <button id="continue-run-btn" class="hidden w-full py-4 bg-emerald-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-emerald-500/20 hover:bg-emerald-500 hover:shadow-emerald-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0 flex items-center justify-center gap-2">
                     <span>▶</span> <span id="continue-btn-text">つづきから</span>
@@ -568,15 +525,10 @@
                     探索を開始
                 </button>
             </div>
-
             <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.1.07 Item Adjustment</p>
         </div>
-
-        <!-- 変異選択 & ショップ画面 -->
         <div id="perk-screen" class="fixed inset-0 z-[150] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
             <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
-                
-                <!-- Header -->
                 <div class="flex justify-between items-center p-4 md:p-6 border-b border-white/5 shrink-0 bg-slate-900/40">
                     <div>
                         <h2 id="perk-title" class="text-xl md:text-3xl font-black text-white italic uppercase leading-none">変異の兆し</h2>
@@ -587,22 +539,15 @@
                         <div class="text-base font-bold text-sky-400 bg-sky-900/30 px-3 py-1.5 rounded border border-sky-500/20 whitespace-nowrap" id="perk-essence">Essence: 0 ✨</div>
                     </div>
                 </div>
-
-                <!-- Main Content (Scrollable) -->
                 <div class="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-                    
-                    <!-- Left: Perks -->
                     <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-white/5 bg-slate-900/20">
                         <div class="text-sm font-bold mb-3 text-sky-300 uppercase tracking-widest flex items-center gap-2">
                             <span>🧬 Mutations</span>
                             <span class="text-[10px] text-slate-500 font-normal normal-case">Pick One (Updates every level)</span>
                         </div>
                         <div class="grid gap-3" id="perk-cards">
-                            <!-- Perks injected here -->
                         </div>
                     </div>
-
-                    <!-- Right: Shop -->
                     <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
                         <div class="flex justify-between items-center mb-3">
                             <div class="text-sm font-bold text-yellow-500 uppercase tracking-widest flex items-center gap-2">
@@ -612,20 +557,14 @@
                         </div>
                         
                         <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3" id="shop-cards">
-                            <!-- Shop Items injected here -->
                         </div>
                     </div>
                 </div>
-
-                <!-- Footer: Fixed Continue Button -->
                 <div class="p-4 border-t border-white/5 bg-slate-900/40 shrink-0 flex justify-center z-10">
                     <button id="continue-btn" class="w-full max-w-md py-3 bg-indigo-600 rounded-xl font-black text-white text-sm uppercase tracking-widest shadow-lg shadow-indigo-900/40 hover:bg-indigo-500 transition-all active:scale-95">Next Floor</button>
                 </div>
-
             </div>
         </div>
-
-        <!-- Help -->
         <div id="help-screen" class="fixed inset-0 z-[160] bg-slate-950/90 backdrop-blur hidden items-center justify-center p-6">
             <div class="glass-panel w-full max-w-2xl p-8 border border-white/10">
                 <div class="flex justify-between items-center mb-6">
@@ -638,8 +577,6 @@
                 <div class="text-slate-300 text-sm leading-loose whitespace-pre-line font-medium" id="help-text"></div>
             </div>
         </div>
-
-        <!-- Mutations Status Screen -->
         <div id="mutations-screen" class="fixed inset-0 z-[160] bg-slate-950/90 backdrop-blur hidden items-center justify-center p-6">
             <div class="glass-panel w-full max-w-3xl p-8 border border-white/10 flex flex-col h-[85vh]">
                 <div class="flex justify-between items-center mb-6 shrink-0">
@@ -651,19 +588,14 @@
                 </div>
                 
                 <div class="flex-1 overflow-y-auto space-y-8 pr-2">
-                    <!-- パラメーター要約 -->
                     <div>
                         <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-3">Total Parameters</div>
                         <div id="mutations-stats-summary" class="stat-grid">
-                            <!-- JSで注入 -->
                         </div>
                     </div>
-
-                    <!-- 獲得変異リスト -->
                     <div>
                         <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-3">Acquired Mutations</div>
                         <div id="mutations-list-container" class="grid gap-2">
-                            <!-- JSで注入 -->
                         </div>
                     </div>
                 </div>
@@ -745,21 +677,14 @@
                     const loadedState = JSON.parse(data);
                     Object.assign(gameState, loadedState);
                     updateTubeLayout();
-                    
-                    // ▼▼▼ 修正箇所：初期化時の画面表示ロジックを変更 ▼▼▼
                     startScreen.classList.add('hidden');
                     renderHUD();
                     renderBoard();
-                    
-                    // もしロード時点でレベルクリア状態なら、変異画面(PerkScreen)を開く
                     if (checkLevelClear()) {
                         openPerkScreen(false);
                     } else {
-                        // クリアしてなければ普通に隠す
                         perkScreen.classList.add('hidden');
                     }
-                    // ▲▲▲ 修正箇所ここまで ▲▲▲
-
                     showToast(currentLang==='ja'?'再開しました':'Game Loaded', 'emerald');
                     return true;
                 }
@@ -855,11 +780,9 @@
         function updateStartScreenButtons(){
         const hasSave = hasSaveData();
 
-        // 「つづきから」ボタンの表示/非表示
         const cbtn = ui('continue-run-btn');
         if (cbtn) cbtn.classList.toggle('hidden', !hasSave);
 
-        // 文言は applyLang() が更新しているが、保険で再設定
         setText('start-run-btn', t('startBtn'));
         setText('continue-btn-text', t('continueBtn'));
         }
@@ -1142,14 +1065,8 @@
                 id: 'vaporizer', type: 'consumable', cost: 7, icon: '♨️',
                 name: {en:'Vaporizer', ja:'微量蒸発'},
                 desc: {en:'Delete top 1 segment.', ja:'最上段の1層を消滅させる'}
-            },
-            // booster: {
-            //     id: 'booster', type: 'consumable', cost: 6, icon: '🌡️',
-            //     name: {en:'Condenser', ja:'逆微量凝縮'},
-            //     desc: {en:'Add 1 top color (Pressure +3).', ja:'最上段と同じ色を1層追加する。代償：圧力+3'}
-            // }
+            }
         };
-
         const INSTANT_ITEMS = [
             { 
                 id:'dark_pact', type:'stat', cost:0, 
@@ -1182,7 +1099,6 @@
             ...INSTANT_ITEMS,
             ...Object.values(ITEMS).map(i => ({ id: `buy_${i.id}`, type: 'item', ref: i }))
         ];
-
         // --- ゲーム状態 ---
         const gameState = {
             floor: 1,
@@ -1499,8 +1415,6 @@
                 const idx = i % totalTubes; 
                 renderList.push({ idx: idx, isClone: true });
             }
-
-            // ★修正1: この回の描画で「新規完成」したインデックスを一時保存するセット
             const newlyCompleted = new Set();
 
             renderList.forEach((item) => {
@@ -1521,41 +1435,26 @@
                 }
 
                 if (deadlocked) tube.classList.add('deadlock-glow');
-
-                // 1. 蓋（キャップ）要素を作成して追加
                 const cap = document.createElement('div');
                 cap.className = 'tube-cap';
                 tube.appendChild(cap);
-
-                // 2. 完成判定とアニメーション制御
                 const isCompletedNow = (segments.length > 0 && segments[0] !== 'K' && isCompleteTube(segments, counts));
                 
                 if (typeof gameState.completedFlags[i] === 'undefined') gameState.completedFlags[i] = false;
 
                 if (isCompletedNow) {
-                    // 既に過去にフラグが立っていたかチェック
                     if (gameState.completedFlags[i]) {
-                        // 【ケースA】すでに以前から完成していた → 即座に表示
                         tube.classList.add('capped');
                     } else {
-                        // 【ケースB】今回初めて完成した（と判定されている）
-                        // ※ここではまだ gameState.completedFlags[i] を true にしない！
-                        // そうしないと、後続のクローン/本体が「ケースA」に入ってしまうため。
-                        
                         setTimeout(() => {
                             tube.classList.add('capped');
                         }, 50);
-                        
-                        // 「あとでフラグを立てるリスト」に追加
                         newlyCompleted.add(i);
                     }
-                    
-                    // 完成時の輝きエフェクト
                     tube.style.boxShadow = `0 0 20px ${colorMeta(segments[0]).hex}`;
                     tube.style.borderColor = `rgba(255,255,255,0.8)`;
                     
                 } else {
-                    // 完成していない場合、フラグを下ろす（これは即時反映でOK）
                     gameState.completedFlags[i] = false;
                     tube.classList.remove('capped');
                 }
@@ -1594,8 +1493,6 @@
                 
                 tubesContainer.appendChild(tube);
             });
-            
-            // ★修正2: 全チューブの描画が終わった後に、まとめてフラグを更新する
             newlyCompleted.forEach(index => {
                 gameState.completedFlags[index] = true;
             });
@@ -1676,11 +1573,9 @@
                 }
             }
         }
-
         function activateSkill(key){
             if(gameState.busy) return;
             const def = ITEMS[key];
-
             const isPending = (gameState.pendingSkill === key);
             const isActive = (gameState.targetMode === key) || (key === 'pipette' && gameState.pipetteMode);
             if (!isPending && !isActive) {
@@ -1692,38 +1587,32 @@
                 renderBoard(); 
                 return;
             }
-
+            
             gameState.pendingSkill = null; 
             hideGlobalTooltip();
 
-            if(key === 'heal'){
+            if(key === 'heal' || key === 'panacea'){
                  if(gameState.inventory[key] > 0){
                      if(gameState.hp >= gameState.maxHp){
                          showToast(currentLang==='ja'?'HPは満タンです':'HP is full', 'yellow');
-                         return;
+                         return; 
                      }
                      gameState.inventory[key]--;
-                     gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
+                     
+                     const healAmount = (key === 'panacea') ? 2 : 1;
+                     gameState.hp = Math.min(gameState.maxHp, gameState.hp + healAmount);
+                     
                      saveGame();
                      renderHUD();
-                     showToast(currentLang==='ja'?'HP回復！':'HP Restored +1!', 'rose');
+                     
+                     const msg = currentLang==='ja' 
+                        ? (key==='panacea' ? 'HP大幅回復！' : 'HP回復！') 
+                        : (key==='panacea' ? 'HP Restored +2!' : 'HP Restored +1!');
+                     showToast(msg, 'emerald');
                  }
                  return;
             }
-            if(key === 'panacea'){
-                 if(gameState.inventory[key] > 0){
-                     if(gameState.hp >= gameState.maxHp){
-                         showToast(currentLang==='ja'?'HPは満タンです':'HP is full', 'yellow');
-                         return;
-                     }
-                     gameState.inventory[key]--;
-                     gameState.hp = Math.min(gameState.maxHp, gameState.hp + 2);
-                     saveGame();
-                     renderHUD();
-                     showToast(currentLang==='ja'?'HPが大幅回復！':'HP Restored +2!', 'emerald');
-                 }
-                 return;
-            }
+
             if(key === 'summon_vial'){
                  if(gameState.inventory[key] > 0){
                      gameState.inventory[key]--;
@@ -1751,20 +1640,20 @@
                 gameState.targetMode = null; 
                 gameState.selectedIdx = null; 
             } else if (def.type === 'consumable'){
-                if (['extractor', 'transfer'].includes(key)) {
-                     if (gameState.targetMode === key) {
-                         if(gameState.extractorHeldColor){
-                             showToast(currentLang==='ja'?'保持中のためキャンセル不可！':'Cannot cancel while holding!', 'red');
-                             return; 
-                         }
-                         gameState.targetMode = null;
-                     } else {
-                         gameState.targetMode = key;
-                         gameState.extractorHeldColor = null;
-                         gameState.selectedIdx = null; 
-                         gameState.pipetteMode = false;
-                         showToast(currentLang==='ja' ? "抽出元を選択してください" : "Select source tube", 'emerald');
-                     }
+                if (['extractor', 'transfer', 'quantum_pipette'].includes(key)) {
+                      if (gameState.targetMode === key) {
+                          if(gameState.extractorHeldColor){
+                              showToast(currentLang==='ja'?'保持中のためキャンセル不可！':'Cannot cancel while holding!', 'red');
+                              return; 
+                          }
+                          gameState.targetMode = null;
+                      } else {
+                          gameState.targetMode = key;
+                          gameState.extractorHeldColor = null;
+                          gameState.selectedIdx = null; 
+                          gameState.pipetteMode = false;
+                          showToast(currentLang==='ja' ? "抽出元を選択してください" : "Select source tube", 'emerald');
+                      }
                 } 
                 else {
                     if(gameState.targetMode === key){
@@ -1780,7 +1669,6 @@
             renderSkills();
             renderBoard();
         }
-
         async function handleTubeClick(idx) {
             if (gameState.busy) return;
             if (['extractor', 'transfer', 'quantum_pipette'].includes(gameState.targetMode)) {
@@ -1990,8 +1878,6 @@
                         
                         pushHistory(); if(consume) gameState.inventory[skillKey]--;
                         tube.push(tube[tube.length-1]); 
-                        
-                        // ▼▼▼ 修正: 圧力加算とダメージ判定を追加 ▼▼▼
                         gameState.pressure += 3;
                         if (gameState.pressure >= gameState.pressureMax) {
                             if(hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
@@ -2007,9 +1893,7 @@
                             }
                         } else {
                             showFloatText(idx, "Boosted! (+3 P)", "#3b82f6"); 
-                        }
-                        // ▲▲▲ 修正ここまで ▲▲▲
-                        
+                        }                        
                         success = true;
                     }
                 }
@@ -2059,7 +1943,6 @@
                 capacity: gameState.capacity,
                 momentumTurns: gameState.momentumTurns, 
                 refluxUses: gameState.refluxUses,
-                // ▼ 追加: 完成フラグも履歴に保存する
                 completedFlags: [...gameState.completedFlags] 
             });
             if (gameState.history.length > 50) gameState.history.shift();
@@ -2105,10 +1988,7 @@
         }
 
         async function handleCompletion(tubeIdx, colorKey){
-            // ▼▼▼ 修正: 1つだけでなく、クローン含むすべての該当フラスコを取得 ▼▼▼
             const tubeEls = document.querySelectorAll(`.tube[data-idx="${tubeIdx}"]`);
-            // ▲▲▲ 修正 ▲▲▲
-
             if (colorKey === 'K') {
                 showFloatText(tubeIdx, "Purged!", "#94a3b8");
                 if(hasPerk('purification')){
@@ -2117,21 +1997,13 @@
                     gameState.essence += (1 + lv);
                     showFloatText(tubeIdx, `Purified! (-${2+lv} P)`, "#38bdf8");
                 }
-                
-                // ▼▼▼ 修正: 全ての要素にクラス付与 ▼▼▼
                 tubeEls.forEach(el => el.classList.add('evaporating'));
-                
                 await new Promise(r => setTimeout(r, 600));
-                
                 gameState.tubes[tubeIdx] = []; 
-                
-                // ▼▼▼ 修正: 全ての要素からクラス除去 ▼▼▼
                 tubeEls.forEach(el => el.classList.remove('evaporating'));
 
                 renderBoard(); if (checkLevelClear()) onLevelClear(); return; 
             }
-            
-            // --- 以下は変更なし ---
             if (hasPerk('catalyst') && gameState.catalystAvailable){
                 const lv = getPerkLevel('catalyst'); gameState.pressure = Math.max(0, gameState.pressure - (4 + lv));
                 gameState.catalystAvailable = false; showFloatText(tubeIdx, `Catalyst! (-${4+lv} P)`);
@@ -2227,7 +2099,6 @@
         }
 
         function tubeCenterEl(idx){ 
-            // 同じdata-idxを持つ要素（本体とクローン）の中から、現在画面内に一番近いものを探す
             const els = ui('tubes-container').querySelectorAll(`[data-idx="${String(idx)}"]`);
             if(els.length === 0) return null;
             if(els.length === 1) return els[0];
@@ -2252,37 +2123,23 @@
         
         function animatePour(fromIdx, toIdx, colorKey, count){
             return new Promise((resolve) => {
-                // 方向判定のために、現在画面中央に最も近い「メインの」ペアを取得して位置関係を計算
                 const primaryFrom = tubeCenterEl(fromIdx);
                 const primaryTo = tubeCenterEl(toIdx);
-                
-                // 万が一見つからない場合は処理中断
                 if (!primaryFrom || !primaryTo){ resolve(); return; }
-
-                // 傾ける方向を決める（右にあるなら右へ、左なら左へ傾ける）
                 const isRight = primaryTo.getBoundingClientRect().left > primaryFrom.getBoundingClientRect().left;
-
-                // ★修正: querySelectorAllですべての該当フラスコ（クローン含む）を取得する
                 const fromEls = document.querySelectorAll(`.tube[data-idx="${fromIdx}"]`);
                 const toEls = document.querySelectorAll(`.tube[data-idx="${toIdx}"]`);
-
-                // 1. 注ぐ側のアニメーション（全クローンに適用）
                 fromEls.forEach(fromEl => {
                     const fromWater = fromEl.querySelector('.water-container');
                     const shrinkSegments = [];
-                    // 減らす対象のセグメントを特定
                     for(let i=0; i<count; i++) {
                         if(fromWater.children.length > i) {
                             shrinkSegments.push(fromWater.children[fromWater.children.length - 1 - i]);
                         }
                     }
-
-                    // 傾き適用
                     fromEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
                     fromEl.style.transform = `translateY(-10px) rotate(${isRight ? 45 : -45}deg)`;
                     fromEl.style.zIndex = 50;
-
-                    // 少し遅れて水を減らす
                     setTimeout(() => {
                         shrinkSegments.forEach(seg => { 
                             if(seg) { 
@@ -2293,8 +2150,6 @@
                         });
                     }, 50);
                 });
-
-                // 2. 受け取る側のアニメーション（全クローンに適用）
                 setTimeout(() => {
                     toEls.forEach(toEl => {
                         const toWater = toEl.querySelector('.water-container');
@@ -2305,17 +2160,12 @@
                             newSeg.style.height = '0px'; 
                             newSeg.style.opacity = '0.5'; 
                             toWater.appendChild(newSeg); 
-                            
-                            // アニメーション用リフロー
                             void newSeg.offsetWidth;
-                            
                             newSeg.style.height = 'var(--segment-height)'; 
                             newSeg.style.opacity = '1';
                         }
                     });
                 }, 50);
-
-                // 3. 終了処理
                 setTimeout(() => { 
                     fromEls.forEach(fromEl => {
                         fromEl.style.transform = ''; 
@@ -2353,8 +2203,7 @@
                         kicker: currentLang==='ja'?'活力':'Vitality', 
                         title: currentLang==='ja'?'HP +1 / 圧力 +3':'HP +1 / Pressure +3', 
                         desc: currentLang==='ja'?'回復するが負荷がかかる':'Heal yourself, but strain the system.', 
-                        apply(){ 
-                            // ▼▼▼ 修正: 先に圧力加算とダメージ判定を行う ▼▼▼
+                        apply(){
                             gameState.pressure += 3;
                             if (gameState.pressure >= gameState.pressureMax) {
                                 if(hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
@@ -2363,14 +2212,11 @@
                                 } else {
                                      gameState.pressure = 0;
                                      gameState.hp -= 1;
-                                     // イベント画面裏での演出なのでToastで通知
                                      showToast("Pressure Overload! HP -1", "#ef4444");
                                      corruptRandomSegment();
                                 }
                             }
-                            // その後に回復（ダメージを受けていれば相殺できる）
-                            gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1); 
-                            // ▲▲▲ 修正ここまで ▲▲▲
+                            gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
                         } 
                     }, 
                     { kicker: currentLang==='ja'?'平静':'Calm', title: currentLang==='ja'?'圧力 -6':'Pressure -6', desc: currentLang==='ja'?'心を落ち着ける':'Significantly reduce pressure.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-6); } }
@@ -2388,16 +2234,12 @@
         function rollPerkChoices(count=3){
         const ids = Object.keys(PERKS);
         const f = clamp((gameState.floor - 1) / 10, 0, 1);
-
-        // 重み：後半ほどrare/epicが少し出やすい（やりすぎない）
         const pool = ids.slice();
         const w = pool.map(id=>{
             const r = PERKS[id].rarity;
             let base = rarityWeight(r);
             if(r === 'rare') base += 0.15 * f;
             if(r === 'epic') base += 0.10 * f;
-
-            // 未取得を少し優遇
             if(getPerkLevel(id) === 0) base *= 1.10;
             return base;
         });
@@ -2411,7 +2253,7 @@
             idx = Math.min(idx, w.length-1);
 
             const perkId = pool[idx];
-            chosen.push(PERKS[perkId]); // ← オブジェクト返し
+            chosen.push(PERKS[perkId]);
 
             pool.splice(idx,1);
             w.splice(idx,1);
@@ -2483,7 +2325,6 @@
                 icon = it.icon;
             }
 
-            // バッジの初期表示（CSSはスキルバーと同じ bg-sky-500 を使用）
             let badgeHtml = '';
             if(offer.kind === 'item'){
                 const currentCount = gameState.inventory[offer.id] || 0;
@@ -2509,7 +2350,6 @@
                             : ownedTool ? (currentLang==='ja'?'所持済':'OWNED')
                             : (currentLang==='ja'?'購入':'BUY');
 
-            // アイコン部分に id="icon-container" のような目印等はつけず、クラス構造で特定します
             card.innerHTML = `
                 <div class="flex items-start justify-between gap-3">
                 <div class="flex items-start gap-3 min-w-0">
@@ -2556,13 +2396,11 @@
                     }
                     showToast(currentLang==='ja'?'購入しました':'Purchased', 'yellow');
 
-                    // ▼▼▼ 修正箇所: 購入時にバッジを即座に更新する処理 ▼▼▼
                     if(offer.kind === 'item' && it.type !== 'tool'){
                         const newCount = gameState.inventory[offer.id];
                         const iconBox = card.querySelector('.icon-box');
                         const existingBadge = iconBox.querySelector('.badge-count');
                         
-                        // 既にバッジがあれば数字更新、なければ新規作成
                         if(existingBadge){
                             existingBadge.textContent = newCount;
                         } else {
@@ -2572,7 +2410,6 @@
                             iconBox.appendChild(newBadge);
                         }
                     }
-                    // ▲▲▲ 修正箇所ここまで ▲▲▲
                 }
 
                 offer.purchased = true;
@@ -2667,7 +2504,6 @@
             ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : t('victorySub');
             ui('perk-essence').textContent = `Essence: ${gameState.essence} ✨`;
             
-            // Reset pending selection
             gameState.pendingPerkId = null;
 
             perkCards.innerHTML = ''; 
@@ -2683,7 +2519,6 @@
             
             continueBtn.style.display = 'block'; 
             continueBtn.textContent = t('continue');
-            // Disable button initially
             continueBtn.classList.add('opacity-50', 'cursor-not-allowed');
 
             continueBtn.onclick = () => { 
@@ -2710,28 +2545,22 @@
             card.innerHTML = `<div class="flex justify-between items-start mb-1"><span class="text-[9px] text-slate-400 uppercase tracking-widest">${perk.rarity}</span><span class="text-[9px] ${owned>0?'text-emerald-400':'text-sky-400'} font-bold uppercase">${owned>0?'UPGRADE':'NEW'}</span></div><div class="text-sm font-black text-white leading-tight mb-1">${currentLang==='ja'?perk.name.ja:perk.name.en} <span class="text-[10px] text-slate-500">Lv.${owned}→${next}</span></div><div class="text-slate-400 text-[10px] leading-relaxed">${getPerkDesc(perk.id, next)}</div>`;
             
             card.onclick = () => { 
-                // Set pending selection
                 gameState.pendingPerkId = perk.id;
-                
-                // Clear other selections
                 Array.from(perkCards.children).forEach(c => { 
                     c.classList.remove('border-sky-500', 'bg-sky-500/20', 'ring-2', 'ring-sky-500');
                     c.classList.add('border-white/10');
                     c.style.opacity = '0.6';
                 }); 
                 
-                // Highlight this one
                 card.style.opacity = '1'; 
                 card.classList.remove('border-white/10');
                 card.classList.add('border-sky-500', 'bg-sky-500/20', 'ring-2', 'ring-sky-500');
                 
-                // Enable continue button
                 continueBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             };
             return card;
         }
         
-        // 修正箇所: lv() -> getPerkLevel()
         function getDiscountedCost(base) { 
             if(hasPerk('bargain')) return Math.floor(base * (1 - (15+getPerkLevel('bargain')*5)/100)); 
             return base; 
@@ -2770,10 +2599,8 @@
         function tryUndo(){
             if (!gameState.history.length) return;
 
-            // 1つ前の履歴を取得
             const prev = gameState.history[gameState.history.length - 1];
             
-            // コスト判定（戻る先の状態で払えるか？）
             let isFree = prev.refluxUses > 0;
 
             if(!isFree && prev.essence < 5) {
@@ -2781,10 +2608,8 @@
                 return;
             }
 
-            // 履歴から取り出す
             gameState.history.pop();
 
-            // 状態の復元
             Object.assign(gameState, { 
                 tubes:deepCopy(prev.tubes), 
                 turnCount:prev.turnCount, 
@@ -2802,26 +2627,19 @@
                 pendingSkill:null, 
                 extractorHeldColor:null, 
                 selectedIdx:null,
-                // フラグの復元（履歴に含まれていない場合は空配列で初期化）
                 completedFlags: prev.completedFlags ? [...prev.completedFlags] : [] 
             });
 
-            // コスト支払いと履歴への反映
             if(isFree){ 
                 gameState.pressure += 2; 
                 gameState.refluxUses--; 
                 showFloatText(0, "Reflux Used (+2 P)", "#a855f7"); 
-                
-                // ★修正箇所: 残っている過去の履歴全てからもReflux使用回数を減らす
                 gameState.history.forEach(h => {
                     if(h.refluxUses > 0) h.refluxUses--;
                 });
 
             } else { 
                 gameState.essence -= 5; 
-                
-                // ★修正箇所: 残っている過去の履歴全てからもエッセンス5を差し引く
-                // これにより、さらに過去へ戻る際も「消費済み」の状態が基準になります
                 gameState.history.forEach(h => {
                     h.essence -= 5;
                 });
@@ -2833,28 +2651,31 @@
             saveGame();
         }
         function renderHUD(){
-            // テキスト情報の更新
             setText('ui-floor', `${t('floor')} ${gameState.floor}`); 
             setText('ui-essence', `${gameState.essence} ✨`); 
-            setText('ui-hp', `HP ${gameState.hp}`); 
+
+            const hpPct = (gameState.hp / gameState.maxHp) * 100;
+            const hpStr = `HP ${gameState.hp}`;
+            const hpBar = ui('ui-hp-bar');
+            if(hpBar) hpBar.style.width = `${clamp(hpPct, 0, 100)}%`;
+            setText('ui-hp-text', hpStr);
+            const hpMobileBar = ui('ui-hp-mobile-bar');
+            if(hpMobileBar) hpMobileBar.style.width = `${clamp(hpPct, 0, 100)}%`;
+            setText('ui-hp-mobile-text', hpStr);
+
             setText('ui-floor-mobile', `${gameState.floor}F`); 
             setText('ui-essence-mobile', `${gameState.essence} ✨`); 
-            setText('ui-hp-mobile', `HP ${gameState.hp}`);
             
             const totalLevels = Object.values(gameState.perks).reduce((a,b)=>a+b, 0); 
             setText('ui-perks-mobile', `🧬 ${totalLevels}`); 
             setText('ui-turn', `${t('turn')} ${gameState.turnCount}`); 
             setText('ui-perks', `${t('perks')} ${totalLevels}`);
-            
-            // 目標設定
             setText('ui-goal', gameState.primaryGoal?.text ?? '—'); 
             setText('ui-goal-sub', gameState.secondaryGoal?.text ?? '—'); 
             setText('ui-secondary', `${t('secondary')} ${secondarySucceeded()?'COMPLETE':''}`);
-            
-            // UIクラス制御
             ui('ui-secondary').className = secondarySucceeded() 
             ? "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/50" 
-            : "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-black/20 text-yellow-300 border border-white/5";            // 圧力バー
+            : "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-black/20 text-yellow-300 border border-white/5";
             setText('ui-pressure', String(gameState.pressure)); 
             const pct = Math.round((gameState.pressure/gameState.pressureMax)*100);
             const pBar = ui('ui-pressure-bar'); 
@@ -2868,20 +2689,12 @@
                     pBar.classList.remove('bg-rose-600'); 
                 } 
             }
-            setText('ui-pressure-sub', `${gameState.pressure} / ${gameState.pressureMax}`); 
-
-            // --- UNDOボタン制御 (ここを修正・統合しました) ---
+            setText('ui-pressure-sub', `${gameState.pressure} / ${gameState.pressureMax}`);
             const undoCost = gameState.refluxUses>0?'FREE':'5✨'; 
             if(undoBtn){ 
-                undoBtn.innerHTML=`<span>↺</span> UNDO (${undoCost})`; 
-                
-                // 履歴があるかどうかチェック
+                undoBtn.innerHTML=`<span>↺</span> UNDO (${undoCost})`;
                 const canUndo = gameState.history.length > 0;
-
-                // ボタンの有効/無効を切り替え
-                undoBtn.disabled = !canUndo; 
-                
-                // 見た目の制御
+                undoBtn.disabled = !canUndo;
                 undoBtn.style.opacity = canUndo ? '1' : '0.3';
                 undoBtn.style.cursor = canUndo ? 'pointer' : 'not-allowed';
                 undoBtn.style.pointerEvents = canUndo ? 'auto' : 'none';
@@ -2908,8 +2721,8 @@
                 if(confirm(msg)){
                     gameState.hp = 0;
                     renderHUD();
-                    clearSave();          // セーブデータを消去
-                    openPerkScreen(true); // ゲームオーバー画面（Deathモード）を表示
+                    clearSave();
+                    openPerkScreen(true);
                 }
             };
         }
@@ -2922,10 +2735,9 @@
         ui('start-run-btn').onclick = startNewRun;
         ui('continue-run-btn').onclick = () => { startScreen.classList.add('hidden'); loadGame(); };
 
-        // --- 無限スクロール & ドラッグ制御 ---
         let isDown = false;
-        let startX;       // スクロール計算用（常に更新）
-        let dragStartX;   // ドラッグ判定用（クリック時の位置で固定）
+        let startX;
+        let dragStartX;
         let isDragging = false; 
 
         const slider = ui('board-scroll-area');
@@ -2935,7 +2747,7 @@
             isDragging = false;
             slider.style.cursor = 'grabbing';
             startX = e.pageX - slider.offsetLeft;
-            dragStartX = e.pageX; // ★ドラッグ判定の基準点を保存
+            dragStartX = e.pageX;
         });
 
         slider.addEventListener('mouseleave', () => {
@@ -2952,25 +2764,16 @@
             if (!isDown) return;
             e.preventDefault();
             const x = e.pageX - slider.offsetLeft;
-            
-            // スクロール移動量（前回のフレームからの差分）
             const walk = (x - startX) * 1.5; 
             slider.scrollLeft -= walk; 
-            startX = x; // 次の計算のために現在位置を更新
-            
-            // ★「押し始めの位置(dragStartX)」から「現在位置(e.pageX)」までの距離が
-            // 5pxを超えた場合のみ、ドラッグ（クリック無効）と判定する
+            startX = x;
             if(Math.abs(e.pageX - dragStartX) > 5) {
                 isDragging = true;
             }
         });
-
-        // 無限ループ判定
         slider.addEventListener('scroll', () => {
             checkInfiniteScrollLoop();
         });
-
-        // --- 無限スクロール初期化 ---
         function initInfiniteScroll() {
             const tubeEl = tubesContainer.querySelector('.tube');
             if(!tubeEl) return;
@@ -2984,20 +2787,14 @@
             const containerWidth = slider.clientWidth;
             
             let targetScroll = cloneWidth;
-
-            // 本体幅が画面より小さい場合、中央に来るようオフセット計算
             if (realWidth < containerWidth) {
                 const offset = (containerWidth - realWidth) / 2;
                 targetScroll -= offset;
             }
-
-            // 初回位置合わせ
             if(slider.scrollLeft < 5) {
                 slider.scrollLeft = targetScroll;
             }
         }
-
-        // --- 無限ループ監視 ---
         function checkInfiniteScrollLoop() {
             if(!gameState.tubes.length) return;
             const tubeEl = tubesContainer.querySelector('.tube');
@@ -3007,17 +2804,11 @@
             const gap = parseFloat(style.gap) || 0;
             const itemWidth = tubeEl.offsetWidth + gap;
             const realWidth = itemWidth * gameState.tubes.length;
-            
-            // ▼▼▼ 修正: バッファを10pxから「アイテム1個分の幅」に増やす ▼▼▼
             const buffer = itemWidth; 
-            // ▲▲▲ 修正 ▲▲▲
-
             if (slider.scrollLeft < buffer) {
-                // 左端に行き過ぎたら右へワープ
                 slider.scrollLeft += realWidth;
             }
             else if (slider.scrollLeft > slider.scrollWidth - slider.clientWidth - buffer) {
-                // 右端に行き過ぎたら左へワープ
                 slider.scrollLeft -= realWidth;
             }
         }
