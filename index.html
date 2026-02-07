@@ -569,7 +569,7 @@
                 </button>
             </div>
 
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.1.06 Tube Update</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.1.07 Item Adjustment</p>
         </div>
 
         <!-- 変異選択 & ショップ画面 -->
@@ -1053,16 +1053,21 @@
         };
 
         const ITEMS = {
-            // extractor: {
-            //     id: 'extractor', type: 'consumable', cost: 12, icon: '💉',
-            //     name: {en:'Extractor', ja:'スポイト抽出'},
-            //     desc: {en:'Move top color to any empty space.', ja:'一番上の色を吸い取り、空きがある好きな場所へ移す'}
-            // },
-            // pipette: {
-            //     id: 'pipette', type: 'tool', cost: 10, icon: '⚗️',
-            //     name: {en:'Pipette', ja:'精密ピペット'},
-            //     desc: {en:'Toggle: Pour 1 segment.', ja:'切替：1目盛りだけ注ぐ'}
-            // },
+            quantum_pipette: {
+                id: 'quantum_pipette', type: 'consumable', cost: 15, icon: '💉',
+                name: {en:'Quantum Pipette', ja:'量子スポイト'},
+                desc: {en:'Extract bottom color.', ja:'一番下の色を吸い出し保持する'}
+            },
+            heal: {
+                id: 'heal', type: 'consumable', cost: 8, icon: '🩹', 
+                name: {en:'Stabilizer', ja:'安定剤'},
+                desc: {en:'Heal +1 HP.', ja:'HPを+1回復する'}
+            },
+            panacea: {
+                id: 'panacea', type: 'consumable', cost: 20, icon: '💊',
+                name: {en:'Panacea', ja:'万能薬'},
+                desc: {en:'Heal +2 HP.', ja:'HPを+2回復する'}
+            },
             inverter: {
                 id: 'inverter', type: 'consumable', cost: 6, icon: '🔄',
                 name: {en:'Gravity Coil', ja:'重力反転機'},
@@ -1147,27 +1152,9 @@
 
         const INSTANT_ITEMS = [
             { 
-                id:'heal', type:'stat', cost:8, 
-                name:{en:'Stabilizer', ja:'安定剤'}, 
-                desc:{en:'Heal +1 HP', ja:'HP+1'}, 
-                apply(gs){ 
-                    gs.hp = Math.min(gs.maxHp, gs.hp + 1);
-                    showToast('HP Recovered!', 'rose'); 
-                } 
-            },
-            { 
-                id:'panacea', type:'stat', cost:20, 
-                name:{en:'Panacea', ja:'万能薬'}, 
-                desc:{en:'HP+2', ja:'HP+2'}, 
-                apply(gs){ 
-                    gs.hp = Math.min(gs.maxHp, gs.hp + 2);
-                    showToast('Full Restore!', 'emerald'); 
-                } 
-            },
-            { 
                 id:'dark_pact', type:'stat', cost:0, 
                 name:{en:'Dark Pact', ja:'黒の契約'}, 
-                desc:{en:'HP-1, +20 Ess', ja:'HP-2, +20エッセンス'}, 
+                desc:{en:'HP-2, +20 Ess', ja:'HP-2, +20エッセンス'}, 
                 apply(gs){ 
                     if(gs.hp > 2){
                         gs.hp -= 2; gs.essence += 20; 
@@ -1573,7 +1560,8 @@
                     tube.classList.remove('capped');
                 }
 
-                const isTwoStepSkill = ['extractor', 'transfer'].includes(gameState.targetMode);
+                const isTwoStepSkill = ['extractor', 'transfer', 'quantum_pipette'].includes(gameState.targetMode);
+                
                 if (isTwoStepSkill && gameState.extractorHeldColor) {
                     if(segments.length < gameState.capacity) {
                         tube.classList.add('target-mode');
@@ -1653,8 +1641,7 @@
                     if (key === 'pipette' && gameState.pipetteMode) btn.classList.add('active');
                     if (gameState.pendingSkill === key) btn.classList.add('pending');
                     if (gameState.targetMode === key) btn.classList.add('active-mode');
-                    if (['extractor', 'transfer'].includes(gameState.targetMode) && key === gameState.targetMode) {
-                        if(gameState.extractorHeldColor) {
+                    if (['extractor', 'transfer', 'quantum_pipette'].includes(gameState.targetMode) && key === gameState.targetMode) {    if(gameState.extractorHeldColor) {
                             btn.classList.add('extracting');
                             btn.innerHTML = `<div style="width:16px;height:16px;border-radius:50%;background:${colorMeta(gameState.extractorHeldColor).hex};border:2px solid white;"></div>` + badgeHtml;
                         } else {
@@ -1693,6 +1680,7 @@
         function activateSkill(key){
             if(gameState.busy) return;
             const def = ITEMS[key];
+
             const isPending = (gameState.pendingSkill === key);
             const isActive = (gameState.targetMode === key) || (key === 'pipette' && gameState.pipetteMode);
             if (!isPending && !isActive) {
@@ -1704,8 +1692,38 @@
                 renderBoard(); 
                 return;
             }
+
             gameState.pendingSkill = null; 
             hideGlobalTooltip();
+
+            if(key === 'heal'){
+                 if(gameState.inventory[key] > 0){
+                     if(gameState.hp >= gameState.maxHp){
+                         showToast(currentLang==='ja'?'HPは満タンです':'HP is full', 'yellow');
+                         return;
+                     }
+                     gameState.inventory[key]--;
+                     gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
+                     saveGame();
+                     renderHUD();
+                     showToast(currentLang==='ja'?'HP回復！':'HP Restored +1!', 'rose');
+                 }
+                 return;
+            }
+            if(key === 'panacea'){
+                 if(gameState.inventory[key] > 0){
+                     if(gameState.hp >= gameState.maxHp){
+                         showToast(currentLang==='ja'?'HPは満タンです':'HP is full', 'yellow');
+                         return;
+                     }
+                     gameState.inventory[key]--;
+                     gameState.hp = Math.min(gameState.maxHp, gameState.hp + 2);
+                     saveGame();
+                     renderHUD();
+                     showToast(currentLang==='ja'?'HPが大幅回復！':'HP Restored +2!', 'emerald');
+                 }
+                 return;
+            }
             if(key === 'summon_vial'){
                  if(gameState.inventory[key] > 0){
                      gameState.inventory[key]--;
@@ -1765,7 +1783,7 @@
 
         async function handleTubeClick(idx) {
             if (gameState.busy) return;
-            if (['extractor', 'transfer'].includes(gameState.targetMode)) {
+            if (['extractor', 'transfer', 'quantum_pipette'].includes(gameState.targetMode)) {
                 await handleTwoStepSkill(idx);
                 return;
             }
@@ -1799,7 +1817,12 @@
                     return;
                 }
                 gameState.busy = true;
-                const color = tube.pop();
+                let color;
+                if(skillKey === 'quantum_pipette'){
+                    color = tube.shift(); // 底から抜く
+                } else {
+                    color = tube.pop();   // 上から抜く
+                }
                 gameState.extractorHeldColor = color;
                 showFloatText(idx, skillKey==='transfer'?"Surface Move!":"Extracted!", "#22c55e");
                 renderBoard(); 
@@ -1807,6 +1830,15 @@
                 showToast(currentLang==='ja' ? "移動先を選択してください" : "Select destination", 'emerald');
             } 
             else {
+                const isMismatch = (
+                    skillKey === 'extractor' && 
+                    tube.length > 0 && 
+                    tube[tube.length-1] !== gameState.extractorHeldColor
+                );
+                if (tube.length > 0 && tube[tube.length-1] !== gameState.extractorHeldColor && skillKey !== 'transfer') {
+                     showFloatText(idx, "Mismatch!", "#ef4444");
+                     return;
+                }
                 if (tubeFree(tube) <= 0) {
                     showFloatText(idx, "Full!", "#ef4444");
                     return;
