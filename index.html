@@ -569,7 +569,7 @@
                 </button>
             </div>
 
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.1.05 Tube Update</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.1.06 Tube Update</p>
         </div>
 
         <!-- 変異選択 & ショップ画面 -->
@@ -1952,13 +1952,33 @@
                         const counts = getBoardCounts();
                         if ((counts[color] || 0) >= gameState.capacity) {
                             showFloatText(idx, "Maxed Out!", "#ef4444");
-                            gameState.busy = false;
+                            gameState.busy = false; 
                             return; 
                         }
                         
                         pushHistory(); if(consume) gameState.inventory[skillKey]--;
-                        tube.push(tube[tube.length-1]); gameState.pressure += 3;
-                        showFloatText(idx, "Boosted! (+3 P)", "#3b82f6"); success = true;
+                        tube.push(tube[tube.length-1]); 
+                        
+                        // ▼▼▼ 修正: 圧力加算とダメージ判定を追加 ▼▼▼
+                        gameState.pressure += 3;
+                        if (gameState.pressure >= gameState.pressureMax) {
+                            if(hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
+                                    gameState.pressure = 0; 
+                                    showFloatText(idx, "Void Shield!", "#a855f7");
+                            } else {
+                                    gameState.pressure = 0;
+                                    gameState.hp -= 1;
+                                    ui('game-container').classList.add('animate-shake'); 
+                                    setTimeout(()=>ui('game-container').classList.remove('animate-shake'), 500);
+                                    corruptRandomSegment();
+                                    showFloatText(idx, "Overload! HP-1", "#ef4444");
+                            }
+                        } else {
+                            showFloatText(idx, "Boosted! (+3 P)", "#3b82f6"); 
+                        }
+                        // ▲▲▲ 修正ここまで ▲▲▲
+                        
+                        success = true;
                     }
                 }
             } catch(e) {
@@ -2093,8 +2113,24 @@
             }
             if(hasPerk('momentum')) gameState.momentumTurns = getPerkLevel('momentum'); 
             if (colorKey === 'R' && hasPerk('crimson_resonance')) {
-                const lv = getPerkLevel('crimson_resonance'); gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
-                gameState.pressure += (6 - lv); showFloatText(tubeIdx, `Crimson Heal! (+${6-lv} P)`, "#dc2626");
+                const lv = getPerkLevel('crimson_resonance');
+                const pAdd = 6 - lv;
+                gameState.pressure += pAdd;
+                if (gameState.pressure >= gameState.pressureMax) {
+                    if(hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
+                         gameState.pressure = 0; 
+                         showFloatText(tubeIdx, "Void Shield!", "#a855f7");
+                    } else {
+                         gameState.pressure = 0;
+                         gameState.hp -= 1;
+                         ui('game-container').classList.add('animate-shake'); 
+                         setTimeout(()=>ui('game-container').classList.remove('animate-shake'), 500);
+                         corruptRandomSegment();
+                         showFloatText(tubeIdx, "Pressure Overload!", "#ef4444");
+                    }
+                }
+                gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
+                showFloatText(tubeIdx, `Crimson Heal! (+${pAdd} P)`, "#dc2626");
             }
             if (colorKey === 'B' && hasPerk('azure_cycle')) {
                 const lv = getPerkLevel('azure_cycle'); gameState.pressure = Math.max(0, gameState.pressure - (lv * 3));
@@ -2273,8 +2309,41 @@
         }
 
         function buildEventChoices(colorKey){
-            if (colorKey === 'B'){ return [{ kicker: currentLang==='ja'?'排出':'Vent', title: currentLang==='ja'?'圧力 -4':'Pressure -4', desc: currentLang==='ja'?'安全を確保する':'Release built-up pressure.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-4); } }, { kicker: currentLang==='ja'?'知識':'Insight', title: currentLang==='ja'?'エッセンス +4':'Essence +4', desc: currentLang==='ja'?'リスクを取って富を得る':'Gain currency for the shop.', apply(){ gameState.essence += 4; } }]; }
-            if (colorKey === 'R'){ return [{ kicker: currentLang==='ja'?'活力':'Vitality', title: currentLang==='ja'?'HP +1 / 圧力 +3':'HP +1 / Pressure +3', desc: currentLang==='ja'?'回復するが負荷がかかる':'Heal yourself, but strain the system.', apply(){ gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1); gameState.pressure += 3; } }, { kicker: currentLang==='ja'?'平静':'Calm', title: currentLang==='ja'?'圧力 -6':'Pressure -6', desc: currentLang==='ja'?'心を落ち着ける':'Significantly reduce pressure.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-6); } }]; }
+            if (colorKey === 'B'){ 
+                return [
+                    { kicker: currentLang==='ja'?'排出':'Vent', title: currentLang==='ja'?'圧力 -4':'Pressure -4', desc: currentLang==='ja'?'安全を確保する':'Release built-up pressure.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-4); } }, 
+                    { kicker: currentLang==='ja'?'知識':'Insight', title: currentLang==='ja'?'エッセンス +4':'Essence +4', desc: currentLang==='ja'?'リスクを取って富を得る':'Gain currency for the shop.', apply(){ gameState.essence += 4; } }
+                ]; 
+            }
+            if (colorKey === 'R'){ 
+                return [
+                    { 
+                        kicker: currentLang==='ja'?'活力':'Vitality', 
+                        title: currentLang==='ja'?'HP +1 / 圧力 +3':'HP +1 / Pressure +3', 
+                        desc: currentLang==='ja'?'回復するが負荷がかかる':'Heal yourself, but strain the system.', 
+                        apply(){ 
+                            // ▼▼▼ 修正: 先に圧力加算とダメージ判定を行う ▼▼▼
+                            gameState.pressure += 3;
+                            if (gameState.pressure >= gameState.pressureMax) {
+                                if(hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
+                                     gameState.pressure = 0; 
+                                     showToast("Void Shield!", "#a855f7");
+                                } else {
+                                     gameState.pressure = 0;
+                                     gameState.hp -= 1;
+                                     // イベント画面裏での演出なのでToastで通知
+                                     showToast("Pressure Overload! HP -1", "#ef4444");
+                                     corruptRandomSegment();
+                                }
+                            }
+                            // その後に回復（ダメージを受けていれば相殺できる）
+                            gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1); 
+                            // ▲▲▲ 修正ここまで ▲▲▲
+                        } 
+                    }, 
+                    { kicker: currentLang==='ja'?'平静':'Calm', title: currentLang==='ja'?'圧力 -6':'Pressure -6', desc: currentLang==='ja'?'心を落ち着ける':'Significantly reduce pressure.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-6); } }
+                ]; 
+            }
             return [{ kicker: currentLang==='ja'?'浄化':'Purify', title: currentLang==='ja'?'圧力 -2':'Pressure -2', desc: currentLang==='ja'?'少し落ち着く':'Minor relief.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-2); } }, { kicker: currentLang==='ja'?'貪欲':'Greed', title: currentLang==='ja'?'エッセンス +3 / 圧力 +1':'Essence +3 / Pressure +1', desc: currentLang==='ja'?'小さな代償で富を':'Wealth at a cost.', apply(){ gameState.essence += 3; gameState.pressure += 1; } }];
         }
 
