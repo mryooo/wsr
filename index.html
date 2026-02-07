@@ -394,237 +394,238 @@
     </style>
 </head>
 <body>
-    
-    <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 w-full max-w-sm px-4"></div>
-    
-    <div id="global-tooltip"></div>
 
-    <div id="game-container" class="flex flex-col items-center justify-between h-screen w-screen p-2 md:p-4 overflow-hidden relative">
-        <div id="alert-banner">NO MOVES LEFT</div>
-
-        <!-- トップHUD -->
-        <div id="top-hud" class="w-full max-w-5xl glass-panel p-3 md:p-4 flex items-center justify-between z-20 shrink-0 mb-2">
-            <div class="flex items-center gap-4">
-                <div>
-                    <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]" id="ui-subtitle">錬金術の深淵</div>
-                    <div class="text-xl md:text-2xl font-black tracking-tight leading-none bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent" id="ui-title">Abyss Alchemy</div>
-                </div>
-                <div class="hidden md:flex items-center gap-3 ml-4">
-                    <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold border border-white/5" id="ui-floor">FLOOR 1</span>
-                    <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold text-sky-300 border border-white/5" id="ui-essence">0 ✨</span>
-                    <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold text-rose-300 border border-white/5" id="ui-hp">HP 3</span>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <!-- Status Button: 変異とパラメータの確認 -->
-                <button id="btn-mutations" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all text-sky-300 border-sky-500/30">
-                    <span class="md:hidden">🧬</span><span class="hidden md:inline">Status</span>
-                </button>
-                <button id="btn-help" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all">
-                    <span class="md:hidden">?</span><span class="hidden md:inline">Help</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- 目標/圧力 行 -->
-        <div id="status-bar" class="w-full max-w-5xl flex gap-2 shrink-0 z-20 mb-2">
-            <div class="flex-1 glass-panel px-4 py-2 border-l-4 border-l-sky-500/50">
-                <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]" id="ui-goal-title">GOAL</div>
-                <div class="text-sm font-black tracking-tight text-white" id="ui-goal">—</div>
-                <div class="text-[10px] text-slate-500 mt-1 text-yellow-400" id="ui-goal-sub">—</div>
-            </div>
-            <div class="w-[180px] md:w-[220px] glass-panel px-4 py-2 border-l-4 border-l-rose-500/50">
-                <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]">PRESSURE</div>
-                <div class="flex items-center gap-2 mt-1">
-                    <div class="flex-1 h-2 rounded-full bg-slate-800/80 overflow-hidden relative border border-white/5">
-                        <div id="ui-pressure-bar" class="h-full rounded-full bg-gradient-to-r from-sky-400 via-purple-400 to-rose-500 transition-all duration-300" style="width:0%"></div>
-                    </div>
-                    <div class="text-xs font-black w-5 text-right" id="ui-pressure">0</div>
-                </div>
-                <div class="text-[10px] text-slate-500 mt-1 text-right" id="ui-pressure-sub">—</div>
-            </div>
-        </div>
-
-        <!-- 盤面エリア -->
-        <div id="board-area" class="flex-1 w-full relative z-10 overflow-hidden my-2">
-            <div id="board-scroll-area">
-                <div id="tubes-container"></div>
-            </div>
-        </div>
+    <div>
+        <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 w-full max-w-sm px-4"></div>
         
-        <!-- スキルバー (Scrollable) -->
-        <div id="skills-container" class="w-full max-w-2xl mb-2 min-h-[60px] shrink-0">
-            <!-- JSでボタン生成 -->
-        </div>
+        <div id="global-tooltip"></div>
 
-        <!-- 下HUD -->
-        <div id="bottom-hud" class="w-full max-w-5xl glass-panel p-3 md:p-4 shrink-0 z-20 mb-safe">
-            <div class="md:hidden flex items-center justify-between mb-3 px-1 gap-2 text-sm font-bold">
-                 <span class="text-slate-300 bg-white/5 px-2 py-1 rounded border border-white/10" id="ui-floor-mobile">1F</span>
-                 <div class="flex gap-3">
-                     <span class="text-sky-300" id="ui-essence-mobile">0 ✨</span>
-                     <span class="text-purple-300" id="ui-perks-mobile">🧬 0</span>
-                 </div>
-                 <span class="text-rose-300" id="ui-hp-mobile">HP 3</span>
-            </div>
+        <div id="game-container" class="flex flex-col items-center justify-between h-screen w-screen p-2 md:p-4 overflow-hidden relative">
+            <div id="alert-banner">NO MOVES LEFT</div>
 
-            <div class="flex items-center justify-between gap-3 relative">
-                <div class="flex items-center gap-2 md:gap-3 flex-wrap">
-                    <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-white border border-white/5" id="ui-turn">TURN 0</span>
-                    <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-white border border-white/5" id="ui-secondary">BONUS —</span>
-                    <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-sky-300 border border-white/5 hidden sm:block" id="ui-perks">PERKS 0</span>
-                </div>
-                
-                <button id="btn-undo" class="px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest text-slate-300 flex items-center gap-2">
-                    <span>↺</span> UNDO (5✨)
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 画面：イベント -->
-    <div id="event-screen" class="fixed inset-0 z-[140] bg-slate-950/85 backdrop-blur-sm hidden items-center justify-center p-6 transition-opacity">
-        <div class="glass-panel w-full max-w-2xl p-6 border border-sky-500/20 shadow-2xl shadow-sky-900/20">
-            <div class="flex items-end justify-between gap-4">
-                <div>
-                    <div class="text-[10px] text-sky-400 uppercase tracking-[0.35em] font-bold" id="event-kicker">EVENT</div>
-                    <div class="text-3xl font-black tracking-tight text-white mt-1" id="event-title">—</div>
-                    <div class="text-slate-300 text-sm mt-3 whitespace-pre-line leading-relaxed" id="event-desc">—</div>
-                </div>
-                <div class="text-right shrink-0">
-                    <div class="px-3 py-1 bg-rose-500/10 border border-rose-500/30 rounded text-[10px] text-rose-300 uppercase tracking-[0.2em]">Unavoidable</div>
-                </div>
-            </div>
-            <div class="grid md:grid-cols-2 gap-4 mt-8" id="event-choices"></div>
-        </div>
-    </div>
-
-    <!-- スタート画面 -->
-    <div id="start-screen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950 p-8">
-        <div class="absolute top-8 right-8 flex gap-2 glass-panel p-1 z-50">
-            <button onclick="setLang('en')" id="lang-en" class="lang-btn">EN</button>
-            <button onclick="setLang('ja')" id="lang-ja" class="lang-btn active">JP</button>
-        </div>
-
-        <div class="text-center mb-16 floating relative">
-            <div class="absolute inset-0 bg-sky-500/20 blur-[100px] rounded-full"></div>
-            <h1 class="relative text-5xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-sky-300 via-sky-500 to-indigo-600 drop-shadow-2xl leading-tight">ABYSS<br>ALCHEMY</h1>
-            <p id="start-subtitle" class="relative text-sky-200/60 font-medium tracking-[0.5em] uppercase text-xs mt-4">錬金術の深淵</p>
-        </div>
-        
-        <div class="flex flex-col gap-3 w-full max-w-xs">
-            <button id="continue-run-btn" class="hidden w-full py-4 bg-emerald-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-emerald-500/20 hover:bg-emerald-500 hover:shadow-emerald-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0 flex items-center justify-center gap-2">
-                <span>▶</span> <span id="continue-btn-text">つづきから</span>
-            </button>
-            <button id="start-run-btn" class="w-full py-4 bg-sky-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-sky-500/20 hover:bg-sky-500 hover:shadow-sky-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0">
-                探索を開始
-            </button>
-        </div>
-
-        <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.10.0 Perk Selection Update</p>
-    </div>
-
-    <!-- 変異選択 & ショップ画面 -->
-    <div id="perk-screen" class="fixed inset-0 z-[150] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
-        <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
-            
-            <!-- Header -->
-            <div class="flex justify-between items-center p-4 md:p-6 border-b border-white/5 shrink-0 bg-slate-900/40">
-                <div>
-                    <h2 id="perk-title" class="text-xl md:text-3xl font-black text-white italic uppercase leading-none">変異の兆し</h2>
-                    <p id="perk-subtitle" class="text-slate-400 text-[10px] md:text-xs mt-1 uppercase tracking-widest">無料の強化を1つ選択</p>
-                </div>
+            <!-- トップHUD -->
+            <div id="top-hud" class="w-full max-w-5xl glass-panel p-3 md:p-4 flex items-center justify-between z-20 shrink-0 mb-2">
                 <div class="flex items-center gap-4">
-                    <button id="reroll-btn" class="px-4 py-1.5 glass-panel border border-white/10 text-base font-black uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all hidden">Reroll (-5✨)</button>
-                    <div class="text-base font-bold text-sky-400 bg-sky-900/30 px-3 py-1.5 rounded border border-sky-500/20 whitespace-nowrap" id="perk-essence">Essence: 0 ✨</div>
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]" id="ui-subtitle">錬金術の深淵</div>
+                        <div class="text-xl md:text-2xl font-black tracking-tight leading-none bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent" id="ui-title">Abyss Alchemy</div>
+                    </div>
+                    <div class="hidden md:flex items-center gap-3 ml-4">
+                        <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold border border-white/5" id="ui-floor">FLOOR 1</span>
+                        <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold text-sky-300 border border-white/5" id="ui-essence">0 ✨</span>
+                        <span class="px-4 py-2 rounded-xl glass-panel text-xl font-bold text-rose-300 border border-white/5" id="ui-hp">HP 3</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <!-- Status Button: 変異とパラメータの確認 -->
+                    <button id="btn-mutations" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all text-sky-300 border-sky-500/30">
+                        <span class="md:hidden">🧬</span><span class="hidden md:inline">Status</span>
+                    </button>
+                    <button id="btn-help" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all">
+                        <span class="md:hidden">?</span><span class="hidden md:inline">Help</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- Main Content (Scrollable) -->
-            <div class="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-                
-                <!-- Left: Perks -->
-                <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-white/5 bg-slate-900/20">
-                    <div class="text-sm font-bold mb-3 text-sky-300 uppercase tracking-widest flex items-center gap-2">
-                        <span>🧬 Mutations</span>
-                        <span class="text-[10px] text-slate-500 font-normal normal-case">Pick One (Updates every level)</span>
+            <!-- 目標/圧力 行 -->
+            <div id="status-bar" class="w-full max-w-5xl flex gap-2 shrink-0 z-20 mb-2">
+                <div class="flex-1 glass-panel px-4 py-2 border-l-4 border-l-sky-500/50">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]" id="ui-goal-title">GOAL</div>
+                    <div class="text-sm font-black tracking-tight text-white" id="ui-goal">—</div>
+                    <div class="text-[10px] text-slate-500 mt-1 text-yellow-400" id="ui-goal-sub">—</div>
+                </div>
+                <div class="w-[180px] md:w-[220px] glass-panel px-4 py-2 border-l-4 border-l-rose-500/50">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]">PRESSURE</div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <div class="flex-1 h-2 rounded-full bg-slate-800/80 overflow-hidden relative border border-white/5">
+                            <div id="ui-pressure-bar" class="h-full rounded-full bg-gradient-to-r from-sky-400 via-purple-400 to-rose-500 transition-all duration-300" style="width:0%"></div>
+                        </div>
+                        <div class="text-xs font-black w-5 text-right" id="ui-pressure">0</div>
                     </div>
-                    <div class="grid gap-3" id="perk-cards">
-                        <!-- Perks injected here -->
+                    <div class="text-[10px] text-slate-500 mt-1 text-right" id="ui-pressure-sub">—</div>
+                </div>
+            </div>
+
+            <!-- 盤面エリア -->
+            <div id="board-area" class="flex-1 w-full relative z-10 overflow-hidden my-2">
+                <div id="board-scroll-area">
+                    <div id="tubes-container"></div>
+                </div>
+            </div>
+            
+            <!-- スキルバー (Scrollable) -->
+            <div id="skills-container" class="w-full max-w-2xl mb-2 min-h-[60px] shrink-0">
+                <!-- JSでボタン生成 -->
+            </div>
+
+            <!-- 下HUD -->
+            <div id="bottom-hud" class="w-full max-w-5xl glass-panel p-3 md:p-4 shrink-0 z-20 mb-safe">
+                <div class="md:hidden flex items-center justify-between mb-3 px-1 gap-2 text-sm font-bold">
+                    <span class="text-slate-300 bg-white/5 px-2 py-1 rounded border border-white/10" id="ui-floor-mobile">1F</span>
+                    <div class="flex gap-3">
+                        <span class="text-sky-300" id="ui-essence-mobile">0 ✨</span>
+                        <span class="text-purple-300" id="ui-perks-mobile">🧬 0</span>
                     </div>
+                    <span class="text-rose-300" id="ui-hp-mobile">HP 3</span>
                 </div>
 
-                <!-- Right: Shop -->
-                <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
-                    <div class="flex justify-between items-center mb-3">
-                        <div class="text-sm font-bold text-yellow-500 uppercase tracking-widest flex items-center gap-2">
-                            <span>◈ Shop</span>
-                            <span class="text-[10px] text-slate-500 font-normal normal-case">4 Random Items</span>
-                        </div>
+                <div class="flex items-center justify-between gap-3 relative">
+                    <div class="flex items-center gap-2 md:gap-3 flex-wrap">
+                        <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-white border border-white/5" id="ui-turn">TURN 0</span>
+                        <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-white border border-white/5" id="ui-secondary">BONUS —</span>
+                        <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-sky-300 border border-white/5 hidden sm:block" id="ui-perks">PERKS 0</span>
                     </div>
                     
-                    <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3" id="shop-cards">
-                        <!-- Shop Items injected here -->
+                    <button id="btn-undo" class="px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest text-slate-300 flex items-center gap-2">
+                        <span>↺</span> UNDO (5✨)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 画面：イベント -->
+        <div id="event-screen" class="fixed inset-0 z-[140] bg-slate-950/85 backdrop-blur-sm hidden items-center justify-center p-6 transition-opacity">
+            <div class="glass-panel w-full max-w-2xl p-6 border border-sky-500/20 shadow-2xl shadow-sky-900/20">
+                <div class="flex items-end justify-between gap-4">
+                    <div>
+                        <div class="text-[10px] text-sky-400 uppercase tracking-[0.35em] font-bold" id="event-kicker">EVENT</div>
+                        <div class="text-3xl font-black tracking-tight text-white mt-1" id="event-title">—</div>
+                        <div class="text-slate-300 text-sm mt-3 whitespace-pre-line leading-relaxed" id="event-desc">—</div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <div class="px-3 py-1 bg-rose-500/10 border border-rose-500/30 rounded text-[10px] text-rose-300 uppercase tracking-[0.2em]">Unavoidable</div>
                     </div>
                 </div>
+                <div class="grid md:grid-cols-2 gap-4 mt-8" id="event-choices"></div>
             </div>
-
-            <!-- Footer: Fixed Continue Button -->
-            <div class="p-4 border-t border-white/5 bg-slate-900/40 shrink-0 flex justify-center z-10">
-                <button id="continue-btn" class="w-full max-w-md py-3 bg-indigo-600 rounded-xl font-black text-white text-sm uppercase tracking-widest shadow-lg shadow-indigo-900/40 hover:bg-indigo-500 transition-all active:scale-95">Next Floor</button>
-            </div>
-
         </div>
-    </div>
 
-    <!-- Help -->
-    <div id="help-screen" class="fixed inset-0 z-[160] bg-slate-950/90 backdrop-blur hidden items-center justify-center p-6">
-        <div class="glass-panel w-full max-w-2xl p-8 border border-white/10">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]">HELP</div>
-                    <div class="text-3xl font-black tracking-tight">Guide</div>
-                </div>
-                <button id="help-close" class="px-4 py-2 glass-panel font-black text-xs uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-colors">Close</button>
+        <!-- スタート画面 -->
+        <div id="start-screen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950 p-8">
+            <div class="absolute top-8 right-8 flex gap-2 glass-panel p-1 z-50">
+                <button onclick="setLang('en')" id="lang-en" class="lang-btn">EN</button>
+                <button onclick="setLang('ja')" id="lang-ja" class="lang-btn active">JP</button>
             </div>
-            <div class="text-slate-300 text-sm leading-loose whitespace-pre-line font-medium" id="help-text"></div>
-        </div>
-    </div>
 
-    <!-- Mutations Status Screen -->
-    <div id="mutations-screen" class="fixed inset-0 z-[160] bg-slate-950/90 backdrop-blur hidden items-center justify-center p-6">
-        <div class="glass-panel w-full max-w-3xl p-8 border border-white/10 flex flex-col h-[85vh]">
-            <div class="flex justify-between items-center mb-6 shrink-0">
-                <div>
-                    <div class="text-[10px] text-sky-400 uppercase tracking-[0.35em]">STATUS</div>
-                    <div class="text-3xl font-black tracking-tight text-white">Mutations & Stats</div>
-                </div>
-                <button id="mutations-close" class="px-4 py-2 glass-panel font-black text-xs uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-colors">Close</button>
+            <div class="text-center mb-16 floating relative">
+                <div class="absolute inset-0 bg-sky-500/20 blur-[100px] rounded-full"></div>
+                <h1 class="relative text-5xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-sky-300 via-sky-500 to-indigo-600 drop-shadow-2xl leading-tight">ABYSS<br>ALCHEMY</h1>
+                <p id="start-subtitle" class="relative text-sky-200/60 font-medium tracking-[0.5em] uppercase text-xs mt-4">錬金術の深淵</p>
             </div>
             
-            <div class="flex-1 overflow-y-auto space-y-8 pr-2">
-                <!-- パラメーター要約 -->
-                <div>
-                    <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-3">Total Parameters</div>
-                    <div id="mutations-stats-summary" class="stat-grid">
-                        <!-- JSで注入 -->
+            <div class="flex flex-col gap-3 w-full max-w-xs">
+                <button id="continue-run-btn" class="hidden w-full py-4 bg-emerald-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-emerald-500/20 hover:bg-emerald-500 hover:shadow-emerald-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0 flex items-center justify-center gap-2">
+                    <span>▶</span> <span id="continue-btn-text">つづきから</span>
+                </button>
+                <button id="start-run-btn" class="w-full py-4 bg-sky-600 rounded-2xl font-black text-white uppercase tracking-widest shadow-2xl shadow-sky-500/20 hover:bg-sky-500 hover:shadow-sky-500/40 hover:-translate-y-1 transition-all active:scale-95 active:translate-y-0">
+                    探索を開始
+                </button>
+            </div>
+
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Ver 2.10.0 Perk Selection Update</p>
+        </div>
+
+        <!-- 変異選択 & ショップ画面 -->
+        <div id="perk-screen" class="fixed inset-0 z-[150] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
+            <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
+                
+                <!-- Header -->
+                <div class="flex justify-between items-center p-4 md:p-6 border-b border-white/5 shrink-0 bg-slate-900/40">
+                    <div>
+                        <h2 id="perk-title" class="text-xl md:text-3xl font-black text-white italic uppercase leading-none">変異の兆し</h2>
+                        <p id="perk-subtitle" class="text-slate-400 text-[10px] md:text-xs mt-1 uppercase tracking-widest">無料の強化を1つ選択</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button id="reroll-btn" class="px-4 py-1.5 glass-panel border border-white/10 text-base font-black uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all hidden">Reroll (-5✨)</button>
+                        <div class="text-base font-bold text-sky-400 bg-sky-900/30 px-3 py-1.5 rounded border border-sky-500/20 whitespace-nowrap" id="perk-essence">Essence: 0 ✨</div>
                     </div>
                 </div>
 
-                <!-- 獲得変異リスト -->
-                <div>
-                    <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-3">Acquired Mutations</div>
-                    <div id="mutations-list-container" class="grid gap-2">
-                        <!-- JSで注入 -->
+                <!-- Main Content (Scrollable) -->
+                <div class="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+                    
+                    <!-- Left: Perks -->
+                    <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-white/5 bg-slate-900/20">
+                        <div class="text-sm font-bold mb-3 text-sky-300 uppercase tracking-widest flex items-center gap-2">
+                            <span>🧬 Mutations</span>
+                            <span class="text-[10px] text-slate-500 font-normal normal-case">Pick One (Updates every level)</span>
+                        </div>
+                        <div class="grid gap-3" id="perk-cards">
+                            <!-- Perks injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Shop -->
+                    <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="text-sm font-bold text-yellow-500 uppercase tracking-widest flex items-center gap-2">
+                                <span>◈ Shop</span>
+                                <span class="text-[10px] text-slate-500 font-normal normal-case">4 Random Items</span>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3" id="shop-cards">
+                            <!-- Shop Items injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer: Fixed Continue Button -->
+                <div class="p-4 border-t border-white/5 bg-slate-900/40 shrink-0 flex justify-center z-10">
+                    <button id="continue-btn" class="w-full max-w-md py-3 bg-indigo-600 rounded-xl font-black text-white text-sm uppercase tracking-widest shadow-lg shadow-indigo-900/40 hover:bg-indigo-500 transition-all active:scale-95">Next Floor</button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Help -->
+        <div id="help-screen" class="fixed inset-0 z-[160] bg-slate-950/90 backdrop-blur hidden items-center justify-center p-6">
+            <div class="glass-panel w-full max-w-2xl p-8 border border-white/10">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]">HELP</div>
+                        <div class="text-3xl font-black tracking-tight">Guide</div>
+                    </div>
+                    <button id="help-close" class="px-4 py-2 glass-panel font-black text-xs uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-colors">Close</button>
+                </div>
+                <div class="text-slate-300 text-sm leading-loose whitespace-pre-line font-medium" id="help-text"></div>
+            </div>
+        </div>
+
+        <!-- Mutations Status Screen -->
+        <div id="mutations-screen" class="fixed inset-0 z-[160] bg-slate-950/90 backdrop-blur hidden items-center justify-center p-6">
+            <div class="glass-panel w-full max-w-3xl p-8 border border-white/10 flex flex-col h-[85vh]">
+                <div class="flex justify-between items-center mb-6 shrink-0">
+                    <div>
+                        <div class="text-[10px] text-sky-400 uppercase tracking-[0.35em]">STATUS</div>
+                        <div class="text-3xl font-black tracking-tight text-white">Mutations & Stats</div>
+                    </div>
+                    <button id="mutations-close" class="px-4 py-2 glass-panel font-black text-xs uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-colors">Close</button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto space-y-8 pr-2">
+                    <!-- パラメーター要約 -->
+                    <div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-3">Total Parameters</div>
+                        <div id="mutations-stats-summary" class="stat-grid">
+                            <!-- JSで注入 -->
+                        </div>
+                    </div>
+
+                    <!-- 獲得変異リスト -->
+                    <div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-3">Acquired Mutations</div>
+                        <div id="mutations-list-container" class="grid gap-2">
+                            <!-- JSで注入 -->
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <div id="dev-tests"></div>
     </div>
-
-    <div id="dev-tests"></div>
-
     <script>
         // --- ユーティリティ ---
         function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -793,9 +794,7 @@
                 typeItem: "所持アイテム"
             }
         };
-
         let currentLang = 'ja';
-
         function updateStartScreenButtons(){
         const hasSave = hasSaveData();
 
@@ -807,7 +806,6 @@
         setText('start-run-btn', t('startBtn'));
         setText('continue-btn-text', t('continueBtn'));
         }
-
         function setLang(lang){
             currentLang = lang;
             document.getElementById('lang-en').classList.toggle('active', lang==='en');
@@ -1249,13 +1247,14 @@
             presentColors.delete('K'); 
             const colors = [...presentColors];
 
-            if (colors.length === 0) {
-                gameState.primaryGoal = { type:'survive', text: currentLang==='ja'?'生き延びろ':'Survive' };
-                return;
-            }
-
             const roll = Math.random();
-            if (roll < 0.50){
+
+            if (roll < 0.65) { // 例: 15%の確率で「すべての色」を目標にする
+                gameState.primaryGoal = {
+                    type: 'completeAll',
+                    text: currentLang === 'ja' ? 'すべての色を完成' : 'Complete All Colors'
+                };
+            } else if (roll < 0.30) { // 確率の残りを既存の目標に割り振る
                 const maxN = colors.length;
                 const n = clamp(Math.floor(maxN / 1.5), 1, maxN);
                 gameState.primaryGoal = {
@@ -1289,6 +1288,15 @@
 
         function checkPrimaryGoal(){
             const counts = getBoardCounts();
+
+            if (gameState.primaryGoal.type === 'completeAll') { 
+                // 盤面に存在する黒以外のユニークな色の数を取得
+                const flat = gameState.tubes.flat();
+                const colorsOnBoard = new Set(flat.filter(c => c !== 'K')).size;
+                
+                // 完成した瓶の数（黒以外）が、盤面にある色の種類数と一致するか確認
+                return countCompletedTubes(counts) >= colorsOnBoard;
+            }
             if (gameState.primaryGoal.type === 'completeN') {
                 return countCompletedTubes(counts) >= gameState.primaryGoal.n;
             }
