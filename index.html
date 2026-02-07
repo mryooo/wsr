@@ -363,7 +363,7 @@
             width: max-content; 
             margin: auto; 
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-            transform-origin: center center;
+            transform-origin: left center;
         }
         
         #skills-container {
@@ -569,7 +569,7 @@
                 </button>
             </div>
 
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.0.24 Tube Update</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.1.05 Tube Update</p>
         </div>
 
         <!-- 変異選択 & ショップ画面 -->
@@ -2907,7 +2907,9 @@
             const itemWidth = tubeEl.offsetWidth + gap;
             const realWidth = itemWidth * gameState.tubes.length;
             
-            const buffer = 10; 
+            // ▼▼▼ 修正: バッファを10pxから「アイテム1個分の幅」に増やす ▼▼▼
+            const buffer = itemWidth; 
+            // ▲▲▲ 修正 ▲▲▲
 
             if (slider.scrollLeft < buffer) {
                 // 左端に行き過ぎたら右へワープ
