@@ -54,7 +54,7 @@
             margin: 3px;
             z-index: 10;
             cursor: pointer;
-            overflow: hidden;
+            overflow: visible;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             box-shadow: inset 2px 0 4px rgba(255,255,255,0.05), inset -2px 0 4px rgba(0,0,0,0.2);
             flex-shrink: 0;
@@ -110,6 +110,9 @@
             gap: 0;
             pointer-events: none;
             width: 100%;
+            overflow: hidden;
+            border-bottom-left-radius: 25px; 
+            border-bottom-right-radius: 25px;
         }
 
         .water-segment {
@@ -349,10 +352,10 @@
             display: flex;
             flex-wrap: nowrap;
             gap: 6px;
-            padding: 0 24px;
+            padding: 60px 24px 10px 24px;
             width: max-content; 
             margin: auto; 
-            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             transform-origin: center center;
         }
         
@@ -392,6 +395,27 @@
             border: 1px solid rgba(255,255,255,0.05);
             display: flex;
             flex-direction: column;
+        }
+        /* --- 蓋（キャップ）のスタイル --- */
+        .tube-cap {
+            position: absolute;
+            top: -10px; 
+            left: 50%;
+            transform: translate(-50%, -60px); 
+            width: 100%;
+            height: 25px;
+            background: linear-gradient(to bottom, #ff7600, #372816);
+            border: 2px solid #10213b;
+            border-radius: 6px 6px 6px 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            z-index: 25;
+            opacity: 0;
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+            pointer-events: none;
+        }
+        .tube.capped .tube-cap {
+            transform: translate(-50%, 0); 
+            opacity: 1;
         }
     </style>
 </head>
@@ -525,7 +549,7 @@
                 </button>
             </div>
 
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.0.22 Scroll Update</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.0.23 Tube Update</p>
         </div>
 
         <!-- 変異選択 & ショップ画面 -->
@@ -1172,7 +1196,8 @@
             pendingSkill: null, 
             extractorHeldColor: null, 
             rerollCoupons: 0,
-            pendingPerkId: null, // Track selected perk before confirmation
+            pendingPerkId: null,
+            completedFlags: [],
         };
 
         // --- DOM ---
@@ -1423,7 +1448,7 @@
         
         function updateTubeLayout(){
             const cap = gameState.capacity;
-            let segHeight = 40;
+            let segHeight = 100;
             if(cap >= 6) segHeight = 32;
             else if(cap >= 5) segHeight = 36;
             const tubeHeight = (segHeight * cap) + 40;
@@ -1442,38 +1467,27 @@
             const counts = getBoardCounts();
             const totalTubes = gameState.tubes.length;
 
-            // チューブが無い場合のエラー回避
             if (totalTubes === 0) return;
 
-            // 表示リストを作成: [末尾のクローン] + [本体] + [先頭のクローン]
             const renderList = [];
-            
-            // 左側のクローン (末尾の数個)
             for(let i = 0; i < CLONE_PADDING; i++) {
-                // 負の数にならないよう安全に剰余計算を行う
-                // (totalTubes - CLONE_PADDING + i) だとマイナスになる可能性があるため補正
                 let idx = (totalTubes - CLONE_PADDING + i) % totalTubes;
                 if (idx < 0) idx += totalTubes;
                 renderList.push({ idx: idx, isClone: true });
             }
-            
-            // 本体
-            for(let i = 0; i < totalTubes; i++) {
-                renderList.push({ idx: i, isClone: false });
-            }
-            
-            // 右側のクローン (先頭の数個)
+            for(let i = 0; i < totalTubes; i++) renderList.push({ idx: i, isClone: false });
             for(let i = 0; i < CLONE_PADDING; i++) {
-                // ★修正箇所: totalTubesを超えたら0に戻るように剰余算を追加
                 const idx = i % totalTubes; 
                 renderList.push({ idx: idx, isClone: true });
             }
+
+            // ★修正1: この回の描画で「新規完成」したインデックスを一時保存するセット
+            const newlyCompleted = new Set();
 
             renderList.forEach((item) => {
                 const i = item.idx;
                 const segments = gameState.tubes[i];
                 
-                // 万が一 undefined だった場合のガード
                 if (!segments) return;
 
                 const tube = document.createElement('div');
@@ -1488,7 +1502,45 @@
                 }
 
                 if (deadlocked) tube.classList.add('deadlock-glow');
+
+                // 1. 蓋（キャップ）要素を作成して追加
+                const cap = document.createElement('div');
+                cap.className = 'tube-cap';
+                tube.appendChild(cap);
+
+                // 2. 完成判定とアニメーション制御
+                const isCompletedNow = (segments.length > 0 && segments[0] !== 'K' && isCompleteTube(segments, counts));
                 
+                if (typeof gameState.completedFlags[i] === 'undefined') gameState.completedFlags[i] = false;
+
+                if (isCompletedNow) {
+                    // 既に過去にフラグが立っていたかチェック
+                    if (gameState.completedFlags[i]) {
+                        // 【ケースA】すでに以前から完成していた → 即座に表示
+                        tube.classList.add('capped');
+                    } else {
+                        // 【ケースB】今回初めて完成した（と判定されている）
+                        // ※ここではまだ gameState.completedFlags[i] を true にしない！
+                        // そうしないと、後続のクローン/本体が「ケースA」に入ってしまうため。
+                        
+                        setTimeout(() => {
+                            tube.classList.add('capped');
+                        }, 50);
+                        
+                        // 「あとでフラグを立てるリスト」に追加
+                        newlyCompleted.add(i);
+                    }
+                    
+                    // 完成時の輝きエフェクト
+                    tube.style.boxShadow = `0 0 20px ${colorMeta(segments[0]).hex}`;
+                    tube.style.borderColor = `rgba(255,255,255,0.8)`;
+                    
+                } else {
+                    // 完成していない場合、フラグを下ろす（これは即時反映でOK）
+                    gameState.completedFlags[i] = false;
+                    tube.classList.remove('capped');
+                }
+
                 const isTwoStepSkill = ['extractor', 'transfer'].includes(gameState.targetMode);
                 if (isTwoStepSkill && gameState.extractorHeldColor) {
                     if(segments.length < gameState.capacity) {
@@ -1504,13 +1556,6 @@
                     }
                 }
                 
-                if (isCompleteTube(segments, counts)) {
-                    if (segments[0] !== 'K') {
-                        tube.style.boxShadow = `0 0 15px ${colorMeta(segments[0]).hex}`;
-                        tube.style.borderColor = `rgba(255,255,255,0.5)`;
-                    }
-                }
-
                 const water = document.createElement('div');
                 water.className = 'water-container';
                 segments.forEach(key => {
@@ -1528,6 +1573,11 @@
                 });
                 
                 tubesContainer.appendChild(tube);
+            });
+            
+            // ★修正2: 全チューブの描画が終わった後に、まとめてフラグを更新する
+            newlyCompleted.forEach(index => {
+                gameState.completedFlags[index] = true;
             });
 
             renderSkills();
@@ -1758,6 +1808,7 @@
                 const counts = getBoardCounts();
                 if(isCompleteTube(tube, counts)){
                     await handleCompletion(idx, tube[0]);
+                    renderHUD(); renderBoard();
                 }
             }
         }
@@ -1884,6 +1935,7 @@
                 gameState.targetMode = null; renderHUD(); renderBoard(); saveGame();
                 const counts = getBoardCounts();
                 if(isCompleteTube(gameState.tubes[idx], counts)) await handleCompletion(idx, gameState.tubes[idx][0]);
+                renderHUD(); renderBoard();
             }
         }
 
@@ -2023,7 +2075,6 @@
             return gameState.tubes.filter(t => isCompleteTube(t, counts) && t[0] !== 'K').length;
         }
 
-        // --- Animations and Visuals ---
         function corruptRandomSegment(){
             const candidates = [];
             for (let i=0;i<gameState.tubes.length;i++) if (gameState.tubes[i].length < gameState.capacity && (gameState.tubes[i].length === 0 || gameState.tubes[i][gameState.tubes[i].length-1] !== 'K')) candidates.push(i);
@@ -2091,27 +2142,25 @@
                 choices.forEach(ch => {
                     const card = document.createElement('div'); card.className = 'glass-panel perk-card p-4 cursor-pointer hover:bg-white/5 border-l-4 border-l-sky-500';
                     card.innerHTML = `<div class="text-[10px] text-sky-300 uppercase tracking-[0.35em] mb-1">${ch.kicker}</div><div class="text-xl font-black text-white">${ch.title}</div><div class="text-slate-400 text-xs mt-2 leading-relaxed">${ch.desc}</div>`;
-                    card.onclick = () => { ch.apply(); saveGame(); eventScreen.classList.add('hidden'); eventScreen.classList.remove('flex'); renderHUD(); renderBoard(); resolve(); };
+                    card.onclick = () => { ch.apply(); saveGame(); eventScreen.classList.add('hidden'); eventScreen.classList.remove('flex'); resolve(); };
                     eventChoices.appendChild(card);
                 });
                 eventScreen.classList.remove('hidden'); eventScreen.classList.add('flex');
             });
         }
+
         function buildEventChoices(colorKey){
             if (colorKey === 'B'){ return [{ kicker: currentLang==='ja'?'排出':'Vent', title: currentLang==='ja'?'圧力 -4':'Pressure -4', desc: currentLang==='ja'?'安全を確保する':'Release built-up pressure.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-4); } }, { kicker: currentLang==='ja'?'知識':'Insight', title: currentLang==='ja'?'エッセンス +4':'Essence +4', desc: currentLang==='ja'?'リスクを取って富を得る':'Gain currency for the shop.', apply(){ gameState.essence += 4; } }]; }
             if (colorKey === 'R'){ return [{ kicker: currentLang==='ja'?'活力':'Vitality', title: currentLang==='ja'?'HP +1 / 圧力 +3':'HP +1 / Pressure +3', desc: currentLang==='ja'?'回復するが負荷がかかる':'Heal yourself, but strain the system.', apply(){ gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1); gameState.pressure += 3; } }, { kicker: currentLang==='ja'?'平静':'Calm', title: currentLang==='ja'?'圧力 -6':'Pressure -6', desc: currentLang==='ja'?'心を落ち着ける':'Significantly reduce pressure.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-6); } }]; }
             return [{ kicker: currentLang==='ja'?'浄化':'Purify', title: currentLang==='ja'?'圧力 -2':'Pressure -2', desc: currentLang==='ja'?'少し落ち着く':'Minor relief.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-2); } }, { kicker: currentLang==='ja'?'貪欲':'Greed', title: currentLang==='ja'?'エッセンス +3 / 圧力 +1':'Essence +3 / Pressure +1', desc: currentLang==='ja'?'小さな代償で富を':'Wealth at a cost.', apply(){ gameState.essence += 3; gameState.pressure += 1; } }];
         }
-        // ------------------------------
-        // Perk / Shop (missing functions)
-        // ------------------------------
+
         function rarityWeight(r){
         if(r === 'epic') return 0.45;
         if(r === 'rare') return 0.80;
         return 1.00;
         }
 
-        // buildPerkCard(perk) が perk.id を参照するので PERKS[id] を返す
         function rollPerkChoices(count=3){
         const ids = Object.keys(PERKS);
         const f = clamp((gameState.floor - 1) / 10, 0, 1);
@@ -2146,8 +2195,6 @@
         return chosen;
         }
 
-        // ショップは “関数持ちオブジェクト” を state に保持すると save/load で壊れやすいので、
-        // state には最低限の {kind,id,purchased} だけ入れる（JSON安全）
         function generateShopOffers(n=4){
         const entries = [];
         INSTANT_ITEMS.forEach(x => entries.push({kind:'instant', id:x.id}));
@@ -2181,7 +2228,6 @@
         if(pe) pe.textContent = `Essence: ${gameState.essence} ✨`;
         }
 
-        // あなたの updateShopButtons() が .shop-card / .shop-btn を探すので、それに合わせる
         function buildShopCard(offer){
         let name='', desc='', icon='◈', baseCost=0;
 
@@ -2288,7 +2334,6 @@
         return card;
         }
 
-        // death screen helpers
         function generateShareText(){
         const perkList = Object.entries(gameState.perks || {})
             .filter(([_,lv]) => (lv||0)>0)
@@ -2313,7 +2358,6 @@
         }
         }
 
-        // Status screen (btn-mutations)
         function openMutationsScreen(){
         const sum = ui('mutations-stats-summary');
         const list = ui('mutations-list-container');
@@ -2468,7 +2512,7 @@
                 if(hasPerk('deep_adapt') && gameState.capacity > 4){ gameState.maxHp += getPerkLevel('deep_adapt'); gameState.hp += getPerkLevel('deep_adapt'); }
                 if(hasPerk('coupon')) gameState.rerollCoupons += getPerkLevel('coupon');
             }
-            Object.assign(gameState, { turnCount:0, pressure:0, catalystAvailable:true, momentumTurns:0, refluxUses:getPerkLevel('reflux'), currentPerkChoices:null, currentShopOffers:null, selectedIdx:null, busy:false, targetMode:null, pipetteMode:false, pendingSkill:null, extractorHeldColor:null,history: [] });
+            Object.assign(gameState, { turnCount:0, pressure:0, catalystAvailable:true, momentumTurns:0, refluxUses:getPerkLevel('reflux'), currentPerkChoices:null, currentShopOffers:null, selectedIdx:null, busy:false, targetMode:null, pipetteMode:false, pendingSkill:null, extractorHeldColor:null,history: [],completedFlags: [] });
             generateBoard(); generateGoals(); renderHUD(); renderBoard(); saveGame();
         }
         function tryUndo(){
@@ -2698,7 +2742,6 @@
                 slider.scrollLeft -= realWidth;
             }
         }
-
         // キーボード操作
         window.onkeydown = (e) => {
             if(!perkScreen.classList.contains('hidden') || !eventScreen.classList.contains('hidden') || !helpScreen.classList.contains('hidden') || !mutationsScreen.classList.contains('hidden')) return;
@@ -2706,16 +2749,7 @@
             if ((e.key === 'Enter' || e.key === ' ') && gameState.focusIdx !== null) handleTubeClick(gameState.focusIdx);
             if (e.key === 'Backspace' || e.key === 'z') tryUndo();
         };
-
         // 初期化実行
-        applyLang(); updateStartScreenButtons();
-
-        window.onkeydown = (e) => {
-            if(!perkScreen.classList.contains('hidden') || !eventScreen.classList.contains('hidden') || !helpScreen.classList.contains('hidden') || !mutationsScreen.classList.contains('hidden')) return;
-            if (e.key === 'ArrowLeft') moveFocus(-1); if (e.key === 'ArrowRight') moveFocus(1);
-            if ((e.key === 'Enter' || e.key === ' ') && gameState.focusIdx !== null) handleTubeClick(gameState.focusIdx);
-            if (e.key === 'Backspace' || e.key === 'z') tryUndo();
-        };
         applyLang(); updateStartScreenButtons();
     </script>
 </body>
