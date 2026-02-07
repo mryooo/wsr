@@ -461,9 +461,12 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <!-- Status Button: 変異とパラメータの確認 -->
                     <button id="btn-mutations" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all text-sky-300 border-sky-500/30">
                         <span class="md:hidden">🧬</span><span class="hidden md:inline">Status</span>
+                    </button>
+
+                    <button id="btn-retire" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all text-rose-300 border-rose-500/30">
+                        <span class="md:hidden">🏳️</span><span class="hidden md:inline">Retire</span>
                     </button>
                     <button id="btn-help" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all">
                         <span class="md:hidden">?</span><span class="hidden md:inline">Help</span>
@@ -516,7 +519,7 @@
                 <div class="flex items-center justify-between gap-3 relative">
                     <div class="flex items-center gap-2 md:gap-3 flex-wrap">
                         <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-white border border-white/5" id="ui-turn">TURN 0</span>
-                        <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-white border border-white/5" id="ui-secondary">BONUS —</span>
+                        <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-yellow-300 border border-white/5" id="ui-secondary">BONUS</span>
                         <span class="px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight text-sky-300 border border-white/5 hidden sm:block" id="ui-perks">PERKS 0</span>
                     </div>
                     
@@ -1477,17 +1480,14 @@
         
         function updateTubeLayout(){
             const cap = gameState.capacity;
-            
             let segHeight = 45; 
-
-            if(cap >= 6) segHeight = 32;
-            else if(cap >= 5) segHeight = 36;
-            
+            if(cap >= 8) segHeight = 38;
+            else if(cap >= 6) segHeight = 40;
+            else if(cap >= 5) segHeight = 42;
             const tubeHeight = (segHeight * cap) + 40;
             document.documentElement.style.setProperty('--segment-height', `${segHeight}px`);
             document.documentElement.style.setProperty('--tube-height', `${tubeHeight}px`);
         }
-
         // --- 無限スクロール用定数 ---
         const CLONE_PADDING = 10; // 左右に配置するクローンの数
 
@@ -1624,23 +1624,10 @@
             tubesContainer.style.transform = 'none';
             const availableH = boardArea.clientHeight;
             const contentH = tubesContainer.scrollHeight;
-            
-            // ▼▼▼ 修正箇所：ここから下を書き換え ▼▼▼
-            
-            // 画面の高さの85%くらいに収まるように計算（上下マージン確保）
-            const targetH = availableH * 0.85;
-            
-            // 目標の高さ / コンテンツの高さ で倍率を算出（拡大も縮小も許可）
+            const targetH = availableH * 0.85; 
             let scale = targetH / contentH;
-
-            // ただし極端な拡大縮小は制限する（0.6倍〜1.5倍の範囲など）
-            // これにより「フラスコが小さすぎる」場合は拡大され、
-            // 「大きすぎる」場合は縮小されます。
             scale = Math.min(Math.max(scale, 0.6), 1.5);
-
             tubesContainer.style.transform = `scale(${scale})`;
-            
-            // ▲▲▲ 修正箇所ここまで ▲▲▲
         }
 
         window.addEventListener('resize', () => {
@@ -1855,19 +1842,22 @@
                 }
             }
         }
-        
+                
         async function applySkillEffect(idx){
             const skillKey = gameState.targetMode;
             const tube = gameState.tubes[idx];
             if(!skillKey || !gameState.inventory[skillKey] || gameState.inventory[skillKey] <= 0) return;
+            
             let success = false;
             let consume = true;
             if(hasPerk('recycler')){
                 const lv = getPerkLevel('recycler');
                 if(Math.random() < lv * 0.1) consume = false;
             }
+            // 操作ロック開始
+            gameState.busy = true;
+
             try {
-                gameState.busy = true;
                 if(skillKey === 'inverter'){
                     if(tube.length < 2) showFloatText(idx, "Too Empty!", "#ef4444");
                     else {
@@ -1958,12 +1948,12 @@
                     if(tube.length === 0) showFloatText(idx, "Empty!", "#ef4444");
                     else if(tube.length >= gameState.capacity) showFloatText(idx, "Full!", "#ef4444");
                     else {
-                        // バグ修正: 現在のボード上の総数を確認。容量以上なら追加禁止
                         const color = tube[tube.length-1];
                         const counts = getBoardCounts();
                         if ((counts[color] || 0) >= gameState.capacity) {
                             showFloatText(idx, "Maxed Out!", "#ef4444");
-                            return; // 処理中断
+                            gameState.busy = false;
+                            return; 
                         }
                         
                         pushHistory(); if(consume) gameState.inventory[skillKey]--;
@@ -1971,17 +1961,27 @@
                         showFloatText(idx, "Boosted! (+3 P)", "#3b82f6"); success = true;
                     }
                 }
-            } finally {
+            } catch(e) {
+                console.error(e);
                 gameState.busy = false;
             }
-            if(success){
-                gameState.targetMode = null; renderHUD(); renderBoard(); saveGame();
-                const counts = getBoardCounts();
-                if(isCompleteTube(gameState.tubes[idx], counts)) await handleCompletion(idx, gameState.tubes[idx][0]);
-                renderHUD(); renderBoard();
-            }
-        }
 
+            if(success){
+                gameState.targetMode = null; 
+                renderHUD(); 
+                renderBoard(); 
+                saveGame();
+                
+                const counts = getBoardCounts();
+                if(isCompleteTube(gameState.tubes[idx], counts)) {
+                    await handleCompletion(idx, gameState.tubes[idx][0]);
+                    renderHUD(); 
+                    renderBoard();
+                }
+            }
+            
+            gameState.busy = false;
+        }
         function canPour(fromIdx, toIdx){
             if (fromIdx === toIdx) return {ok:false};
             const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
@@ -2053,7 +2053,10 @@
         }
 
         async function handleCompletion(tubeIdx, colorKey){
-            const tubeEl = tubeCenterEl(tubeIdx);
+            // ▼▼▼ 修正: 1つだけでなく、クローン含むすべての該当フラスコを取得 ▼▼▼
+            const tubeEls = document.querySelectorAll(`.tube[data-idx="${tubeIdx}"]`);
+            // ▲▲▲ 修正 ▲▲▲
+
             if (colorKey === 'K') {
                 showFloatText(tubeIdx, "Purged!", "#94a3b8");
                 if(hasPerk('purification')){
@@ -2062,10 +2065,21 @@
                     gameState.essence += (1 + lv);
                     showFloatText(tubeIdx, `Purified! (-${2+lv} P)`, "#38bdf8");
                 }
-                tubeEl.classList.add('evaporating'); await new Promise(r => setTimeout(r, 600));
-                gameState.tubes[tubeIdx] = []; tubeEl.classList.remove('evaporating');
+                
+                // ▼▼▼ 修正: 全ての要素にクラス付与 ▼▼▼
+                tubeEls.forEach(el => el.classList.add('evaporating'));
+                
+                await new Promise(r => setTimeout(r, 600));
+                
+                gameState.tubes[tubeIdx] = []; 
+                
+                // ▼▼▼ 修正: 全ての要素からクラス除去 ▼▼▼
+                tubeEls.forEach(el => el.classList.remove('evaporating'));
+
                 renderBoard(); if (checkLevelClear()) onLevelClear(); return; 
             }
+            
+            // --- 以下は変更なし ---
             if (hasPerk('catalyst') && gameState.catalystAvailable){
                 const lv = getPerkLevel('catalyst'); gameState.pressure = Math.max(0, gameState.pressure - (4 + lv));
                 gameState.catalystAvailable = false; showFloatText(tubeIdx, `Catalyst! (-${4+lv} P)`);
@@ -2122,7 +2136,6 @@
             }
             checkSecondaryGoalOnComplete(); saveGame(); await showCompletionEvent(colorKey);
         }
-
         function countCompletedTubes(counts=null){
             if(!counts) counts = getBoardCounts();
             return gameState.tubes.filter(t => isCompleteTube(t, counts) && t[0] !== 'K').length;
@@ -2339,109 +2352,137 @@
         }
 
         function buildShopCard(offer){
-        let name='', desc='', icon='◈', baseCost=0;
-
-        if(offer.kind === 'instant'){
-            const inst = findInstant(offer.id);
-            if(!inst){
-            // 壊れたoffer（ロード後など）
-            const dummy = document.createElement('div');
-            dummy.className = 'shop-card glass-panel perk-card p-3 opacity-40';
-            dummy.innerHTML = `<div class="text-xs text-slate-400">Broken Offer</div>`;
-            dummy.dataset.cost = "9999";
-            return dummy;
-            }
-            name = currentLang==='ja' ? inst.name.ja : inst.name.en;
-            desc = currentLang==='ja' ? inst.desc.ja : inst.desc.en;
-            baseCost = inst.cost;
-            icon = '✦';
-        }else{
-            const it = ITEMS[offer.id];
-            if(!it){
-            const dummy = document.createElement('div');
-            dummy.className = 'shop-card glass-panel perk-card p-3 opacity-40';
-            dummy.innerHTML = `<div class="text-xs text-slate-400">Broken Item</div>`;
-            dummy.dataset.cost = "9999";
-            return dummy;
-            }
-            name = currentLang==='ja' ? it.name.ja : it.name.en;
-            desc = currentLang==='ja' ? it.desc.ja : it.desc.en;
-            baseCost = it.cost;
-            icon = it.icon;
-        }
-
-        const cost = getDiscountedCost(baseCost);
-        const affordable = gameState.essence >= cost;
-
-        // toolは1回だけにしたい（多重所持を防ぐ）
-        const ownedTool = (offer.kind==='item' && ITEMS[offer.id]?.type==='tool' && (gameState.inventory[offer.id]||0) > 0);
-
-        const disabled = !!offer.purchased || ownedTool || !affordable;
-
-        const card = document.createElement('div');
-        card.className = 'shop-card glass-panel perk-card p-3 flex flex-col gap-2';
-        card.dataset.cost = String(cost);
-
-        const discountLine = (hasPerk('bargain') && cost !== baseCost)
-            ? `<div class="text-[10px] text-slate-500">Discount: ${baseCost} → ${cost}</div>`
-            : `<div class="text-[10px] text-slate-500">&nbsp;</div>`;
-
-        const btnLabel = offer.purchased ? (currentLang==='ja'?'購入済':'BOUGHT')
-                        : ownedTool ? (currentLang==='ja'?'所持済':'OWNED')
-                        : (currentLang==='ja'?'購入':'BUY');
-
-        card.innerHTML = `
-            <div class="flex items-start justify-between gap-3">
-            <div class="flex items-start gap-3 min-w-0">
-                <div class="w-10 h-10 rounded-xl glass-panel flex items-center justify-center text-xl shrink-0 border border-white/10">${icon}</div>
-                <div class="min-w-0">
-                <div class="text-sm font-black text-white">${name}</div>
-                <div class="text-slate-400 text-[10px] leading-relaxed mt-1">${desc}</div>
-                </div>
-            </div>
-            <div class="text-right shrink-0">
-                <div class="text-[10px] text-slate-500 uppercase tracking-widest">${currentLang==='ja'?'コスト':'COST'}</div>
-                <div class="text-lg font-black text-yellow-400">${cost}</div>
-            </div>
-            </div>
-            ${discountLine}
-            <button class="shop-btn py-2 rounded-xl font-black text-xs uppercase tracking-widest border border-white/10 ${disabled?'opacity-30 cursor-not-allowed':'hover:bg-white/5'}">
-            ${btnLabel}
-            </button>
-        `;
-
-        const btn = card.querySelector('.shop-btn');
-        btn.disabled = disabled;
-
-        btn.onclick = () => {
-            if(btn.disabled) return;
-            const finalCost = getDiscountedCost(baseCost);
-            if(gameState.essence < finalCost) return;
-
-            gameState.essence -= finalCost;
+            let name='', desc='', icon='◈', baseCost=0;
 
             if(offer.kind === 'instant'){
-            const inst = findInstant(offer.id);
-            if(inst && typeof inst.apply === 'function') inst.apply(gameState);
-            else showToast("Broken instant item.", "red");
+                const inst = findInstant(offer.id);
+                if(!inst){
+                    const dummy = document.createElement('div');
+                    dummy.className = 'shop-card glass-panel perk-card p-3 opacity-40';
+                    dummy.innerHTML = `<div class="text-xs text-slate-400">Broken Offer</div>`;
+                    dummy.dataset.cost = "9999";
+                    return dummy;
+                }
+                name = currentLang==='ja' ? inst.name.ja : inst.name.en;
+                desc = currentLang==='ja' ? inst.desc.ja : inst.desc.en;
+                baseCost = inst.cost;
+                icon = '✦';
             }else{
-            const it = ITEMS[offer.id];
-            if(it.type === 'tool'){
-                gameState.inventory[offer.id] = 1;
-            }else{
-                gameState.inventory[offer.id] = (gameState.inventory[offer.id]||0) + 1;
-            }
-            showToast(currentLang==='ja'?'購入しました':'Purchased', 'yellow');
+                const it = ITEMS[offer.id];
+                if(!it){
+                    const dummy = document.createElement('div');
+                    dummy.className = 'shop-card glass-panel perk-card p-3 opacity-40';
+                    dummy.innerHTML = `<div class="text-xs text-slate-400">Broken Item</div>`;
+                    dummy.dataset.cost = "9999";
+                    return dummy;
+                }
+                name = currentLang==='ja' ? it.name.ja : it.name.en;
+                desc = currentLang==='ja' ? it.desc.ja : it.desc.en;
+                baseCost = it.cost;
+                icon = it.icon;
             }
 
-            offer.purchased = true;
-            saveGame();
-            refreshRerollUI();
-            renderHUD();
-            updateShopButtons();
-        };
+            // バッジの初期表示（CSSはスキルバーと同じ bg-sky-500 を使用）
+            let badgeHtml = '';
+            if(offer.kind === 'item'){
+                const currentCount = gameState.inventory[offer.id] || 0;
+                if(currentCount > 0){
+                    badgeHtml = `<span class="badge-count absolute -top-1 -right-1 bg-sky-500 text-[10px] font-bold px-1.5 rounded-full text-white pointer-events-none shadow-sm">${currentCount}</span>`;
+                }
+            }
 
-        return card;
+            const cost = getDiscountedCost(baseCost);
+            const affordable = gameState.essence >= cost;
+            const ownedTool = (offer.kind==='item' && ITEMS[offer.id]?.type==='tool' && (gameState.inventory[offer.id]||0) > 0);
+            const disabled = !!offer.purchased || ownedTool || !affordable;
+
+            const card = document.createElement('div');
+            card.className = 'shop-card glass-panel perk-card p-3 flex flex-col gap-2';
+            card.dataset.cost = String(cost);
+
+            const discountLine = (hasPerk('bargain') && cost !== baseCost)
+                ? `<div class="text-[10px] text-slate-500">Discount: ${baseCost} → ${cost}</div>`
+                : `<div class="text-[10px] text-slate-500">&nbsp;</div>`;
+
+            const btnLabel = offer.purchased ? (currentLang==='ja'?'購入済':'BOUGHT')
+                            : ownedTool ? (currentLang==='ja'?'所持済':'OWNED')
+                            : (currentLang==='ja'?'購入':'BUY');
+
+            // アイコン部分に id="icon-container" のような目印等はつけず、クラス構造で特定します
+            card.innerHTML = `
+                <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 min-w-0">
+                    <div class="relative w-10 h-10 rounded-xl glass-panel flex items-center justify-center text-xl shrink-0 border border-white/10 icon-box">
+                        ${icon}
+                        ${badgeHtml}
+                    </div>
+                    <div class="min-w-0">
+                    <div class="text-sm font-black text-white">${name}</div>
+                    <div class="text-slate-400 text-[10px] leading-relaxed mt-1">${desc}</div>
+                    </div>
+                </div>
+                <div class="text-right shrink-0">
+                    <div class="text-[10px] text-slate-500 uppercase tracking-widest">${currentLang==='ja'?'コスト':'COST'}</div>
+                    <div class="text-lg font-black text-yellow-400">${cost}</div>
+                </div>
+                </div>
+                ${discountLine}
+                <button class="shop-btn py-2 rounded-xl font-black text-xs uppercase tracking-widest border border-white/10 ${disabled?'opacity-30 cursor-not-allowed':'hover:bg-white/5'}">
+                ${btnLabel}
+                </button>
+            `;
+
+            const btn = card.querySelector('.shop-btn');
+            btn.disabled = disabled;
+
+            btn.onclick = () => {
+                if(btn.disabled) return;
+                const finalCost = getDiscountedCost(baseCost);
+                if(gameState.essence < finalCost) return;
+
+                gameState.essence -= finalCost;
+
+                if(offer.kind === 'instant'){
+                    const inst = findInstant(offer.id);
+                    if(inst && typeof inst.apply === 'function') inst.apply(gameState);
+                    else showToast("Broken instant item.", "red");
+                } else {
+                    const it = ITEMS[offer.id];
+                    if(it.type === 'tool'){
+                        gameState.inventory[offer.id] = 1;
+                    } else {
+                        gameState.inventory[offer.id] = (gameState.inventory[offer.id]||0) + 1;
+                    }
+                    showToast(currentLang==='ja'?'購入しました':'Purchased', 'yellow');
+
+                    // ▼▼▼ 修正箇所: 購入時にバッジを即座に更新する処理 ▼▼▼
+                    if(offer.kind === 'item' && it.type !== 'tool'){
+                        const newCount = gameState.inventory[offer.id];
+                        const iconBox = card.querySelector('.icon-box');
+                        const existingBadge = iconBox.querySelector('.badge-count');
+                        
+                        // 既にバッジがあれば数字更新、なければ新規作成
+                        if(existingBadge){
+                            existingBadge.textContent = newCount;
+                        } else {
+                            const newBadge = document.createElement('span');
+                            newBadge.className = 'badge-count absolute -top-1 -right-1 bg-sky-500 text-[10px] font-bold px-1.5 rounded-full text-white pointer-events-none shadow-sm';
+                            newBadge.textContent = newCount;
+                            iconBox.appendChild(newBadge);
+                        }
+                    }
+                    // ▲▲▲ 修正箇所ここまで ▲▲▲
+                }
+
+                offer.purchased = true;
+                saveGame();
+                refreshRerollUI();
+                renderHUD();
+                
+                updateShopButtons();
+            };
+
+            return card;
         }
 
         function generateShareText(){
@@ -2707,14 +2748,12 @@
             // 目標設定
             setText('ui-goal', gameState.primaryGoal?.text ?? '—'); 
             setText('ui-goal-sub', gameState.secondaryGoal?.text ?? '—'); 
-            setText('ui-secondary', `${t('secondary')} ${secondarySucceeded()?'COMPLETE':'—'}`);
+            setText('ui-secondary', `${t('secondary')} ${secondarySucceeded()?'COMPLETE':''}`);
             
             // UIクラス制御
             ui('ui-secondary').className = secondarySucceeded() 
-                ? "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/50" 
-                : "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-black/20 text-white border border-white/5";
-            
-            // 圧力バー
+            ? "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/50" 
+            : "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-black/20 text-yellow-300 border border-white/5";            // 圧力バー
             setText('ui-pressure', String(gameState.pressure)); 
             const pct = Math.round((gameState.pressure/gameState.pressureMax)*100);
             const pBar = ui('ui-pressure-bar'); 
@@ -2757,6 +2796,23 @@
         ui('help-close').onclick = () => ui('help-screen').classList.replace('flex', 'hidden');
         ui('btn-mutations').onclick = openMutationsScreen;
         ui('mutations-close').onclick = () => mutationsScreen.classList.replace('flex', 'hidden');
+
+        const btnRetire = ui('btn-retire');
+        if(btnRetire){
+            btnRetire.onclick = () => {
+                const msg = currentLang === 'ja' 
+                    ? "探索を諦めますか？\n(HPが0になりゲームオーバーになります)" 
+                    : "Give up exploration?\n(HP becomes 0 and Game Over)";
+                
+                if(confirm(msg)){
+                    gameState.hp = 0;
+                    renderHUD();
+                    clearSave();          // セーブデータを消去
+                    openPerkScreen(true); // ゲームオーバー画面（Deathモード）を表示
+                }
+            };
+        }
+
         if(undoBtn) undoBtn.onclick = tryUndo;
         ui('reroll-btn').onclick = () => {
             if(gameState.rerollCoupons > 0) gameState.rerollCoupons--; else if(gameState.essence >= 5) gameState.essence -= 5; else return;
