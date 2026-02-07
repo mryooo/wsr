@@ -1350,7 +1350,8 @@
             const msg = currentLang==='ja' 
                 ? `エリア確保! +${base}✨${bonus>0 ? ` (ボーナス +${bonus}✨)` : ''}`
                 : `Area Cleared! +${base}✨${bonus>0 ? ` (Bonus +${bonus}✨)` : ''}`;
-            
+            renderHUD(); 
+            renderBoard();
             showToast(msg, bonus>0 ? 'emerald' : 'sky');
             saveGame();
             setTimeout(() => openPerkScreen(false), 1500);
