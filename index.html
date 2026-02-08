@@ -2480,56 +2480,76 @@ function buildShopCard(offer){
         }
 
         function openMutationsScreen(){
-        const sum = ui('mutations-stats-summary');
-        const list = ui('mutations-list-container');
-        if(!sum || !list) return;
+            const sum = ui('mutations-stats-summary');
+            const list = ui('mutations-list-container');
+            if(!sum || !list) return;
 
-        const totalLevels = Object.values(gameState.perks).reduce((a,b)=>a+(b||0), 0);
-        const discount = hasPerk('bargain') ? (15 + getPerkLevel('bargain')*5) : 0;
+            const totalLevels = Object.values(gameState.perks).reduce((a,b)=>a+(b||0), 0);
+            const discount = hasPerk('bargain') ? (15 + getPerkLevel('bargain')*5) : 0;
 
-        sum.innerHTML = '';
-        const stats = [
-            {k:'FLOOR', v:String(gameState.floor)},
-            {k:'HP', v:`${gameState.hp} / ${gameState.maxHp}`},
-            {k:'CAPACITY', v:String(gameState.capacity)},
-            {k:'TUBES', v:String(gameState.tubeCount)},
-            {k:'PRESSURE MAX', v:String(gameState.pressureMax)},
-            {k:'ESSENCE', v:`${gameState.essence} ✨`},
-            {k:'MUTATIONS', v:String(totalLevels)},
-            {k:'SHOP DISCOUNT', v:`${discount}%`},
-            {k:'REROLL COUPON', v:String(gameState.rerollCoupons||0)},
-        ];
-        stats.forEach(s=>{
-            const d = document.createElement('div');
-            d.className = 'stat-item';
-            d.innerHTML = `<div class="text-[10px] text-slate-500 uppercase tracking-widest">${s.k}</div><div class="text-lg font-black text-white">${s.v}</div>`;
-            sum.appendChild(d);
-        });
-
-        list.innerHTML = '';
-        const entries = Object.entries(gameState.perks||{}).filter(([_,lv]) => (lv||0)>0);
-        if(entries.length === 0){
-            list.innerHTML = `<div class="text-slate-500 text-xs italic py-3">${currentLang==='ja'?'変異なし':'No mutations'}</div>`;
-        }else{
-            entries
-            .sort((a,b)=>b[1]-a[1])
-            .forEach(([id,lv])=>{
-                const row = document.createElement('div');
-                row.className = 'glass-panel p-3 border border-white/10';
-                row.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <div class="text-sm font-black text-white">${currentLang==='ja'?PERKS[id].name.ja:PERKS[id].name.en}</div>
-                    <div class="text-xs font-black text-sky-300">Lv.${lv}</div>
-                </div>
-                <div class="text-[10px] text-slate-400 mt-1 leading-relaxed">${getPerkDesc(id, lv)}</div>
-                `;
-                list.appendChild(row);
+            sum.innerHTML = '';
+            const stats = [
+                {k:'FLOOR', v:String(gameState.floor)},
+                {k:'HP', v:`${gameState.hp} / ${gameState.maxHp}`},
+                {k:'CAPACITY', v:String(gameState.capacity)},
+                {k:'TUBES', v:String(gameState.tubeCount)},
+                {k:'PRESSURE MAX', v:String(gameState.pressureMax)},
+                {k:'ESSENCE', v:`${gameState.essence} ✨`},
+                {k:'MUTATIONS', v:String(totalLevels)},
+                {k:'SHOP DISCOUNT', v:`${discount}%`},
+                {k:'REROLL COUPON', v:String(gameState.rerollCoupons||0)},
+            ];
+            stats.forEach(s=>{
+                const d = document.createElement('div');
+                d.className = 'stat-item';
+                d.innerHTML = `<div class="text-[10px] text-slate-500 uppercase tracking-widest">${s.k}</div><div class="text-lg font-black text-white">${s.v}</div>`;
+                sum.appendChild(d);
             });
-        }
 
-        mutationsScreen.classList.replace('hidden','flex');
-        }
+            list.innerHTML = '';
+            const entries = Object.entries(gameState.perks||{}).filter(([_,lv]) => (lv||0)>0);
+            
+            // --- 追加: マッピング定義（buildPerkCardと同じ） ---
+            const perkColorMap = {
+                'crimson_resonance': 'R', 'azure_cycle': 'B', 'amber_greed': 'Y',
+                'ivory_sanctuary': 'W', 'emerald_vitality': 'G', 'amethyst_surge': 'P',
+                'orange_drive': 'O', 'teal_equilibrium': 'T', 'pink_luck': 'M',
+                'purification': 'K'
+            };
+            // -----------------------------------------------
 
+            if(entries.length === 0){
+                list.innerHTML = `<div class="text-slate-500 text-xs italic py-3">${currentLang==='ja'?'変異なし':'No mutations'}</div>`;
+            }else{
+                entries
+                .sort((a,b)=>b[1]-a[1])
+                .forEach(([id,lv])=>{
+                    // --- 追加: アイコン生成 ---
+                    let colorIcon = '';
+                    if(perkColorMap[id]){
+                        const cKey = perkColorMap[id];
+                        const meta = COLOR_POOL.find(x => x.key === cKey);
+                        if(meta) colorIcon = `<span style="color:${meta.hex}; text-shadow:0 0 5px ${meta.hex}; margin-right:4px;">■</span>`;
+                    }
+                    // -----------------------
+
+                    const row = document.createElement('div');
+                    row.className = 'glass-panel p-3 border border-white/10';
+                    // colorIcon をタイトルの前に挿入
+                    row.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm font-black text-white">${colorIcon}${currentLang==='ja'?PERKS[id].name.ja:PERKS[id].name.en}</div>
+                        <div class="text-xs font-black text-sky-300">Lv.${lv}</div>
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-1 leading-relaxed">${getPerkDesc(id, lv)}</div>
+                    `;
+                    list.appendChild(row);
+                });
+            }
+
+            mutationsScreen.classList.replace('hidden','flex');
+        }
+        
         function openPerkScreen(isDeath){
             perkScreen.classList.remove('hidden');
             ui('perk-title').textContent = isDeath ? t('gameOver') : t('victory');
