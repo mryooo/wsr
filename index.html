@@ -2574,7 +2574,31 @@ function buildShopCard(offer){
         function buildPerkCard(perk){
             const card = document.createElement('div'), owned = getPerkLevel(perk.id), next = owned + 1;
             card.className = `perk-card glass-panel p-3 cursor-pointer rarity-${perk.rarity} relative hover:bg-white/5 transition-all`;
-            card.innerHTML = `<div class="flex justify-between items-start mb-1"><span class="text-[9px] text-slate-400 uppercase tracking-widest">${perk.rarity}</span><span class="text-[9px] ${owned>0?'text-emerald-400':'text-sky-400'} font-bold uppercase">${owned>0?'UPGRADE':'NEW'}</span></div><div class="text-sm font-black text-white leading-tight mb-1">${currentLang==='ja'?perk.name.ja:perk.name.en} <span class="text-[10px] text-slate-500">Lv.${owned}→${next}</span></div><div class="text-slate-400 text-[10px] leading-relaxed">${getPerkDesc(perk.id, next)}</div>`;
+            
+            const perkColorMap = {
+                'crimson_resonance': 'R',
+                'azure_cycle': 'B',
+                'amber_greed': 'Y',
+                'ivory_sanctuary': 'W',
+                'emerald_vitality': 'G',
+                'amethyst_surge': 'P',
+                'orange_drive': 'O',
+                'teal_equilibrium': 'T',
+                'pink_luck': 'M',
+                'purification': 'K',
+                'void_shield': 'P'
+            };
+            
+            let colorIcon = '';
+            if(perkColorMap[perk.id]){
+                const colorKey = perkColorMap[perk.id];
+                const colorMeta = COLOR_POOL.find(c => c.key === colorKey);
+                if(colorMeta){
+                    colorIcon = `<span style="color:${colorMeta.hex}; text-shadow:0 0 8px ${colorMeta.hex}; margin-right:4px; font-size:1.1em;">■</span>`;
+                }
+            }
+
+            card.innerHTML = `<div class="flex justify-between items-start mb-1"><span class="text-[9px] text-slate-400 uppercase tracking-widest">${perk.rarity}</span><span class="text-[9px] ${owned>0?'text-emerald-400':'text-sky-400'} font-bold uppercase">${owned>0?'UPGRADE':'NEW'}</span></div><div class="text-sm font-black text-white leading-tight mb-1">${colorIcon}${currentLang==='ja'?perk.name.ja:perk.name.en} <span class="text-[10px] text-slate-500">Lv.${owned}→${next}</span></div><div class="text-slate-400 text-[10px] leading-relaxed">${getPerkDesc(perk.id, next)}</div>`;
             
             card.onclick = () => { 
                 gameState.pendingPerkId = perk.id;
