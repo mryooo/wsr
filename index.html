@@ -702,11 +702,30 @@
                 const data = localStorage.getItem(SAVE_KEY);
                 if (data) {
                     const loadedState = JSON.parse(data);
+                    
+                    // 1. 保存データを読み込む
                     Object.assign(gameState, loadedState);
+
+                    // --- 修正: 強制リセット処理 (ここを追加) ---
+                    // 操作ロックを必ず解除する
+                    gameState.busy = false; 
+                    
+                    // 選択状態やスキル使用モードもリセットして安全性を高める
+                    gameState.selectedIdx = null;
+                    gameState.targetMode = null;
+                    gameState.pipetteMode = false;
+                    gameState.pendingSkill = null;
+                    gameState.extractorHeldColor = null;
+
+                    // 新しい変数が古いセーブデータにない場合の補填（念のため）
+                    if (!gameState.completedFlags) gameState.completedFlags = [];
+                    // ------------------------------------------
+
                     updateTubeLayout();
                     startScreen.classList.add('hidden');
                     renderHUD();
                     renderBoard();
+                    
                     if (checkLevelClear()) {
                         openPerkScreen(false);
                     } else {
@@ -717,6 +736,7 @@
                 }
             } catch (e) {
                 console.error("Load failed:", e);
+                // エラー時は安全のためセーブを消すなどの処理も検討
             }
             return false;
         }
@@ -2205,8 +2225,26 @@
 
         function showCompletionEvent(colorKey){
             return new Promise((resolve) => {
-                const name = colorName(colorKey), title = currentLang==='ja' ? `${name}の安定化` : `${name} Stabilized`, desc = currentLang==='ja' ? `${name}を完成させた。\n深淵が反応している。` : `You completed ${name}.\nThe abyss reacts to your achievement.`;
-                const choices = buildEventChoices(colorKey); ui('event-kicker').textContent = t('eventKicker'); ui('event-title').textContent = title; ui('event-desc').textContent = desc; eventChoices.innerHTML = '';
+                const name = colorName(colorKey);
+                const titleText = currentLang==='ja' ? `${name}の安定化` : `${name} Stabilized`;
+                const desc = currentLang==='ja' ? `${name}を完成させた。\n深淵が反応している。` : `You completed ${name}.\nThe abyss reacts to your achievement.`;
+                
+                // --- 修正: タイトルに色アイコンを追加 ---
+                const meta = colorMeta(colorKey);
+                let iconHtml = '';
+                if(meta){
+                    // アイコン生成（少し大きめに発光させる）
+                    iconHtml = `<span style="color:${meta.hex}; text-shadow:0 0 15px ${meta.hex}; margin-right:8px; font-size:1.1em;">■</span>`;
+                }
+                
+                ui('event-kicker').textContent = t('eventKicker');
+                // textContent ではなく innerHTML でアイコンを含めて表示
+                ui('event-title').innerHTML = iconHtml + titleText; 
+                ui('event-desc').textContent = desc;
+                // ------------------------------------
+
+                const choices = buildEventChoices(colorKey); 
+                eventChoices.innerHTML = '';
                 choices.forEach(ch => {
                     const card = document.createElement('div'); card.className = 'glass-panel perk-card p-4 cursor-pointer hover:bg-white/5 border-l-4 border-l-sky-500';
                     card.innerHTML = `<div class="text-[10px] text-sky-300 uppercase tracking-[0.35em] mb-1">${ch.kicker}</div><div class="text-xl font-black text-white">${ch.title}</div><div class="text-slate-400 text-xs mt-2 leading-relaxed">${ch.desc}</div>`;
