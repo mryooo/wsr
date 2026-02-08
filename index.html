@@ -2549,7 +2549,7 @@ function buildShopCard(offer){
 
             mutationsScreen.classList.replace('hidden','flex');
         }
-        
+
         function openPerkScreen(isDeath){
             perkScreen.classList.remove('hidden');
             ui('perk-title').textContent = isDeath ? t('gameOver') : t('victory');
@@ -2746,12 +2746,33 @@ function buildShopCard(offer){
             setText('ui-perks-mobile', `🧬 ${totalLevels}`); 
             setText('ui-turn', `${t('turn')} ${gameState.turnCount}`); 
             setText('ui-perks', `${t('perks')} ${totalLevels}`);
-            setText('ui-goal', gameState.primaryGoal?.text ?? '—'); 
+
+            // --- 修正: 目標テキストに色アイコンを追加 ---
+            const goalEl = ui('ui-goal');
+            if (gameState.primaryGoal) {
+                let html = gameState.primaryGoal.text;
+                // 目標タイプが「特定の色(completeColor)」の場合のみアイコンを付与
+                if (gameState.primaryGoal.type === 'completeColor' && gameState.primaryGoal.color) {
+                    const cKey = gameState.primaryGoal.color;
+                    const meta = COLOR_POOL.find(x => x.key === cKey);
+                    if (meta) {
+                        // 少し発光させた四角形を追加
+                        const icon = `<span style="color:${meta.hex}; text-shadow:0 0 12px ${meta.hex}; margin-right:4px;">■</span>`;
+                        html = `${icon}${html}`;
+                    }
+                }
+                goalEl.innerHTML = html; // textContentではなくinnerHTMLを使用
+            } else {
+                goalEl.textContent = '—';
+            }
+            // ----------------------------------------
+
             setText('ui-goal-sub', gameState.secondaryGoal?.text ?? '—'); 
             setText('ui-secondary', `${t('secondary')} ${secondarySucceeded()?'COMPLETE':''}`);
             ui('ui-secondary').className = secondarySucceeded() 
             ? "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/50" 
             : "px-4 py-2 rounded-xl glass-panel text-sm font-black tracking-tight uppercase bg-black/20 text-yellow-300 border border-white/5";
+            
             setText('ui-pressure', String(gameState.pressure)); 
             const pct = Math.round((gameState.pressure/gameState.pressureMax)*100);
             const pBar = ui('ui-pressure-bar'); 
@@ -2766,6 +2787,7 @@ function buildShopCard(offer){
                 } 
             }
             setText('ui-pressure-sub', `${gameState.pressure} / ${gameState.pressureMax}`);
+            
             const undoCost = gameState.refluxUses>0?'FREE':'5✨'; 
             if(undoBtn){ 
                 undoBtn.innerHTML=`<span>↺</span> UNDO (${undoCost})`;
@@ -2778,7 +2800,6 @@ function buildShopCard(offer){
             
             renderSkills();
         }
-
         function moveFocus(dx){ if(!gameState.tubes.length) return; gameState.focusIdx = gameState.focusIdx === null ? 0 : (gameState.focusIdx + dx + gameState.tubeCount) % gameState.tubeCount; renderBoard(); }
         function updateStartScreenButtons(){ continueRunBtn.classList.toggle('hidden', !hasSaveData()); }
 
