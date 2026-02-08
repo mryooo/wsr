@@ -727,7 +727,7 @@
                     updateTubeLayout();
                     startScreen.classList.add('hidden');
                     renderHUD();
-                    renderBoard();
+                    renderBoard(true);
                     
                     if (checkLevelClear()) {
                         openPerkScreen(false);
@@ -1444,7 +1444,11 @@
         // --- 無限スクロール用定数 ---
         const CLONE_PADDING = 10; // 左右に配置するクローンの数
 
-        function renderBoard(){
+        function renderBoard(resetScroll = false){
+            const slider = document.getElementById('board-scroll-area');
+            // DOMを書き換える前に現在の位置を保存しておく
+            const currentScrollPos = slider ? slider.scrollLeft : 0;
+
             tubesContainer.innerHTML = '';
             const deadlocked = isDeadlocked();
             if (alertBanner) alertBanner.style.opacity = deadlocked ? '1' : '0';
@@ -1548,12 +1552,20 @@
             });
 
             renderSkills();
+            
+            // 重要：描画後の位置調整
             requestAnimationFrame(() => {
                 adjustBoardScale();
-                initInfiniteScroll();
+                
+                if (resetScroll) {
+                    // ゲーム開始時やフロア移動時は、初期位置（中央）へリセット
+                    initInfiniteScroll();
+                } else {
+                    // 通常操作時は、さっきまでいた位置を復元して維持する
+                    if(slider) slider.scrollLeft = currentScrollPos;
+                }
             });
         }
-
         function adjustBoardScale() {
             if (!boardArea || !tubesContainer) return;
             tubesContainer.style.transform = 'none';
@@ -2714,7 +2726,11 @@ function buildShopCard(offer){
                 if(hasPerk('coupon')) gameState.rerollCoupons += getPerkLevel('coupon');
             }
             Object.assign(gameState, { turnCount:0, pressure:0, catalystAvailable:true, momentumTurns:0, refluxUses:getPerkLevel('reflux'), currentPerkChoices:null, currentShopOffers:null, selectedIdx:null, busy:false, targetMode:null, pipetteMode:false, pendingSkill:null, extractorHeldColor:null,history: [],completedFlags: [] });
-            generateBoard(); generateGoals(); renderHUD(); renderBoard(); saveGame();
+            generateBoard(); 
+            generateGoals(); 
+            renderHUD(); 
+            renderBoard(true);
+            saveGame();
         }
         function tryUndo(){
             if (!gameState.history.length) return;
