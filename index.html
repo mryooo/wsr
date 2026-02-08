@@ -319,6 +319,9 @@
             -ms-overflow-style: none;
             cursor: grab;
             mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+            
+            scroll-behavior: auto !important; 
+            overscroll-behavior-x: none;
         }
         #board-scroll-area:active {
             cursor: grabbing;
@@ -330,7 +333,7 @@
             display: flex;
             flex-wrap: nowrap;
             gap: 6px;
-            padding: 60px 24px 10px 24px;
+            padding: 2px 10px;
             width: max-content; 
             margin: auto; 
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -552,7 +555,7 @@
                     探索を開始
                 </button>
             </div>
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.1.09 Adjustment</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.1.10 Adjustment</p>
         </div>
         <div id="perk-screen" class="fixed inset-0 z-[150] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
             <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
@@ -1554,11 +1557,14 @@
         function adjustBoardScale() {
             if (!boardArea || !tubesContainer) return;
             tubesContainer.style.transform = 'none';
+            
             const availableH = boardArea.clientHeight;
             const contentH = tubesContainer.scrollHeight;
-            const targetH = availableH * 0.85; 
+            const targetH = availableH * 0.95; 
+            
             let scale = targetH / contentH;
-            scale = Math.min(Math.max(scale, 0.6), 1.5);
+            scale = Math.min(Math.max(scale, 0.3), 1.5);
+            
             tubesContainer.style.transform = `scale(${scale})`;
         }
 
@@ -2909,42 +2915,73 @@ function buildShopCard(offer){
         slider.addEventListener('scroll', () => {
             checkInfiniteScrollLoop();
         });
+        function getBoardScale() {
+            const boardArea = document.getElementById('board-area');
+            const tubesContainer = document.getElementById('tubes-container');
+            if (!boardArea || !tubesContainer) return 1;
+            
+            const availableH = boardArea.clientHeight;
+            const contentH = tubesContainer.scrollHeight;
+            if (contentH === 0) return 1;
+            
+            const targetH = availableH * 0.95;
+            let scale = targetH / contentH;
+            return Math.min(Math.max(scale, 0.3), 1.5);
+        }
+
         function initInfiniteScroll() {
+            const slider = document.getElementById('board-scroll-area');
+            const tubesContainer = document.getElementById('tubes-container');
             const tubeEl = tubesContainer.querySelector('.tube');
             if(!tubeEl) return;
             
-            const style = window.getComputedStyle(tubesContainer);
-            const gap = parseFloat(style.gap) || 0; 
-            const itemWidth = tubeEl.offsetWidth + gap;
+            const style = window.getComputedStyle(tubeEl);
+            const marginLeft = parseFloat(style.marginLeft) || 0;
+            const marginRight = parseFloat(style.marginRight) || 0;
+            const containerStyle = window.getComputedStyle(tubesContainer);
+            const gap = parseFloat(containerStyle.gap) || 0;
+            const rawItemWidth = tubeEl.offsetWidth + marginLeft + marginRight + gap;
             
-            const cloneWidth = itemWidth * CLONE_PADDING;
-            const realWidth = itemWidth * gameState.tubes.length;
-            const containerWidth = slider.clientWidth;
+            const scale = getBoardScale();
+            const scaledItemWidth = rawItemWidth * scale;
             
-            let targetScroll = cloneWidth;
-            if (realWidth < containerWidth) {
-                const offset = (containerWidth - realWidth) / 2;
-                targetScroll -= offset;
-            }
-            if(slider.scrollLeft < 5) {
-                slider.scrollLeft = targetScroll;
-            }
+            const totalTubes = gameState.tubes.length;
+            const scaledCloneWidth = scaledItemWidth * CLONE_PADDING;
+            const centerOfScreen = slider.clientWidth / 2;
+            const firstTubeCenter = scaledCloneWidth + (scaledItemWidth / 2);
+            const initialScrollPos = firstTubeCenter - centerOfScreen;
+            
+            slider.scrollLeft = Math.round(initialScrollPos);
         }
+
         function checkInfiniteScrollLoop() {
             if(!gameState.tubes.length) return;
+            const slider = document.getElementById('board-scroll-area');
+            const tubesContainer = document.getElementById('tubes-container');
             const tubeEl = tubesContainer.querySelector('.tube');
             if(!tubeEl) return;
             
-            const style = window.getComputedStyle(tubesContainer);
-            const gap = parseFloat(style.gap) || 0;
-            const itemWidth = tubeEl.offsetWidth + gap;
-            const realWidth = itemWidth * gameState.tubes.length;
-            const buffer = itemWidth; 
-            if (slider.scrollLeft < buffer) {
-                slider.scrollLeft += realWidth;
-            }
-            else if (slider.scrollLeft > slider.scrollWidth - slider.clientWidth - buffer) {
-                slider.scrollLeft -= realWidth;
+            const style = window.getComputedStyle(tubeEl);
+            const marginLeft = parseFloat(style.marginLeft) || 0;
+            const marginRight = parseFloat(style.marginRight) || 0;
+            const containerStyle = window.getComputedStyle(tubesContainer);
+            const gap = parseFloat(containerStyle.gap) || 0;
+            const rawItemWidth = tubeEl.offsetWidth + marginLeft + marginRight + gap;
+
+            const scale = getBoardScale();
+            const scaledItemWidth = rawItemWidth * scale;
+
+            const totalTubes = gameState.tubes.length;
+            const scaledContentWidth = scaledItemWidth * totalTubes;
+            const scaledCloneWidth = scaledItemWidth * CLONE_PADDING;
+
+            const currentScroll = slider.scrollLeft;
+            const currentCenterPos = currentScroll + (slider.clientWidth / 2);
+            if (currentCenterPos > scaledCloneWidth + scaledContentWidth) {
+                slider.scrollLeft -= scaledContentWidth;
+            } 
+            else if (currentCenterPos < scaledCloneWidth) {
+                slider.scrollLeft += scaledContentWidth;
             }
         }
         // キーボード操作
