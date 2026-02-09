@@ -1352,13 +1352,16 @@
             gameState.tubes.forEach(t => t.forEach(c => counts[c] = (counts[c]||0)+1));
             return counts;
         }
-        function isCompleteTube(t, counts=null){
+        function isCompleteTube(t, counts = null) {
             if (!t || t.length === 0) return false;
-            if(!counts) counts = getBoardCounts();
             const c = t[0];
+            if (c === 'K') {
+                return t.length >= gameState.capacity && t.every(x => x === 'K');
+            }
+            if (!counts) counts = getBoardCounts();
             if (!t.every(x => x === c)) return false;
-                const total = counts[c] || 0;
-                return t.length >= Math.min(gameState.capacity, total);
+            const total = counts[c] || 0;
+            return t.length >= Math.min(gameState.capacity, total);
         }
         function colorMeta(key){ return COLOR_POOL.find(c => c.key===key); }
         function colorName(key){ const m=colorMeta(key); return currentLang==='ja' ? m.name.ja : m.name.en; }
@@ -1470,23 +1473,23 @@
             }
             return true; 
         }
-        function generateBoard(){
+        function generateBoard() {
             const floor = gameState.floor;
-            gameState.tubeCount = Math.min(10, 6 + Math.floor((floor-1)/2));
+            gameState.tubeCount = Math.min(10, 6 + Math.floor((floor - 1) / 2));
             const numColors = gameState.tubeCount - 2;
             const safeNumColors = Math.min(numColors, COLOR_POOL.length);
-            const pool = COLOR_POOL.slice(0, Math.min(COLOR_POOL.length, safeNumColors + (floor > 5 ? 1 : 0))).map(c=>c.key);
+            const pool = COLOR_POOL.slice(0, Math.min(COLOR_POOL.length, safeNumColors + (floor > 5 ? 1 : 0))).map(c => c.key);
             
             const colors = [];
             let colorFailsafe = 0;
-            while(colors.length < safeNumColors){
+            while (colors.length < safeNumColors) {
                 const c = pick(pool);
-                if(!colors.includes(c)) colors.push(c);
+                if (!colors.includes(c)) colors.push(c);
                 colorFailsafe++;
-                if(colorFailsafe > 100) break;
+                if (colorFailsafe > 100) break;
             }
 
-            const tubes = Array.from({length: gameState.tubeCount}, () => []);
+            const tubes = Array.from({ length: gameState.tubeCount }, () => []);
             for (let i = 0; i < colors.length; i++) {
                 for (let j = 0; j < gameState.capacity; j++) {
                     tubes[i].push(colors[i]);
@@ -1501,72 +1504,50 @@
                 failsafe++;
                 const fromIdx = randInt(gameState.tubeCount);
                 const toIdx = randInt(gameState.tubeCount);
-
                 if (fromIdx === toIdx) continue;
-
-                const fromTube = tubes[fromIdx];
-                const toTube = tubes[toIdx];
-
-                if (fromTube.length === 0) continue;
-                if (toTube.length >= gameState.capacity) continue;
-
+                const fromTube = tubes[fromIdx], toTube = tubes[toIdx];
+                if (fromTube.length === 0 || toTube.length >= gameState.capacity) continue;
                 const color = fromTube[fromTube.length - 1];
                 let sameColorCount = 0;
                 for (let i = fromTube.length - 1; i >= 0; i--) {
-                    if (fromTube[i] === color) sameColorCount++;
-                    else break;
+                    if (fromTube[i] === color) sameColorCount++; else break;
                 }
-
                 const moveAmount = 1 + randInt(Math.min(sameColorCount, gameState.capacity - toTube.length));
-                
-                for (let m = 0; m < moveAmount; m++) {
-                    toTube.push(fromTube.pop());
-                }
+                for (let m = 0; m < moveAmount; m++) toTube.push(fromTube.pop());
                 shuffleMoves++;
             }
 
             const emptyTubeTargetCount = 2;
             const emptyIndices = [];
-            for (let i = gameState.tubeCount - emptyTubeTargetCount; i < gameState.tubeCount; i++) {
-                emptyIndices.push(i);
-            }
+            for (let i = gameState.tubeCount - emptyTubeTargetCount; i < gameState.tubeCount; i++) emptyIndices.push(i);
 
             emptyIndices.forEach(targetIdx => {
                 while (tubes[targetIdx].length > 0) {
                     const color = tubes[targetIdx].pop();
                     let placed = false;
-                    const checkOrder = Array.from({length: gameState.tubeCount}, (_, i) => i).sort(() => Math.random() - 0.5);
+                    const checkOrder = Array.from({ length: gameState.tubeCount }, (_, i) => i).sort(() => Math.random() - 0.5);
                     for (let i of checkOrder) {
                         if (emptyIndices.includes(i)) continue;
-                        if (tubes[i].length < gameState.capacity) {
-                            tubes[i].push(color);
-                            placed = true;
-                            break;
-                        }
+                        if (tubes[i].length < gameState.capacity) { tubes[i].push(color); placed = true; break; }
                     }
                     if (!placed) { tubes[targetIdx].push(color); break; }
                 }
             });
 
-            let completionFailsafe = 0;
             const boardCounts = {};
             tubes.forEach(t => t.forEach(c => boardCounts[c] = (boardCounts[c] || 0) + 1));
-
             for (let i = 0; i < tubes.length; i++) {
                 if (tubes[i].length === 0) continue;
-                
                 let attempts = 0;
-                while (isCompleteTube(tubes[i], boardCounts) && attempts < 50) {
+                // 通常色のみ初期配置で完成しないように崩す
+                while (isCompleteTube(tubes[i], boardCounts) && tubes[i][0] !== 'K' && attempts < 50) {
                     attempts++;
-                    completionFailsafe++;
                     const targetIdx = randInt(gameState.tubeCount);
-                    if (targetIdx === i) continue;
-                    if (tubes[targetIdx].length < gameState.capacity) {
+                    if (targetIdx !== i && tubes[targetIdx].length < gameState.capacity) {
                         tubes[targetIdx].push(tubes[i].pop());
                     }
                 }
             }
-
             gameState.tubes = tubes;
             updateTubeLayout();
         }
@@ -1973,7 +1954,6 @@
                 return;
             }
 
-            // 操作禁止フラグを立てる
             gameState.busy = true;
 
             try {
@@ -1988,25 +1968,22 @@
                     isOverloaded = addPressure(1);
                 }
                 
-                // 注ぐアニメーション
                 gameState.turnCount += 1;
                 await animatePour(fromIdx, toIdx, check.color, check.moveCount);
                 
-                // データの更新
                 const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
                 for (let i = 0; i < check.moveCount; i++) to.push(from.pop());
                 
                 const counts = getBoardCounts();
+                // 注いだ後のチューブを即座に判定
                 if (isCompleteTube(to, counts)) {
                     await handleCompletion(toIdx, to[0]);
                 } else if (gameState.secondaryGoal?.type === 'combo') {
                     gameState.secondaryProgress = 0;
                 }
 
-                // オーバーロードが発生していた場合、ここで演出を呼び出す
                 if (isOverloaded) {
-                    applyPressureDamage(false); // ダメージ判定含めて実行
-                    // 演出の余韻を待つ
+                    applyPressureDamage(false);
                     await new Promise(r => setTimeout(r, 600));
                 }
 
@@ -2014,13 +1991,11 @@
             } catch (e) {
                 console.error("Pour logic error:", e);
             } finally {
-                // 何があっても必ず操作禁止フラグを解除する
                 gameState.selectedIdx = null;
                 gameState.busy = false;
                 renderHUD();
                 renderBoard();
 
-                // 死亡判定またはクリア判定
                 if (gameState.hp <= 0) {
                     clearSave(); 
                     openPerkScreen(true);
@@ -2248,53 +2223,61 @@
             });
             if (gameState.history.length > 50) gameState.history.shift();
         }
-        async function handleCompletion(tubeIdx, colorKey){
+        async function handleCompletion(tubeIdx, colorKey) {
+            // クローンを含むすべてのチューブ要素を取得
             const tubeEls = document.querySelectorAll(`.tube[data-idx="${tubeIdx}"]`);
+            
             if (colorKey === 'K') {
-                gameState.busy = true;
+                gameState.busy = true; 
                 showFloatText(tubeIdx, "Purged!", "#94a3b8");
                 
-                if(hasPerk('purification')){
+                if (hasPerk('purification')) {
                     const lv = getPerkLevel('purification');
                     gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
                     gameState.essence += (1 + lv);
                 }
 
+                // 蒸発アニメーション開始
                 tubeEls.forEach(el => {
                     el.classList.add('evaporating');
                 });
 
+                // CSSアニメーションの完了を待機
                 await new Promise(r => setTimeout(r, 800));
 
+                // データの削除
                 gameState.tubes[tubeIdx] = []; 
                 gameState.completedFlags[tubeIdx] = false;
                 
+                // クラス解除とキャッシュクリア
                 tubeEls.forEach(el => {
                     el.classList.remove('evaporating');
                     const water = el.querySelector('.water-container');
-                    if(water) delete water.dataset.lastState;
+                    if (water) delete water.dataset.lastState;
                 });
 
                 gameState.busy = false;
+                renderHUD();
                 renderBoard(); 
                 if (checkLevelClear()) onLevelClear(); 
                 return; 
             }
 
+            // 通常色の完成処理
             renderBoard();
-            if (hasPerk('catalyst') && gameState.catalystAvailable){
+            if (hasPerk('catalyst') && gameState.catalystAvailable) {
                 const lv = getPerkLevel('catalyst'); 
                 gameState.pressure = Math.max(0, gameState.pressure - (4 + lv));
                 gameState.catalystAvailable = false; 
             }
-            if (hasPerk('efficiency') && Math.random() < getPerkLevel('efficiency') * 0.20){
+            if (hasPerk('efficiency') && Math.random() < getPerkLevel('efficiency') * 0.20) {
                 gameState.essence += 1;
             }
-            if(hasPerk('heavy_mastery') && gameState.capacity >= 5){
+            if (hasPerk('heavy_mastery') && gameState.capacity >= 5) {
                 const lv = getPerkLevel('heavy_mastery'); 
                 gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
             }
-            if(hasPerk('momentum')) gameState.momentumTurns = getPerkLevel('momentum'); 
+            if (hasPerk('momentum')) gameState.momentumTurns = getPerkLevel('momentum'); 
             
             checkSecondaryGoalOnComplete(); 
             renderHUD(); 
