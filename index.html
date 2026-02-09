@@ -55,18 +55,47 @@
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
             background: var(--tube-bg);
             margin: 3px;
-            z-index: 10;
+            z-index: 10; /* 基本の高さ */
             cursor: pointer;
             overflow: visible;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             box-shadow: inset 2px 0 4px rgba(255,255,255,0.05), inset -2px 0 4px rgba(0,0,0,0.2);
             flex-shrink: 0;
+            pointer-events: auto; /* クリックを有効化 */
         }
+        
+        /* クローン（見た目だけの要素）は奥に配置 */
+        .tube.is-clone {
+            z-index: 5;
+        }
+
+        /* 選択中やターゲットモードは最前面へ */
+        .tube.selected, 
+        .tube.target-mode {
+            z-index: 50 !important; 
+        }
+
         .tube.selected {
             transform: translateY(-15px) scale(1.05);
             border-color: var(--primary-glow);
             box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
-            z-index: 20;
+        }
+
+        /* 水などのコンテナはクリックを邪魔しない */
+        .water-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column-reverse;
+            padding: 0;
+            gap: 0;
+            pointer-events: none; /* 重要：中身をクリック判定から除外 */
+            width: 100%;
+            overflow: hidden;
+            border-bottom-left-radius: 25px; 
+            border-bottom-right-radius: 25px;
         }
         .tube.target-mode {
             border-color: #a855f7;
@@ -788,19 +817,26 @@
         function addPressure(amount) {
             gameState.pressure += amount;
             if (gameState.pressure >= gameState.pressureMax) {
-                if (hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
-                    gameState.pressure = 0;
-                    showToast("Void Shield!", "#a855f7");
-                } else {
-                    gameState.pressure = 0;
-                    gameState.hp -= 1;
-                    ui('game-container').classList.add('animate-shake');
-                    setTimeout(() => ui('game-container').classList.remove('animate-shake'), 500);
-                    corruptRandomSegment();
-                    const msg = currentLang === 'ja' ? "オーバーロード！ HP-1" : "Pressure Overload! HP -1";
-                    showToast(msg, "#ef4444");
-                }
+                gameState.pressure = 0;
+                return true; // オーバーロード発生
             }
+            return false;
+        }
+        function applyPressureDamage() {
+            if (hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
+                showToast("Void Shield!", "#a855f7");
+                return;
+            }
+            
+            gameState.hp -= 1;
+            ui('game-container').classList.add('animate-shake');
+            setTimeout(() => ui('game-container').classList.remove('animate-shake'), 500);
+            
+            corruptRandomSegment(); // 黒インク追加
+            
+            const msg = currentLang === 'ja' ? "オーバーロード！ HP-1" : "Pressure Overload! HP -1";
+            showToast(msg, "#ef4444");
+            renderHUD();
         }
         function randInt(n){ return Math.floor(Math.random()*n); }
         function pick(arr){ return arr[randInt(arr.length)]; }
@@ -1199,8 +1235,29 @@
         };
         const INSTANT_ITEMS = [
             { id:'dark_pact',   type:'stat', cost:0, name:{en:'Dark Pact', ja:'黒の契約'},  desc:{en:'HP-2, +20 Ess', ja:'HP-2, +20エッセンス'}, apply(gs){     if(gs.hp > 2){        gs.hp -= 2; gs.essence += 20;         showToast('Power at a cost...', 'purple');     } else {        showToast('Too weak...', 'red');    }}             },
-            { id:'mystery_box', type:'stat', cost:8, name:{en:'Mystery Box', ja:'福袋'},    desc:{en:'Random Item', ja:'ランダムアイテム'}, apply(gs){     const keys = Object.keys(ITEMS);    const gift = pick(keys);    
-                if(!gs.inventory[gift]) gs.inventory[gift] = 0;    gs.inventory[gift]++;    showToast(`Got ${ITEMS[gift].name[currentLang==='ja'?'ja':'en']}!`, 'yellow');} 
+            { 
+                id:'mystery_box', 
+                type:'stat', 
+                cost:8, 
+                name:{en:'Mystery Box', ja:'福袋'},    
+                desc:{en:'Random Item', ja:'ランダムアイテム'}, 
+                apply(gs){ 
+                    const keys = Object.keys(ITEMS).filter(k => ITEMS[k].type === 'consumable');
+                    // 上限（3個）に達していないアイテムだけを抽出
+                    const availableKeys = keys.filter(k => (gs.inventory[k] || 0) < 3);
+
+                    if (availableKeys.length > 0) {
+                        const gift = pick(availableKeys);
+                        if(!gs.inventory[gift]) gs.inventory[gift] = 0;
+                        gs.inventory[gift]++;
+                        showToast(`Got ${ITEMS[gift].name[currentLang==='ja'?'ja':'en']}!`, 'yellow');
+                    } else {
+                        // すべてのアイテムが上限の場合
+                        showToast(currentLang==='ja' ? 'すべてのアイテムが最大数です' : 'All items at max capacity!', 'rose');
+                        // 支払ったエッセンスを返還する（任意：購入ボタン側で制御するのが理想ですが、保険として）
+                        gs.essence += 8; 
+                    }
+                } 
             }
         ];
         const SHOP_POOL = [
@@ -1468,6 +1525,8 @@
             const counts = getBoardCounts();
             const totalTubes = gameState.tubes.length;
             if (totalTubes === 0) return;
+            
+            // 描画リストの作成（クローンを含む）
             const renderList = [];
             for(let i = 0; i < CLONE_PADDING; i++) {
                 let idx = (totalTubes - CLONE_PADDING + i) % totalTubes;
@@ -1479,6 +1538,7 @@
                 const idx = i % totalTubes; 
                 renderList.push({ idx: idx, isClone: true, key: `clone-post-${i}` });
             }
+
             const existingTubes = Array.from(tubesContainer.children);
             const existingMap = new Map();
             existingTubes.forEach(el => {
@@ -1486,12 +1546,16 @@
             });
             const newlyCompleted = new Set();
             const processedKeys = new Set();
+            
             renderList.forEach((item, loopIndex) => {
                 const i = item.idx;
                 const segments = gameState.tubes[i];
                 if (!segments) return;
+
                 processedKeys.add(item.key);
                 let tube = existingMap.get(item.key);
+                
+                // 新規作成（addEventListenerは削除し、下のonclickで統一）
                 if (!tube) {
                     tube = document.createElement('div');
                     tube.className = 'tube';
@@ -1501,22 +1565,40 @@
                     const water = document.createElement('div');
                     water.className = 'water-container';
                     tube.appendChild(water);
-                    tube.addEventListener('click', (e) => {
-                        if(isDragging) return;
-                        handleTubeClick(i);
-                    });
                 }
+
+                // ★重要：クリックイベントをここで毎回確実に上書き設定する
+                // item.idx (データ上の正しいインデックス) を渡すことで、クローンをクリックしても本体が反応する
+                tube.onclick = (e) => {
+                    if(isDragging) return;
+                    handleTubeClick(item.idx); 
+                };
+
+                // クローン要素かどうかの判別用クラス（CSSのz-index制御に使用）
+                if (item.isClone) {
+                    tube.classList.add('is-clone');
+                } else {
+                    tube.classList.remove('is-clone');
+                }
+
+                // DOM位置の調整
                 const currentChildAtPos = tubesContainer.children[loopIndex];
                 if (currentChildAtPos !== tube) {
                     tubesContainer.insertBefore(tube, currentChildAtPos);
                 }
+                
+                // データ属性の更新
                 tube.dataset.idx = String(i);
                 tube.dataset.renderKey = item.key;
+                
+                // クラスの適用（選択状態など）
                 const setClass = (cls, on) => on ? tube.classList.add(cls) : tube.classList.remove(cls);
-                setClass('clone-tube', item.isClone);
+                setClass('clone-tube', item.isClone); // 旧クラスも念のため維持
                 setClass('selected', i === gameState.selectedIdx);
                 setClass('tube-focused', gameState.focusIdx !== null && i === gameState.focusIdx);
                 setClass('deadlock-glow', deadlocked);
+
+                // 完了状態の描画
                 const isCompletedNow = (segments.length > 0 && segments[0] !== 'K' && isCompleteTube(segments, counts));
                 if (isCompletedNow) {
                     if (gameState.completedFlags[i]) {
@@ -1532,6 +1614,8 @@
                     tube.style.boxShadow = '';
                     tube.style.borderColor = '';
                 }
+
+                // ターゲットモード（スキル使用時）の表示
                 const isTwoStepSkill = ['extractor', 'transfer', 'quantum_pipette'].includes(gameState.targetMode);
                 let isTarget = false;
                 if (isTwoStepSkill && gameState.extractorHeldColor) {
@@ -1540,6 +1624,9 @@
                     isTarget = !(gameState.targetMode === 'extractor' && segments.length === 0);
                 }
                 setClass('target-mode', isTarget);
+                setClass('source-mode', gameState.targetMode === 'extractor' && segments.length > 0);
+
+                // 中身（水）の描画更新
                 const water = tube.querySelector('.water-container');
                 const currentStateStr = JSON.stringify(segments);
                 if (water.dataset.lastState !== currentStateStr) {
@@ -1558,18 +1645,24 @@
                     water.dataset.lastState = currentStateStr;
                 }
             });
+
+            // 不要になった要素の削除
             while (tubesContainer.children.length > renderList.length) {
                 tubesContainer.lastChild.remove();
             }
+
+            // 新規完了時のアニメーション（キャップ閉め）
             if (newlyCompleted.size > 0) {
                 setTimeout(() => {
                     newlyCompleted.forEach(idx => {
+                        // データ属性idxを持つすべての要素（クローン含む）を更新
                         const targets = document.querySelectorAll(`.tube[data-idx="${idx}"]`);
                         targets.forEach(t => t.classList.add('capped'));
                         gameState.completedFlags[idx] = true;
                     });
                 }, 100);
             }
+
             renderSkills();
             requestAnimationFrame(() => {
                 adjustBoardScale();
@@ -1829,47 +1922,69 @@
                 await tryPour(gameState.selectedIdx, idx);
             }
         }
-        async function tryPour(fromIdx, toIdx){
+        async function tryPour(fromIdx, toIdx) {
             const check = canPour(fromIdx, toIdx);
-            if (!check.ok){
+            if (!check.ok) {
                 const content = gameState.tubes[toIdx];
                 const counts = getBoardCounts();
                 gameState.selectedIdx = (content.length > 0 && !isCompleteTube(content, counts)) ? toIdx : null;
                 renderBoard(); return;
             }
+            
             try {
-                pushHistory(); 
+                pushHistory();
                 gameState.busy = true;
+
+                // 1. プレッシャー加算の判定（実行はまだしない）
                 let pressureImmune = false;
-                if(hasPerk('steady_hand') && gameState.turnCount < getPerkLevel('steady_hand') * 3) pressureImmune = true;
-                if(gameState.momentumTurns > 0) { gameState.momentumTurns--; pressureImmune = true; } 
-                if(!pressureImmune) addPressure(1);
+                if (hasPerk('steady_hand') && gameState.turnCount < getPerkLevel('steady_hand') * 3) pressureImmune = true;
+                if (gameState.momentumTurns > 0) { gameState.momentumTurns--; pressureImmune = true; }
+
+                let isOverloaded = false;
+                if (!pressureImmune) {
+                    isOverloaded = addPressure(1); // ここで数値だけ増える
+                }
+                
                 gameState.turnCount += 1;
+
+                // 2. 注ぐアニメーション（黒インクが降ってくる前に完了させる）
                 await animatePour(fromIdx, toIdx, check.color, check.moveCount);
+
                 const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
-                for (let i=0;i<check.moveCount;i++) to.push(from.pop());
+                for (let i = 0; i < check.moveCount; i++) to.push(from.pop());
+
+                // 3. 完了チェック
                 const counts = getBoardCounts();
-                if(isCompleteTube(to, counts)) {
+                if (isCompleteTube(to, counts)) {
                     await handleCompletion(toIdx, to[0]);
                 } else if (gameState.secondaryGoal?.type === 'combo') {
-                    gameState.secondaryProgress = 0; 
+                    gameState.secondaryProgress = 0;
                 }
+
+                // 4. 全てのアニメーション・処理が終わった後にダメージ判定を実行
+                if (isOverloaded) {
+                    applyPressureDamage();
+                }
+
                 saveGame();
             } finally {
-                gameState.selectedIdx = null; 
+                gameState.selectedIdx = null;
                 gameState.busy = false;
-                renderHUD(); 
+                renderHUD();
                 renderBoard();
-                if (gameState.hp <= 0){ 
-                    clearSave(); openPerkScreen(true); 
-                } else if (checkLevelClear()){ 
-                    onLevelClear(); 
+                
+                if (gameState.hp <= 0) {
+                    clearSave(); openPerkScreen(true);
+                } else if (checkLevelClear()) {
+                    onLevelClear();
                 }
             }
         }
         async function handleTwoStepSkill(idx) {
             const tube = gameState.tubes[idx];
             const skillKey = gameState.targetMode;
+            
+            // 1. 抽出フェーズ
             if (!gameState.extractorHeldColor) {
                 if (tube.length === 0) {
                     showFloatText(idx, "Empty!", "#ef4444");
@@ -1889,20 +2004,32 @@
                 gameState.busy = false;
                 showToast(currentLang==='ja' ? "配置先を選択してください" : "Select destination", 'emerald');
             } 
+            // 2. 配置フェーズ
             else {
                 const canIgnoreColor = (skillKey === 'transfer' || skillKey === 'quantum_pipette');
                 if (!canIgnoreColor && tube.length > 0 && tube[tube.length-1] !== gameState.extractorHeldColor) {
-                     showFloatText(idx, "Mismatch!", "#ef4444");
-                     return;
+                    showFloatText(idx, "Mismatch!", "#ef4444");
+                    return;
                 }
                 if (tubeFree(tube) <= 0) {
                     showFloatText(idx, "Full!", "#ef4444");
                     return;
                 }
+
+                // --- 処理開始 ---
                 pushHistory();
+                gameState.busy = true;
+
+                // プレッシャー加算の予約（スキル使用でプレッシャーを上げる仕様にする場合）
+                // 現状、スキル使用ではプレッシャーが上がらない設定ならここは不要です。
+                // もし上げるなら: let isOverloaded = addPressure(1); 
+
                 tube.push(gameState.extractorHeldColor);
+                const heldColor = gameState.extractorHeldColor; // 完成チェック用に保持
                 gameState.extractorHeldColor = null;
                 gameState.extractorSourceIdx = null;
+
+                // アイテム消費
                 if (gameState.inventory[skillKey] > 0) {
                     let consume = true;
                     if(hasPerk('recycler')){
@@ -1914,15 +2041,32 @@
                     }
                     if(consume) gameState.inventory[skillKey]--;
                 }
+                
                 gameState.targetMode = null; 
                 showFloatText(idx, "Placed!", "#22c55e");
+                
+                // 盤面を更新（ここで一旦、色が置かれた状態を反映）
+                renderBoard();
+
+                // 3. 完成チェック（アニメーションを伴う可能性があるため await）
+                const counts = getBoardCounts();
+                if(isCompleteTube(tube, counts)){
+                    await handleCompletion(idx, heldColor);
+                }
+
+                // 4. 全ての処理（色を置く・完成消滅）が終わった後にダメージ判定を実行
+                // もし手順2で addPressure を呼んでいた場合は、ここで applyPressureDamage() を実行
+                // if (isOverloaded) applyPressureDamage();
+
+                gameState.busy = false;
                 saveGame();
                 renderHUD();
                 renderBoard();
-                const counts = getBoardCounts();
-                if(isCompleteTube(tube, counts)){
-                    await handleCompletion(idx, tube[0]);
-                    renderHUD(); renderBoard();
+                renderSkills();
+
+                // クリア判定
+                if (checkLevelClear()) {
+                    onLevelClear();
                 }
             }
         }
@@ -2123,17 +2267,21 @@
             if(!counts) counts = getBoardCounts();
             return gameState.tubes.filter(t => isCompleteTube(t, counts) && t[0] !== 'K').length;
         }
-        function corruptRandomSegment(){
+        function corruptRandomSegment() {
             const candidates = [];
-            for (let i=0; i<gameState.tubes.length; i++) {
+            for (let i = 0; i < gameState.tubes.length; i++) {
+                // 容量に空きがあり、かつ「今操作したチューブ」ではないものを優先
                 if (gameState.tubes[i].length < gameState.capacity) {
                     candidates.push(i);
                 }
             }
             if (!candidates.length) return;
-            const idx = pick(candidates); 
-            gameState.tubes[idx].push('K'); 
+
+            // もし候補が複数あるなら、直前に注いだ先 (toIdx) 以外から選ぶロジックなどを追加可能
+            const idx = pick(candidates);
+            gameState.tubes[idx].push('K');
             showFloatText(idx, "CORRUPTED!", "#ef4444");
+            renderBoard();
         }
         function showFloatText(tubeIdx, text, color="#38bdf8"){
             const el = ui('tubes-container').children[tubeIdx]; if(!el) return;
@@ -2375,10 +2523,16 @@
             const cost = getDiscountedCost(baseCost);
             const affordable = gameState.essence >= cost;
             const isTool = (offer.kind==='item' && ITEMS[offer.id]?.type==='tool');
-            const isAtMax = (offer.kind==='item' && !isTool && currentInventoryCount >= 3);
+            const allItemsMax = Object.keys(ITEMS)
+                .filter(k => ITEMS[k].type === 'consumable')
+                .every(k => (gameState.inventory[k] || 0) >= 3);
+
+            const isAtMax = (offer.kind==='item' && !isTool && currentInventoryCount >= 3) || 
+                            (offer.id === 'mystery_box' && allItemsMax);
             const ownedTool = (isTool && currentInventoryCount > 0);
             const disabled = !!offer.purchased || ownedTool || isAtMax || !affordable;
             const card = document.createElement('div');
+            
             card.className = 'shop-card glass-panel perk-card p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 h-full justify-between'; 
             card.dataset.cost = String(cost);
             let priceDisplay = `<div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div>`;
@@ -2700,7 +2854,7 @@
             startScreen.classList.add('hidden'); 
             Object.assign(gameState, { 
                 floor:1, 
-                essence:0, 
+                essence:9999, 
                 hp:3, 
                 maxHp:3,
                 capacity:4, 
@@ -2980,7 +3134,7 @@
                     if (guide.position === 'left') {
                         const bWidth = bubble.offsetWidth;
                         const bHeight = bubble.offsetHeight;
-                        bubble.style.left = (rect.left - bWidth + 70) + 'px';
+                        bubble.style.left = (rect.left - bWidth + 100) + 'px';
                         bubble.style.top = (rect.top + (rect.height / 2) - (bHeight / 2)) + 'px';
                         bubble.classList.add('bubble-left');
                     } else {
