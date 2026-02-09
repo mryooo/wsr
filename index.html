@@ -55,33 +55,26 @@
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
             background: var(--tube-bg);
             margin: 3px;
-            z-index: 10; /* 基本の高さ */
+            z-index: 10; 
             cursor: pointer;
             overflow: visible;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             box-shadow: inset 2px 0 4px rgba(255,255,255,0.05), inset -2px 0 4px rgba(0,0,0,0.2);
             flex-shrink: 0;
-            pointer-events: auto; /* クリックを有効化 */
+            pointer-events: auto; 
         }
-        
-        /* クローン（見た目だけの要素）は奥に配置 */
         .tube.is-clone {
             z-index: 5;
         }
-
-        /* 選択中やターゲットモードは最前面へ */
         .tube.selected, 
         .tube.target-mode {
             z-index: 50 !important; 
         }
-
         .tube.selected {
             transform: translateY(-15px) scale(1.05);
             border-color: var(--primary-glow);
             box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
         }
-
-        /* 水などのコンテナはクリックを邪魔しない */
         .water-container {
             position: absolute;
             bottom: 0;
@@ -91,7 +84,7 @@
             flex-direction: column-reverse;
             padding: 0;
             gap: 0;
-            pointer-events: none; /* 重要：中身をクリック判定から除外 */
+            pointer-events: none; 
             width: 100%;
             overflow: hidden;
             border-bottom-left-radius: 25px; 
@@ -263,7 +256,7 @@
             text-align: center;
             box-shadow: 0 4px 25px rgba(0,0,0,0.8);
             backdrop-filter: blur(8px);
-            z-index: 9999;
+            z-index: 0;
             opacity: 0;
             transition: opacity 0.15s ease;
             transform: translateX(-50%);
@@ -822,18 +815,17 @@
             }
             return false;
         }
-        function applyPressureDamage() {
-            if (hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
-                showToast("Void Shield!", "#a855f7");
-                return;
+        function applyPressureDamage(visualOnly = false) {
+            if (!visualOnly) {
+                if (hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
+                    showToast("Void Shield!", "#a855f7");
+                    return;
+                }
+                gameState.hp -= 1;
             }
-            
-            gameState.hp -= 1;
             ui('game-container').classList.add('animate-shake');
             setTimeout(() => ui('game-container').classList.remove('animate-shake'), 500);
-            
             corruptRandomSegment(); // 黒インク追加
-            
             const msg = currentLang === 'ja' ? "オーバーロード！ HP-1" : "Pressure Overload! HP -1";
             showToast(msg, "#ef4444");
             renderHUD();
@@ -1243,18 +1235,14 @@
                 desc:{en:'Random Item', ja:'ランダムアイテム'}, 
                 apply(gs){ 
                     const keys = Object.keys(ITEMS).filter(k => ITEMS[k].type === 'consumable');
-                    // 上限（3個）に達していないアイテムだけを抽出
                     const availableKeys = keys.filter(k => (gs.inventory[k] || 0) < 3);
-
                     if (availableKeys.length > 0) {
                         const gift = pick(availableKeys);
                         if(!gs.inventory[gift]) gs.inventory[gift] = 0;
                         gs.inventory[gift]++;
                         showToast(`Got ${ITEMS[gift].name[currentLang==='ja'?'ja':'en']}!`, 'yellow');
                     } else {
-                        // すべてのアイテムが上限の場合
                         showToast(currentLang==='ja' ? 'すべてのアイテムが最大数です' : 'All items at max capacity!', 'rose');
-                        // 支払ったエッセンスを返還する（任意：購入ボタン側で制御するのが理想ですが、保険として）
                         gs.essence += 8; 
                     }
                 } 
@@ -1525,8 +1513,6 @@
             const counts = getBoardCounts();
             const totalTubes = gameState.tubes.length;
             if (totalTubes === 0) return;
-            
-            // 描画リストの作成（クローンを含む）
             const renderList = [];
             for(let i = 0; i < CLONE_PADDING; i++) {
                 let idx = (totalTubes - CLONE_PADDING + i) % totalTubes;
@@ -1538,7 +1524,6 @@
                 const idx = i % totalTubes; 
                 renderList.push({ idx: idx, isClone: true, key: `clone-post-${i}` });
             }
-
             const existingTubes = Array.from(tubesContainer.children);
             const existingMap = new Map();
             existingTubes.forEach(el => {
@@ -1546,16 +1531,12 @@
             });
             const newlyCompleted = new Set();
             const processedKeys = new Set();
-            
             renderList.forEach((item, loopIndex) => {
                 const i = item.idx;
                 const segments = gameState.tubes[i];
                 if (!segments) return;
-
                 processedKeys.add(item.key);
                 let tube = existingMap.get(item.key);
-                
-                // 新規作成（addEventListenerは削除し、下のonclickで統一）
                 if (!tube) {
                     tube = document.createElement('div');
                     tube.className = 'tube';
@@ -1566,39 +1547,26 @@
                     water.className = 'water-container';
                     tube.appendChild(water);
                 }
-
-                // ★重要：クリックイベントをここで毎回確実に上書き設定する
-                // item.idx (データ上の正しいインデックス) を渡すことで、クローンをクリックしても本体が反応する
                 tube.onclick = (e) => {
                     if(isDragging) return;
                     handleTubeClick(item.idx); 
                 };
-
-                // クローン要素かどうかの判別用クラス（CSSのz-index制御に使用）
                 if (item.isClone) {
                     tube.classList.add('is-clone');
                 } else {
                     tube.classList.remove('is-clone');
                 }
-
-                // DOM位置の調整
                 const currentChildAtPos = tubesContainer.children[loopIndex];
                 if (currentChildAtPos !== tube) {
                     tubesContainer.insertBefore(tube, currentChildAtPos);
                 }
-                
-                // データ属性の更新
                 tube.dataset.idx = String(i);
                 tube.dataset.renderKey = item.key;
-                
-                // クラスの適用（選択状態など）
                 const setClass = (cls, on) => on ? tube.classList.add(cls) : tube.classList.remove(cls);
                 setClass('clone-tube', item.isClone); // 旧クラスも念のため維持
                 setClass('selected', i === gameState.selectedIdx);
                 setClass('tube-focused', gameState.focusIdx !== null && i === gameState.focusIdx);
                 setClass('deadlock-glow', deadlocked);
-
-                // 完了状態の描画
                 const isCompletedNow = (segments.length > 0 && segments[0] !== 'K' && isCompleteTube(segments, counts));
                 if (isCompletedNow) {
                     if (gameState.completedFlags[i]) {
@@ -1614,8 +1582,6 @@
                     tube.style.boxShadow = '';
                     tube.style.borderColor = '';
                 }
-
-                // ターゲットモード（スキル使用時）の表示
                 const isTwoStepSkill = ['extractor', 'transfer', 'quantum_pipette'].includes(gameState.targetMode);
                 let isTarget = false;
                 if (isTwoStepSkill && gameState.extractorHeldColor) {
@@ -1625,8 +1591,6 @@
                 }
                 setClass('target-mode', isTarget);
                 setClass('source-mode', gameState.targetMode === 'extractor' && segments.length > 0);
-
-                // 中身（水）の描画更新
                 const water = tube.querySelector('.water-container');
                 const currentStateStr = JSON.stringify(segments);
                 if (water.dataset.lastState !== currentStateStr) {
@@ -1645,24 +1609,18 @@
                     water.dataset.lastState = currentStateStr;
                 }
             });
-
-            // 不要になった要素の削除
             while (tubesContainer.children.length > renderList.length) {
                 tubesContainer.lastChild.remove();
             }
-
-            // 新規完了時のアニメーション（キャップ閉め）
             if (newlyCompleted.size > 0) {
                 setTimeout(() => {
                     newlyCompleted.forEach(idx => {
-                        // データ属性idxを持つすべての要素（クローン含む）を更新
                         const targets = document.querySelectorAll(`.tube[data-idx="${idx}"]`);
                         targets.forEach(t => t.classList.add('capped'));
                         gameState.completedFlags[idx] = true;
                     });
                 }, 100);
             }
-
             renderSkills();
             requestAnimationFrame(() => {
                 adjustBoardScale();
@@ -1930,49 +1888,43 @@
                 gameState.selectedIdx = (content.length > 0 && !isCompleteTube(content, counts)) ? toIdx : null;
                 renderBoard(); return;
             }
-            
             try {
                 pushHistory();
                 gameState.busy = true;
-
-                // 1. プレッシャー加算の判定（実行はまだしない）
                 let pressureImmune = false;
                 if (hasPerk('steady_hand') && gameState.turnCount < getPerkLevel('steady_hand') * 3) pressureImmune = true;
                 if (gameState.momentumTurns > 0) { gameState.momentumTurns--; pressureImmune = true; }
-
                 let isOverloaded = false;
                 if (!pressureImmune) {
-                    isOverloaded = addPressure(1); // ここで数値だけ増える
+                    isOverloaded = addPressure(1); // ここでgameState.pressureは0になる
                 }
-                
+                if (isOverloaded) {
+                    if (hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
+                        showToast("Void Shield!", "#a855f7");
+                        isOverloaded = false; // ダメージ無効化
+                    } else {
+                        gameState.hp -= 1; // 内部値を先に更新して整合性を保つ
+                    }
+                }
                 gameState.turnCount += 1;
-
-                // 2. 注ぐアニメーション（黒インクが降ってくる前に完了させる）
                 await animatePour(fromIdx, toIdx, check.color, check.moveCount);
-
                 const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
                 for (let i = 0; i < check.moveCount; i++) to.push(from.pop());
-
-                // 3. 完了チェック
                 const counts = getBoardCounts();
                 if (isCompleteTube(to, counts)) {
                     await handleCompletion(toIdx, to[0]);
                 } else if (gameState.secondaryGoal?.type === 'combo') {
                     gameState.secondaryProgress = 0;
                 }
-
-                // 4. 全てのアニメーション・処理が終わった後にダメージ判定を実行
                 if (isOverloaded) {
-                    applyPressureDamage();
+                    applyPressureDamage(true); // true = 演出のみ実行
                 }
-
                 saveGame();
             } finally {
                 gameState.selectedIdx = null;
                 gameState.busy = false;
                 renderHUD();
                 renderBoard();
-                
                 if (gameState.hp <= 0) {
                     clearSave(); openPerkScreen(true);
                 } else if (checkLevelClear()) {
@@ -1983,8 +1935,6 @@
         async function handleTwoStepSkill(idx) {
             const tube = gameState.tubes[idx];
             const skillKey = gameState.targetMode;
-            
-            // 1. 抽出フェーズ
             if (!gameState.extractorHeldColor) {
                 if (tube.length === 0) {
                     showFloatText(idx, "Empty!", "#ef4444");
@@ -2004,7 +1954,6 @@
                 gameState.busy = false;
                 showToast(currentLang==='ja' ? "配置先を選択してください" : "Select destination", 'emerald');
             } 
-            // 2. 配置フェーズ
             else {
                 const canIgnoreColor = (skillKey === 'transfer' || skillKey === 'quantum_pipette');
                 if (!canIgnoreColor && tube.length > 0 && tube[tube.length-1] !== gameState.extractorHeldColor) {
@@ -2015,21 +1964,12 @@
                     showFloatText(idx, "Full!", "#ef4444");
                     return;
                 }
-
-                // --- 処理開始 ---
                 pushHistory();
                 gameState.busy = true;
-
-                // プレッシャー加算の予約（スキル使用でプレッシャーを上げる仕様にする場合）
-                // 現状、スキル使用ではプレッシャーが上がらない設定ならここは不要です。
-                // もし上げるなら: let isOverloaded = addPressure(1); 
-
                 tube.push(gameState.extractorHeldColor);
                 const heldColor = gameState.extractorHeldColor; // 完成チェック用に保持
                 gameState.extractorHeldColor = null;
                 gameState.extractorSourceIdx = null;
-
-                // アイテム消費
                 if (gameState.inventory[skillKey] > 0) {
                     let consume = true;
                     if(hasPerk('recycler')){
@@ -2041,30 +1981,18 @@
                     }
                     if(consume) gameState.inventory[skillKey]--;
                 }
-                
                 gameState.targetMode = null; 
                 showFloatText(idx, "Placed!", "#22c55e");
-                
-                // 盤面を更新（ここで一旦、色が置かれた状態を反映）
                 renderBoard();
-
-                // 3. 完成チェック（アニメーションを伴う可能性があるため await）
                 const counts = getBoardCounts();
                 if(isCompleteTube(tube, counts)){
                     await handleCompletion(idx, heldColor);
                 }
-
-                // 4. 全ての処理（色を置く・完成消滅）が終わった後にダメージ判定を実行
-                // もし手順2で addPressure を呼んでいた場合は、ここで applyPressureDamage() を実行
-                // if (isOverloaded) applyPressureDamage();
-
                 gameState.busy = false;
                 saveGame();
                 renderHUD();
                 renderBoard();
                 renderSkills();
-
-                // クリア判定
                 if (checkLevelClear()) {
                     onLevelClear();
                 }
@@ -2270,14 +2198,11 @@
         function corruptRandomSegment() {
             const candidates = [];
             for (let i = 0; i < gameState.tubes.length; i++) {
-                // 容量に空きがあり、かつ「今操作したチューブ」ではないものを優先
                 if (gameState.tubes[i].length < gameState.capacity) {
                     candidates.push(i);
                 }
             }
             if (!candidates.length) return;
-
-            // もし候補が複数あるなら、直前に注いだ先 (toIdx) 以外から選ぶロジックなどを追加可能
             const idx = pick(candidates);
             gameState.tubes[idx].push('K');
             showFloatText(idx, "CORRUPTED!", "#ef4444");
@@ -2526,13 +2451,11 @@
             const allItemsMax = Object.keys(ITEMS)
                 .filter(k => ITEMS[k].type === 'consumable')
                 .every(k => (gameState.inventory[k] || 0) >= 3);
-
             const isAtMax = (offer.kind==='item' && !isTool && currentInventoryCount >= 3) || 
                             (offer.id === 'mystery_box' && allItemsMax);
             const ownedTool = (isTool && currentInventoryCount > 0);
             const disabled = !!offer.purchased || ownedTool || isAtMax || !affordable;
             const card = document.createElement('div');
-            
             card.className = 'shop-card glass-panel perk-card p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 h-full justify-between'; 
             card.dataset.cost = String(cost);
             let priceDisplay = `<div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div>`;
@@ -2854,7 +2777,7 @@
             startScreen.classList.add('hidden'); 
             Object.assign(gameState, { 
                 floor:1, 
-                essence:0, 
+                essence:9999, 
                 hp:3, 
                 maxHp:3,
                 capacity:4, 
@@ -2877,31 +2800,39 @@
                 if (gameState.floor >= 8) gameState.capacity = 6; 
                 else if (gameState.floor >= 4) gameState.capacity = 5; 
                 else gameState.capacity = 4;
-                        if(hasPerk('scavenger') && Math.random() < (0.10 + getPerkLevel('scavenger')*0.05)) { 
-                    const k = pick(Object.keys(ITEMS).filter(x=>ITEMS[x].type==='consumable')); 
-                    gameState.inventory[k] = (gameState.inventory[k]||0)+1; 
-                    showToast("Scavenged!", 'emerald'); 
+                if(hasPerk('scavenger') && Math.random() < (0.10 + getPerkLevel('scavenger')*0.05)) { 
+                    const consumableKeys = Object.keys(ITEMS).filter(x => ITEMS[x].type === 'consumable');
+                    const availableToPick = consumableKeys.filter(k => (gameState.inventory[k] || 0) < 3);
+                    if (availableToPick.length > 0) {
+                        const k = pick(availableToPick);
+                        gameState.inventory[k] = (gameState.inventory[k] || 0) + 1; 
+                        showToast(currentLang === 'ja' ? `${ITEMS[k].name.ja}を拾った！` : `Scavenged ${ITEMS[k].name.en}!`, 'emerald'); 
+                    }
                 }
                 if(hasPerk('transmutation')) { 
                     for(let i=0; i<getPerkLevel('transmutation'); i++){ 
-                        const k = pick(Object.keys(ITEMS).filter(x=>ITEMS[x].type==='consumable')); 
-                        gameState.inventory[k] = (gameState.inventory[k]||0)+1; 
+                        const consumableKeys = Object.keys(ITEMS).filter(x => ITEMS[x].type === 'consumable');
+                        const availableToPick = consumableKeys.filter(k => (gameState.inventory[k] || 0) < 3);
+                        if (availableToPick.length > 0) {
+                            const k = pick(availableToPick);
+                            gameState.inventory[k] = (gameState.inventory[k] || 0) + 1; 
+                        }
                     } 
                 }
                 if(hasPerk('coupon')) gameState.rerollCoupons += getPerkLevel('coupon');
             }
-                const baseMaxHp = 3; 
+            const baseMaxHp = 3; 
             let bonusHp = 0;
             if(hasPerk('deep_adapt') && gameState.capacity > 4){ 
                 bonusHp = getPerkLevel('deep_adapt'); 
             }
-                    const oldMaxHp = gameState.maxHp;
+            const oldMaxHp = gameState.maxHp;
             gameState.maxHp = baseMaxHp + bonusHp;
             if (gameState.maxHp > oldMaxHp) {
                 gameState.hp += (gameState.maxHp - oldMaxHp);
             }
-                gameState.hp = Math.min(gameState.hp, gameState.maxHp);
-                const defaultPressureMax = 14; 
+            gameState.hp = Math.min(gameState.hp, gameState.maxHp);
+            const defaultPressureMax = 14; 
             const nextPressure = isFirst ? 0 : gameState.pressure;
             Object.assign(gameState, { 
                 turnCount:0, 
