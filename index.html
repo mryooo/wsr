@@ -694,7 +694,7 @@
                     探索を開始
                 </button>
             </div>
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.3.03</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.3.04</p>
         </div>
         <div id="perk-screen" class="fixed inset-0 z-[180] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
             <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
@@ -1929,16 +1929,18 @@
                 await animatePour(fromIdx, toIdx, check.color, check.moveCount);
                 const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
                 for (let i = 0; i < check.moveCount; i++) to.push(from.pop());
+                
+                if (isOverloaded) {
+                    await applyPressureDamage(false);
+                }
+
                 const counts = getBoardCounts();
                 if (isCompleteTube(to, counts)) {
                     await handleCompletion(toIdx, to[0]);
                 } else if (gameState.secondaryGoal?.type === 'combo') {
                     gameState.secondaryProgress = 0;
                 }
-                if (isOverloaded) {
-                    await applyPressureDamage(false);
-                    await new Promise(r => setTimeout(r, 600));
-                }
+
                 saveGame();
             } catch (e) {
                 console.error("Pour logic error:", e);
@@ -2116,11 +2118,12 @@
                     if (water) delete water.dataset.lastState;
                 });
                 gameState.busy = false;
-                renderHUD(); renderBoard(); 
+                renderHUD(); 
+                renderBoard(); 
                 if (checkLevelClear()) onLevelClear(); 
                 return; 
             }
-            renderBoard();
+
             if (hasPerk('catalyst') && gameState.catalystAvailable) {
                 const lv = getPerkLevel('catalyst'); 
                 gameState.pressure = Math.max(0, gameState.pressure - (4 + lv));
@@ -2147,10 +2150,16 @@
                 gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
             }
             if(hasPerk('momentum')) gameState.momentumTurns = getPerkLevel('momentum'); 
+            
             checkSecondaryGoalOnComplete(); 
-            renderHUD(); saveGame(); 
+            renderHUD();
+            renderBoard();
+            saveGame(); 
+
             await showCompletionEvent(colorKey);
-            renderHUD(); renderBoard();
+
+            renderHUD(); 
+            renderBoard();
             if (checkLevelClear()) onLevelClear();
         }
         function removeOneObsidian() {
@@ -2178,15 +2187,16 @@
             container.classList.remove('animate-shake');
             void container.offsetWidth;
             container.classList.add('animate-shake');
+            
             await corruptRandomSegment();
+            
             const msg = currentLang === 'ja' ? "オーバーロード！ HP-1" : "Pressure Overload! HP -1";
             showToast(msg, "#ef4444");
             renderHUD();
             renderBoard();
-            setTimeout(() => {
-                container.classList.remove('animate-shake');
-            }, 500);
+            await new Promise(r => setTimeout(r, 500));
         }
+
         function corruptRandomSegment() {
             return new Promise((resolve) => {
                 const targetTubes = gameState.tubes
@@ -2195,6 +2205,7 @@
                 if (targetTubes.length > 0) {
                     const target = pick(targetTubes);
                     gameState.tubes[target.idx].push('K');
+                    renderBoard();
                     showFloatText(target.idx, "CORRUPTED", "#ef4444");
                 }
                 resolve();
