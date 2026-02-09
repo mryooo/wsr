@@ -1400,25 +1400,18 @@
         function onLevelClear(){
             if (gameState.busy) return;
             gameState.busy = true;
-
             const baseReward = 6;
             const floorBonus = Math.floor((gameState.floor - 1) / 2);
             const subGoalBonus = secondarySucceeded() ? 4 : 0;
             const totalGained = baseReward + floorBonus + subGoalBonus;
-            
             gameState.essence += totalGained;
-            
             renderHUD(); 
             renderBoard();
-            
             const msg = currentLang === 'ja' 
                 ? `階層クリア! ✨+${totalGained} (基本:${baseReward}${floorBonus > 0 ? ` 階層:+${floorBonus}` : ''}${subGoalBonus > 0 ? ` サブ目標:+${subGoalBonus}` : ''})`
                 : `Floor Cleared! ✨+${totalGained} (Base:${baseReward}${floorBonus > 0 ? ` Floor:+${floorBonus}` : ''}${subGoalBonus > 0 ? ` SubGoal:+${subGoalBonus}` : ''})`;
-                
             showToast(msg, subGoalBonus > 0 ? 'emerald' : 'sky');
-            
             saveGame();
-            
             setTimeout(() => {
                 gameState.busy = false;
                 openPerkScreen(false);
@@ -1462,7 +1455,6 @@
             const numColors = gameState.tubeCount - 2;
             const safeNumColors = Math.min(numColors, COLOR_POOL.length);
             const pool = COLOR_POOL.slice(0, Math.min(COLOR_POOL.length, safeNumColors + (floor > 5 ? 1 : 0))).map(c => c.key);
-            
             const colors = [];
             let colorFailsafe = 0;
             while (colors.length < safeNumColors) {
@@ -1471,18 +1463,15 @@
                 colorFailsafe++;
                 if (colorFailsafe > 100) break;
             }
-
             const tubes = Array.from({ length: gameState.tubeCount }, () => []);
             for (let i = 0; i < colors.length; i++) {
                 for (let j = 0; j < gameState.capacity; j++) {
                     tubes[i].push(colors[i]);
                 }
             }
-
             let shuffleMoves = 0;
             const targetMoves = gameState.capacity * colors.length * 8; 
             let failsafe = 0;
-
             while (shuffleMoves < targetMoves && failsafe < 4000) {
                 failsafe++;
                 const fromIdx = randInt(gameState.tubeCount);
@@ -1499,11 +1488,9 @@
                 for (let m = 0; m < moveAmount; m++) toTube.push(fromTube.pop());
                 shuffleMoves++;
             }
-
             const emptyTubeTargetCount = 2;
             const emptyIndices = [];
             for (let i = gameState.tubeCount - emptyTubeTargetCount; i < gameState.tubeCount; i++) emptyIndices.push(i);
-
             emptyIndices.forEach(targetIdx => {
                 while (tubes[targetIdx].length > 0) {
                     const color = tubes[targetIdx].pop();
@@ -1516,7 +1503,6 @@
                     if (!placed) { tubes[targetIdx].push(color); break; }
                 }
             });
-
             const boardCounts = {};
             tubes.forEach(t => t.forEach(c => boardCounts[c] = (boardCounts[c] || 0) + 1));
             for (let i = 0; i < tubes.length; i++) {
@@ -1903,37 +1889,29 @@
             if (!check.ok) {
                 const content = gameState.tubes[toIdx];
                 gameState.selectedIdx = (content.length > 0 && !isCompleteTube(content)) ? toIdx : null;
-                renderBoard(); 
+                renderBoard();
                 return;
             }
-
             gameState.busy = true;
-
             try {
                 pushHistory();
                 let pressureImmune = (hasPerk('steady_hand') && gameState.turnCount < getPerkLevel('steady_hand') * 3) || gameState.momentumTurns > 0;
                 if (gameState.momentumTurns > 0) { gameState.momentumTurns--; pressureImmune = true; }
-                
                 let isOverloaded = !pressureImmune && addPressure(1);
-                
                 gameState.turnCount += 1;
                 await animatePour(fromIdx, toIdx, check.color, check.moveCount);
-                
                 const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
                 for (let i = 0; i < check.moveCount; i++) to.push(from.pop());
-                
                 const counts = getBoardCounts();
                 if (isCompleteTube(to, counts)) {
                     await handleCompletion(toIdx, to[0]);
                 } else if (gameState.secondaryGoal?.type === 'combo') {
                     gameState.secondaryProgress = 0;
                 }
-
                 if (isOverloaded) {
-                    applyPressureDamage(false);
+                    await applyPressureDamage(false);
                     await new Promise(r => setTimeout(r, 600));
                 }
-
                 saveGame();
             } catch (e) {
                 console.error("Pour logic error:", e);
@@ -1942,9 +1920,8 @@
                 gameState.busy = false;
                 renderHUD();
                 renderBoard();
-
                 if (gameState.hp <= 0) {
-                    clearSave(); 
+                    clearSave();
                     openPerkScreen(true);
                 } else if (checkLevelClear()) {
                     onLevelClear();
@@ -2010,11 +1987,9 @@
             const skillKey = gameState.targetMode;
             const tube = gameState.tubes[idx];
             if(!skillKey || !gameState.inventory[skillKey] || gameState.inventory[skillKey] <= 0) return;
-            
             let success = false;
             let consume = true;
             if(hasPerk('recycler') && Math.random() < getPerkLevel('recycler') * 0.1) consume = false;
-            
             gameState.busy = true;
             try {
                 pushHistory();
@@ -2050,7 +2025,6 @@
                 } else if (skillKey === 'vaporizer' && tube.length > 0){
                     tube.pop(); showFloatText(idx, "Vaporized!", "#94a3b8"); success = true;
                 }
-
                 if(success) {
                     if(consume) gameState.inventory[skillKey]--;
                     gameState.targetMode = null;
@@ -2064,7 +2038,6 @@
                     gameState.history.pop();
                 }
             } catch(e) { console.error(e); }
-            
             gameState.busy = false;
             renderHUD(); renderBoard(); saveGame();
         }
@@ -2166,20 +2139,24 @@
             if(!counts) counts = getBoardCounts();
             return gameState.tubes.filter(t => isCompleteTube(t, counts) && t[0] !== 'K').length;
         }
-        function corruptRandomSegment() {
-            const candidates = [];
-            for (let i = 0; i < gameState.tubes.length; i++) {
-                if (gameState.tubes[i].length < gameState.capacity) {
-                    candidates.push(i);
+        async function applyPressureDamage(visualOnly = false) {
+            if (!visualOnly) {
+                if (hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
+                    showToast("Void Shield!", "#a855f7");
+                    return;
                 }
+                gameState.hp -= 1;
             }
-            if (!candidates.length) return;
-            const idx = pick(candidates);
-            gameState.tubes[idx].push('K');
+            ui('game-container').classList.add('animate-shake');
+            await corruptRandomSegment();
+            const msg = currentLang === 'ja' ? "オーバーロード！ HP-1" : "Pressure Overload! HP -1";
+            showToast(msg, "#ef4444");
+            renderHUD();
             renderBoard();
             setTimeout(() => {
-                showFloatText(idx, "CORRUPTED!", "#ef4444");
-            }, 50);
+                const container = ui('game-container');
+                if(container) container.classList.remove('animate-shake');
+            }, 500);
         }
         function showFloatText(tubeIdx, text, color = "#38bdf8") {
             const targetEl = tubeCenterEl(tubeIdx);
@@ -2779,7 +2756,8 @@
                 catalystAvailable:true, 
                 refluxUses:0, 
                 momentumTurns:0, 
-                rerollCoupons:0 
+                rerollCoupons:0,
+                completedFlags: []
             }); 
             perkScreen.classList.add('hidden'); 
             nextFloor(true); 
@@ -2852,6 +2830,7 @@
             saveGame();
         }
         function tryUndo(){
+            if (gameState.busy) return;
             if (!gameState.history.length) return;
             const prev = gameState.history[gameState.history.length - 1];
             let isFree = prev.refluxUses > 0;
