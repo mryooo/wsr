@@ -555,6 +555,15 @@
         .animate-shake {
             animation: animate-shake 0.4s ease-in-out;
         }
+        .rarity-border-common.selected-perk { border: 2px solid var(--rarity-common); background: rgba(148, 163, 184, 0.15); box-shadow: 0 0 15px rgba(148, 163, 184, 0.3); }
+        .rarity-border-rare.selected-perk { border: 2px solid var(--rarity-rare); background: rgba(59, 130, 246, 0.15); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+        .rarity-border-epic.selected-perk { border: 2px solid var(--rarity-epic); background: rgba(168, 85, 247, 0.15); box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
+
+        .rarity-border-common:hover:not(.selected-perk) { border-color: rgba(148, 163, 184, 0.5); }
+        .rarity-border-rare:hover:not(.selected-perk) { border-color: rgba(59, 130, 246, 0.5); }
+        .rarity-border-epic:hover:not(.selected-perk) { border-color: rgba(168, 85, 247, 0.5); }
+
+        .selected-perk { transform: scale(1.02); z-index: 10; }
     </style>
 </head>
 <body>
@@ -583,7 +592,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <button id="btn-mutations" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all text-sky-300 border-sky-500/30">
-                        <span class="md:hidden">🧬</span><span class="hidden md:inline" id="btn-mutations-text">Skills</span>
+                        <span class="md:hidden">🧬</span><span class="hidden md:inline" id="btn-mutations-text">ステータス</span>
                     </button>
                     <button id="btn-retire" class="w-10 h-10 md:w-auto md:h-auto md:px-4 md:py-2 flex items-center justify-center glass-panel font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all text-rose-300 border-rose-500/30">
                         <span class="md:hidden">🏳️</span><span class="hidden md:inline" id="btn-retire-text">Retire</span>
@@ -684,7 +693,7 @@
                     探索を開始
                 </button>
             </div>
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.3.00 Bugfix</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.3.01 Bugfix</p>
         </div>
         <div id="perk-screen" class="fixed inset-0 z-[180] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
             <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
@@ -1054,7 +1063,7 @@
             setText('btn-palette-text', t('paletteBtn'));
             setText('palette-modal-title', t('paletteTitle'));
             setText('palette-close', t('close'));
-            const btnText = currentLang === 'ja' ? 'スキル' : 'Skills';
+            const btnText = currentLang === 'ja' ? 'ステータス' : 'Status';
             const mutationBtnLabel = document.getElementById('btn-mutations-text');
             if(mutationBtnLabel) mutationBtnLabel.textContent = btnText;
             const modalTitle = document.getElementById('mutations-modal-title');
@@ -1336,6 +1345,10 @@
         function getBoardCounts(){
             const counts = {};
             gameState.tubes.forEach(t => t.forEach(c => counts[c] = (counts[c]||0)+1));
+            if (gameState.extractorHeldColor) {
+                const c = gameState.extractorHeldColor;
+                counts[c] = (counts[c]||0) + 1;
+            }
             return counts;
         }
         function isCompleteTube(t, counts = null) {
@@ -1623,14 +1636,27 @@
                 setClass('target-mode', isTarget);
                 setClass('source-mode', gameState.targetMode === 'extractor' && segments.length > 0);
                 const water = tube.querySelector('.water-container');
-                const currentStateStr = JSON.stringify(segments);
+                const ghostState = (gameState.extractorHeldColor && i === gameState.extractorSourceIdx) ? ("_ghost_" + gameState.extractorHeldColor + "_" + (gameState.targetMode || "pipette")) : "";
+                const currentStateStr = JSON.stringify(segments) + ghostState;
                 if (water.dataset.lastState !== currentStateStr) {
                     water.innerHTML = '';
-                    segments.forEach(key => {
-                        const c = colorMeta(key)?.hex || '#64748b';
+                    let displaySegments = [...segments];
+                    if (gameState.extractorHeldColor && i === gameState.extractorSourceIdx) {
+                        const isBottom = (gameState.targetMode === 'quantum_pipette' || (gameState.pipetteMode && !gameState.targetMode));
+                        if (isBottom) {
+                            displaySegments.unshift(gameState.extractorHeldColor + "_ghost");
+                        } else {
+                            displaySegments.push(gameState.extractorHeldColor + "_ghost");
+                        }
+                    }
+                    displaySegments.forEach(key => {
+                        const isGhost = key.endsWith("_ghost");
+                        const actualKey = isGhost ? key.split("_")[0] : key;
+                        const c = colorMeta(actualKey)?.hex || '#64748b';
                         const seg = document.createElement('div');
                         seg.className = 'water-segment';
-                        if (key === 'K') {
+                        if (isGhost) seg.style.opacity = '0.5';
+                        if (actualKey === 'K') {
                             seg.classList.add('void-ink');
                         } else {
                             seg.style.backgroundColor = c;
@@ -2147,16 +2173,31 @@
                 }
                 gameState.hp -= 1;
             }
-            ui('game-container').classList.add('animate-shake');
+            const container = ui('game-container');
+            container.classList.remove('animate-shake');
+            void container.offsetWidth;
+            container.classList.add('animate-shake');
             await corruptRandomSegment();
             const msg = currentLang === 'ja' ? "オーバーロード！ HP-1" : "Pressure Overload! HP -1";
             showToast(msg, "#ef4444");
             renderHUD();
             renderBoard();
             setTimeout(() => {
-                const container = ui('game-container');
-                if(container) container.classList.remove('animate-shake');
+                container.classList.remove('animate-shake');
             }, 500);
+        }
+        function corruptRandomSegment() {
+            return new Promise((resolve) => {
+                const targetTubes = gameState.tubes
+                    .map((t, i) => ({ idx: i, length: t.length }))
+                    .filter(t => t.length < gameState.capacity);
+                if (targetTubes.length > 0) {
+                    const target = pick(targetTubes);
+                    gameState.tubes[target.idx].push('K');
+                    showFloatText(target.idx, "CORRUPTED", "#ef4444");
+                }
+                resolve();
+            });
         }
         function showFloatText(tubeIdx, text, color = "#38bdf8") {
             const targetEl = tubeCenterEl(tubeIdx);
@@ -2684,7 +2725,7 @@
         }
         function buildPerkCard(perk){
             const card = document.createElement('div'), owned = getPerkLevel(perk.id), next = owned + 1;
-            card.className = `perk-card glass-panel p-3 sm:p-4 cursor-pointer rarity-${perk.rarity} relative hover:bg-white/5 transition-all`;
+            card.className = `perk-card glass-panel p-3 sm:p-4 cursor-pointer rarity-${perk.rarity} rarity-border-${perk.rarity} relative transition-all`;
             const perkColorMap = {
                 'crimson_resonance': 'R', 'azure_cycle': 'B', 'amber_greed': 'Y',
                 'ivory_sanctuary': 'W', 'emerald_vitality': 'G', 'amethyst_surge': 'P',
@@ -2716,13 +2757,11 @@
             card.onclick = () => { 
                 gameState.pendingPerkId = perk.id;
                 Array.from(perkCards.children).forEach(c => { 
-                    c.classList.remove('border-sky-500', 'bg-sky-500/20', 'ring-2', 'ring-sky-500');
-                    c.classList.add('border-white/10');
-                    c.style.opacity = '0.6';
+                    c.classList.remove('selected-perk');
+                    c.style.opacity = '0.4';
                 }); 
                 card.style.opacity = '1'; 
-                card.classList.remove('border-white/10');
-                card.classList.add('border-sky-500', 'bg-sky-500/20', 'ring-2', 'ring-sky-500');
+                card.classList.add('selected-perk');
                 continueBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             };
             return card;
