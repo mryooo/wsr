@@ -2059,8 +2059,9 @@
                     gameState.targetMode = null;
                     const boardCounts = getBoardCounts();
                     for (let i = 0; i < gameState.tubes.length; i++) {
-                        if (isCompleteTube(gameState.tubes[i], boardCounts)) {
-                            await handleCompletion(i, gameState.tubes[i][0]);
+                        const t = gameState.tubes[i];
+                        if (isCompleteTube(t, boardCounts)) {
+                            await handleCompletion(i, t[0]);
                         }
                     }
                 } else {
@@ -2123,7 +2124,6 @@
                 if (checkLevelClear()) onLevelClear(); 
                 return; 
             }
-
             if (hasPerk('catalyst') && gameState.catalystAvailable) {
                 const lv = getPerkLevel('catalyst'); 
                 gameState.pressure = Math.max(0, gameState.pressure - (4 + lv));
