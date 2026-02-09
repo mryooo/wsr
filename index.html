@@ -472,15 +472,21 @@
         }
         @keyframes pulse-void {
             0% { 
-                box-shadow: inset 10px 0 12px -6px #27044a, inset -10px 0 12px -6px #27044a;
+                box-shadow: 
+                    inset 12px 0 12px -8px #27044a, 
+                    inset -12px 0 12px -8px #27044a;
                 filter: brightness(1); 
             }
             50% { 
-                box-shadow: inset 15px 0 18px -6px #681d7f, inset -15px 0 18px -6px #681d7f;
-                filter: brightness(1.2); 
+                box-shadow: 
+                    inset 20px 0 18px -10px #681d7f, 
+                    inset -20px 0 18px -10px #681d7f;
+                filter: brightness(1.15); 
             }
             100% { 
-                box-shadow: inset 10px 0 12px -6px #36044a, inset -10px 0 12px -6px #36044a;
+                box-shadow: 
+                    inset 12px 0 12px -8px #27044a, 
+                    inset -12px 0 12px -8px #27044a;
                 filter: brightness(1); 
             }
         }
@@ -683,7 +689,7 @@
                     探索を開始
                 </button>
             </div>
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.2.25 Bugfix</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.2.26 Bugfix</p>
         </div>
         <div id="perk-screen" class="fixed inset-0 z-[180] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
             <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
@@ -1460,50 +1466,97 @@
             const numColors = gameState.tubeCount - 2;
             const safeNumColors = Math.min(numColors, COLOR_POOL.length);
             const pool = COLOR_POOL.slice(0, Math.min(COLOR_POOL.length, safeNumColors + (floor > 5 ? 1 : 0))).map(c=>c.key);
+            
             const colors = [];
-            let failsafe = 0;
+            let colorFailsafe = 0;
             while(colors.length < safeNumColors){
                 const c = pick(pool);
                 if(!colors.includes(c)) colors.push(c);
-                failsafe++;
-                if(failsafe > 100) break; 
+                colorFailsafe++;
+                if(colorFailsafe > 100) break;
             }
-            const bag = [];
-            for (const c of colors) for (let i=0;i<gameState.capacity;i++) bag.push(c);
-            for (let i=bag.length-1;i>0;i--){
-                const j = randInt(i+1);
-                [bag[i], bag[j]] = [bag[j], bag[i]];
-            }
+
             const tubes = Array.from({length: gameState.tubeCount}, () => []);
-            let k=0;
-            for (let t=0;t<safeNumColors;t++){
-                for (let s=0;s<gameState.capacity;s++) {
-                    if(k < bag.length) tubes[t].push(bag[k++]);
+            for (let i = 0; i < colors.length; i++) {
+                for (let j = 0; j < gameState.capacity; j++) {
+                    tubes[i].push(colors[i]);
                 }
             }
-            for (let i=0;i<20;i++){
-                const t1 = randInt(safeNumColors);
-                const t2 = randInt(safeNumColors);
-                if (t1===t2) continue;
-                const s1 = randInt(gameState.capacity);
-                const s2 = randInt(gameState.capacity);
-                if(tubes[t1][s1] && tubes[t2][s2]) {
-                    [tubes[t1][s1], tubes[t2][s2]] = [tubes[t2][s2], tubes[t1][s1]];
+
+            let shuffleMoves = 0;
+            const targetMoves = gameState.capacity * colors.length * 8; 
+            let failsafe = 0;
+
+            while (shuffleMoves < targetMoves && failsafe < 4000) {
+                failsafe++;
+                const fromIdx = randInt(gameState.tubeCount);
+                const toIdx = randInt(gameState.tubeCount);
+
+                if (fromIdx === toIdx) continue;
+
+                const fromTube = tubes[fromIdx];
+                const toTube = tubes[toIdx];
+
+                if (fromTube.length === 0) continue;
+                if (toTube.length >= gameState.capacity) continue;
+
+                const color = fromTube[fromTube.length - 1];
+                let sameColorCount = 0;
+                for (let i = fromTube.length - 1; i >= 0; i--) {
+                    if (fromTube[i] === color) sameColorCount++;
+                    else break;
                 }
+
+                const moveAmount = 1 + randInt(Math.min(sameColorCount, gameState.capacity - toTube.length));
+                
+                for (let m = 0; m < moveAmount; m++) {
+                    toTube.push(fromTube.pop());
+                }
+                shuffleMoves++;
             }
-            for (let t = 0; t < safeNumColors; t++) {
-                if (tubes[t].length === gameState.capacity && tubes[t].every(c => c === tubes[t][0])) {
-                    let target = (t + 1) % safeNumColors;
-                    if (tubes[target].length > 0 && tubes[target][tubes[target].length-1] === tubes[t][0]) {
-                        target = (t + 2) % safeNumColors;
+
+            const emptyTubeTargetCount = 2;
+            const emptyIndices = [];
+            for (let i = gameState.tubeCount - emptyTubeTargetCount; i < gameState.tubeCount; i++) {
+                emptyIndices.push(i);
+            }
+
+            emptyIndices.forEach(targetIdx => {
+                while (tubes[targetIdx].length > 0) {
+                    const color = tubes[targetIdx].pop();
+                    let placed = false;
+                    const checkOrder = Array.from({length: gameState.tubeCount}, (_, i) => i).sort(() => Math.random() - 0.5);
+                    for (let i of checkOrder) {
+                        if (emptyIndices.includes(i)) continue;
+                        if (tubes[i].length < gameState.capacity) {
+                            tubes[i].push(color);
+                            placed = true;
+                            break;
+                        }
                     }
-                    const myTop = tubes[t].length - 1;
-                    const targetTop = tubes[target].length - 1;
-                    if (tubes[target].length > 0) {
-                        [tubes[t][myTop], tubes[target][targetTop]] = [tubes[target][targetTop], tubes[t][myTop]];
+                    if (!placed) { tubes[targetIdx].push(color); break; }
+                }
+            });
+
+            let completionFailsafe = 0;
+            const boardCounts = {};
+            tubes.forEach(t => t.forEach(c => boardCounts[c] = (boardCounts[c] || 0) + 1));
+
+            for (let i = 0; i < tubes.length; i++) {
+                if (tubes[i].length === 0) continue;
+                
+                let attempts = 0;
+                while (isCompleteTube(tubes[i], boardCounts) && attempts < 50) {
+                    attempts++;
+                    completionFailsafe++;
+                    const targetIdx = randInt(gameState.tubeCount);
+                    if (targetIdx === i) continue;
+                    if (tubes[targetIdx].length < gameState.capacity) {
+                        tubes[targetIdx].push(tubes[i].pop());
                     }
                 }
             }
+
             gameState.tubes = tubes;
             updateTubeLayout();
         }
@@ -2248,28 +2301,58 @@
             showFloatText(idx, "CORRUPTED!", "#ef4444");
             renderBoard();
         }
-        function showFloatText(tubeIdx, text, color="#38bdf8"){
-            const el = ui('tubes-container').children[tubeIdx]; if(!el) return;
-            const rect = el.getBoundingClientRect(), float = document.createElement('div');
-            float.textContent = text; float.style.position = 'fixed'; float.style.left = rect.left + 'px'; float.style.top = rect.top + 'px';
-            float.style.color = color; float.style.fontWeight = 'bold'; float.style.fontSize = '14px'; float.style.zIndex = 100;
-            float.style.textShadow = '0 2px 4px rgba(0,0,0,0.8)';
-            float.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(-30px)', opacity: 0 }], { duration: 1000, easing: 'ease-out' });
-            document.body.appendChild(float); setTimeout(()=>float.remove(), 1000);
+        function showFloatText(tubeIdx, text, color = "#38bdf8") {
+            // 画面内で最も中央に近い、正しいインデックスのチューブを取得
+            const targetEl = tubeCenterEl(tubeIdx);
+            if (!targetEl) return;
+
+            const rect = targetEl.getBoundingClientRect();
+            const float = document.createElement('div');
+            
+            float.textContent = text;
+            float.style.position = 'fixed';
+            
+            // チューブの中央に配置
+            float.style.left = (rect.left + rect.width / 2) + 'px';
+            float.style.top = rect.top + 'px';
+            float.style.transform = 'translateX(-50%)'; // 自身の幅の半分だけ左にずらして中央揃え
+            
+            float.style.color = color;
+            float.style.fontWeight = 'black';
+            float.style.fontSize = '18px'; // 少し大きく、太くして視認性向上
+            float.style.zIndex = '300'; // 他のUIより前面に
+            float.style.pointerEvents = 'none';
+            float.style.textShadow = '0 0 10px rgba(0,0,0,0.9), 0 2px 4px black';
+            float.style.whiteSpace = 'nowrap';
+
+            // アニメーション: translateX(-50%)を維持しつつ上昇
+            float.animate([
+                { transform: 'translate(-50%, 0)', opacity: 1 },
+                { transform: 'translate(-50%, -50px)', opacity: 0 }
+            ], { 
+                duration: 1200, 
+                easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' 
+            });
+
+            document.body.appendChild(float);
+            setTimeout(() => float.remove(), 1200);
         }
-        function tubeCenterEl(idx){ 
-            const els = ui('tubes-container').querySelectorAll(`[data-idx="${String(idx)}"]`);
-            if(els.length === 0) return null;
-            if(els.length === 1) return els[0];
-            const container = ui('board-scroll-area');
-            const center = container.getBoundingClientRect().left + container.clientWidth / 2;
-                let closest = els[0];
+        function tubeCenterEl(idx) {
+            const els = ui('tubes-container').querySelectorAll(`.tube[data-idx="${String(idx)}"]`);
+            if (els.length === 0) return null;
+            
+            const slider = ui('board-scroll-area');
+            const sliderRect = slider.getBoundingClientRect();
+            const centerX = sliderRect.left + sliderRect.width / 2;
+
+            let closest = els[0];
             let minDist = Infinity;
+
             els.forEach(el => {
                 const rect = el.getBoundingClientRect();
-                const elCenter = rect.left + rect.width / 2;
-                const dist = Math.abs(center - elCenter);
-                if(dist < minDist){
+                const elCenterX = rect.left + rect.width / 2;
+                const dist = Math.abs(centerX - elCenterX);
+                if (dist < minDist) {
                     minDist = dist;
                     closest = el;
                 }
