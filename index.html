@@ -169,12 +169,24 @@
             transform: scaleX(0.9);
         }
         @keyframes evaporate {
-            0% { transform: scale(1); opacity: 1; filter: brightness(1); }
-            50% { filter: brightness(2); background-color: white; }
-            100% { transform: scale(1.2); opacity: 0; }
+            0% { 
+                transform: scale(1); 
+                opacity: 1; 
+                filter: brightness(1) blur(0px); 
+            }
+            50% { 
+                filter: brightness(2) blur(2px); 
+                background-color: white !important;
+            }
+            100% { 
+                transform: scale(1.5) translateY(-20px); 
+                opacity: 0; 
+                filter: brightness(3) blur(10px);
+            }
         }
         .evaporating .water-segment {
-            animation: evaporate 0.6s forwards;
+            animation: evaporate 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+            pointer-events: none;
         }
         .lang-btn{
             padding: 6px 10px;
@@ -460,21 +472,15 @@
         }
         @keyframes pulse-void {
             0% { 
-                box-shadow: 
-                    inset 10px 0 12px -6px #27044a, 
-                    inset -10px 0 12px -6px #27044a;
+                box-shadow: inset 10px 0 12px -6px #27044a, inset -10px 0 12px -6px #27044a;
                 filter: brightness(1); 
             }
             50% { 
-                box-shadow: 
-                    inset 15px 0 18px -6px #681d7f, 
-                    inset -15px 0 18px -6px #681d7f;
-                filter: brightness(1.1); 
+                box-shadow: inset 15px 0 18px -6px #681d7f, inset -15px 0 18px -6px #681d7f;
+                filter: brightness(1.2); 
             }
             100% { 
-                box-shadow: 
-                    inset 10px 0 12px -6px #36044a, 
-                    inset -10px 0 12px -6px #36044a;
+                box-shadow: inset 10px 0 12px -6px #36044a, inset -10px 0 12px -6px #36044a;
                 filter: brightness(1); 
             }
         }
@@ -677,7 +683,7 @@
                     探索を開始
                 </button>
             </div>
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.2.24 Bugfix</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.2.25 Bugfix</p>
         </div>
         <div id="perk-screen" class="fixed inset-0 z-[180] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
             <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
@@ -939,7 +945,7 @@
                 helpTitle: "How to play",
                 helpText: [
                     "• Pour water: Click a tube, then click another to pour.",
-                    "• Obsidian (Black Ink): Match 4 to evaporate them and clear the tube!",
+                    "• Obsidian (Black Ink): Fill a tube to evaporate them and make it empty!",
                     "• Pressure: Rises with every move. If it fills, you take 1 Damage.",
                     "• Survival: No Move limit. Manage your HP and Pressure to survive.",
                     "• Artifacts: Buy skills in the shop. Use them from the bottom bar.",
@@ -1390,17 +1396,31 @@
             return false;
         }
         function onLevelClear(){
-            const base = 6;
-            const bonus = secondarySucceeded() ? 4 : 0;
-            gameState.essence += (base + bonus);
-                renderHUD(); 
+            if (gameState.busy) return;
+            gameState.busy = true;
+
+            const baseReward = 6;
+            const floorBonus = Math.floor((gameState.floor - 1) / 2);
+            const subGoalBonus = secondarySucceeded() ? 4 : 0;
+            const totalGained = baseReward + floorBonus + subGoalBonus;
+            
+            gameState.essence += totalGained;
+            
+            renderHUD(); 
             renderBoard();
-            const msg = currentLang==='ja' 
-                ? `ボーナス確保! ✨+${base} ${bonus>0 ? ` (ボーナス ✨+${bonus})` : ''}`
-                : `Bonus Cleared! ✨+${base} ${bonus>0 ? ` (Bonus ✨+${bonus})` : ''}`;
-                showToast(msg, bonus>0 ? 'emerald' : 'sky');
-                saveGame();
-            setTimeout(() => openPerkScreen(false), 1500);
+            
+            const msg = currentLang === 'ja' 
+                ? `階層クリア! ✨+${totalGained} (基本:${baseReward}${floorBonus > 0 ? ` 階層:+${floorBonus}` : ''}${subGoalBonus > 0 ? ` サブ目標:+${subGoalBonus}` : ''})`
+                : `Floor Cleared! ✨+${totalGained} (Base:${baseReward}${floorBonus > 0 ? ` Floor:+${floorBonus}` : ''}${subGoalBonus > 0 ? ` SubGoal:+${subGoalBonus}` : ''})`;
+                
+            showToast(msg, subGoalBonus > 0 ? 'emerald' : 'sky');
+            
+            saveGame();
+            
+            setTimeout(() => {
+                gameState.busy = false;
+                openPerkScreen(false);
+            }, 1500);
         }
         function checkSecondaryGoalOnComplete(){
             if (!gameState.secondaryGoal) return;
@@ -2153,23 +2173,39 @@
         }
         async function handleCompletion(tubeIdx, colorKey){
             const tubeEls = document.querySelectorAll(`.tube[data-idx="${tubeIdx}"]`);
-                if (colorKey === 'K') {
+            if (colorKey === 'K') {
+                gameState.busy = true;
                 showFloatText(tubeIdx, "Purged!", "#94a3b8");
+                
                 if(hasPerk('purification')){
                     const lv = getPerkLevel('purification');
                     gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
                     gameState.essence += (1 + lv);
                 }
-                tubeEls.forEach(el => el.classList.add('evaporating'));
-                await new Promise(r => setTimeout(r, 600));
+
+                tubeEls.forEach(el => {
+                    el.classList.add('evaporating');
+                });
+
+                await new Promise(r => setTimeout(r, 800));
+
                 gameState.tubes[tubeIdx] = []; 
-                tubeEls.forEach(el => el.classList.remove('evaporating'));
+                gameState.completedFlags[tubeIdx] = false;
+                
+                tubeEls.forEach(el => {
+                    el.classList.remove('evaporating');
+                    const water = el.querySelector('.water-container');
+                    if(water) delete water.dataset.lastState;
+                });
+
+                gameState.busy = false;
                 renderBoard(); 
                 if (checkLevelClear()) onLevelClear(); 
                 return; 
             }
-                renderBoard();
-                if (hasPerk('catalyst') && gameState.catalystAvailable){
+
+            renderBoard();
+            if (hasPerk('catalyst') && gameState.catalystAvailable){
                 const lv = getPerkLevel('catalyst'); 
                 gameState.pressure = Math.max(0, gameState.pressure - (4 + lv));
                 gameState.catalystAvailable = false; 
@@ -2178,16 +2214,20 @@
                 gameState.essence += 1;
             }
             if(hasPerk('heavy_mastery') && gameState.capacity >= 5){
-                 const lv = getPerkLevel('heavy_mastery'); 
-                 gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
+                const lv = getPerkLevel('heavy_mastery'); 
+                gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
             }
             if(hasPerk('momentum')) gameState.momentumTurns = getPerkLevel('momentum'); 
-                            checkSecondaryGoalOnComplete(); 
-            renderHUD();                            saveGame(); 
-                await showCompletionEvent(colorKey);
-                renderHUD(); 
+            
+            checkSecondaryGoalOnComplete(); 
+            renderHUD(); 
+            saveGame(); 
+            
+            await showCompletionEvent(colorKey);
+            renderHUD(); 
             renderBoard();
-                if (checkLevelClear()) {
+            
+            if (checkLevelClear()) {
                 onLevelClear();
             }
         }
