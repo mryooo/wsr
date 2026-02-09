@@ -835,12 +835,22 @@
                 }
                 gameState.hp -= 1;
             }
+            
+            // 演出開始
             ui('game-container').classList.add('animate-shake');
-            setTimeout(() => ui('game-container').classList.remove('animate-shake'), 500);
-            corruptRandomSegment(); // 黒インク追加
+            
+            // 黒インク追加
+            corruptRandomSegment(); 
+            
             const msg = currentLang === 'ja' ? "オーバーロード！ HP-1" : "Pressure Overload! HP -1";
             showToast(msg, "#ef4444");
             renderHUD();
+
+            // 500ms後にシェイク演出を終了（ここではbusy解除は行わない。tryPourのfinallyに任せる）
+            setTimeout(() => {
+                const container = ui('game-container');
+                if(container) container.classList.remove('animate-shake');
+            }, 500);
         }
         function randInt(n){ return Math.floor(Math.random()*n); }
         function pick(arr){ return arr[randInt(arr.length)]; }
@@ -1959,47 +1969,61 @@
                 const content = gameState.tubes[toIdx];
                 const counts = getBoardCounts();
                 gameState.selectedIdx = (content.length > 0 && !isCompleteTube(content, counts)) ? toIdx : null;
-                renderBoard(); return;
+                renderBoard(); 
+                return;
             }
+
+            // 操作禁止フラグを立てる
+            gameState.busy = true;
+
             try {
                 pushHistory();
-                gameState.busy = true;
+                
                 let pressureImmune = false;
                 if (hasPerk('steady_hand') && gameState.turnCount < getPerkLevel('steady_hand') * 3) pressureImmune = true;
                 if (gameState.momentumTurns > 0) { gameState.momentumTurns--; pressureImmune = true; }
+                
                 let isOverloaded = false;
                 if (!pressureImmune) {
-                    isOverloaded = addPressure(1); // ここでgameState.pressureは0になる
+                    isOverloaded = addPressure(1);
                 }
-                if (isOverloaded) {
-                    if (hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
-                        showToast("Void Shield!", "#a855f7");
-                        isOverloaded = false; // ダメージ無効化
-                    } else {
-                        gameState.hp -= 1; // 内部値を先に更新して整合性を保つ
-                    }
-                }
+                
+                // 注ぐアニメーション
                 gameState.turnCount += 1;
                 await animatePour(fromIdx, toIdx, check.color, check.moveCount);
+                
+                // データの更新
                 const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
                 for (let i = 0; i < check.moveCount; i++) to.push(from.pop());
+                
                 const counts = getBoardCounts();
                 if (isCompleteTube(to, counts)) {
                     await handleCompletion(toIdx, to[0]);
                 } else if (gameState.secondaryGoal?.type === 'combo') {
                     gameState.secondaryProgress = 0;
                 }
+
+                // オーバーロードが発生していた場合、ここで演出を呼び出す
                 if (isOverloaded) {
-                    applyPressureDamage(true); // true = 演出のみ実行
+                    applyPressureDamage(false); // ダメージ判定含めて実行
+                    // 演出の余韻を待つ
+                    await new Promise(r => setTimeout(r, 600));
                 }
+
                 saveGame();
+            } catch (e) {
+                console.error("Pour logic error:", e);
             } finally {
+                // 何があっても必ず操作禁止フラグを解除する
                 gameState.selectedIdx = null;
                 gameState.busy = false;
                 renderHUD();
                 renderBoard();
+
+                // 死亡判定またはクリア判定
                 if (gameState.hp <= 0) {
-                    clearSave(); openPerkScreen(true);
+                    clearSave(); 
+                    openPerkScreen(true);
                 } else if (checkLevelClear()) {
                     onLevelClear();
                 }
