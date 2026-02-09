@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Abyss Alchemy - Water Sort Rogue</title>
+    <link rel="icon" href="./icons/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
@@ -693,7 +694,7 @@
                     探索を開始
                 </button>
             </div>
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.3.01 Bugfix</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.3.02</p>
         </div>
         <div id="perk-screen" class="fixed inset-0 z-[180] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
             <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
@@ -2783,7 +2784,7 @@
             startScreen.classList.add('hidden'); 
             Object.assign(gameState, { 
                 floor:1, 
-                essence:0, 
+                essence:9999, 
                 hp:3, 
                 maxHp:3,
                 capacity:4, 
