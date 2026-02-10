@@ -1,3 +1,5 @@
+        const IS_DEBUG = false;
+        
         function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
         function addPressure(amount) {
             gameState.pressure += amount;
@@ -373,50 +375,50 @@
             }
         }
         const PERKS = {
-            catalyst: {id:'catalyst',name:{en:'Catalyst', ja:'触媒反応'},rarity:'epic',desc:{en:'Completing a tube reduces Pressure by [4 + Lv].', ja:'色を完成させるとプレッシャーが [4 + Lv] 下がる。'},            },
-            efficiency: {id:'efficiency',name:{en:'Efficiency', ja:'抽出効率'},rarity:'common',desc:{en:'Tube completion has [Lv x 20]% chance to grant +1 Essence.', ja:'色完成時、[Lv x 20]% の確率で +1 エッセンスを獲得。'},            },
-            transmutation: {id:'transmutation',name:{en:'Transmutation', ja:'物質変換'},rarity:'rare',desc:{en:'Start each floor with [Lv] random items.', ja:'階層開始時、[Lv] 個のランダムアイテムを獲得する。'},            },
-            momentum: {id:'momentum',name:{en:'Momentum', ja:'慣性律'},rarity:'common',desc:{en:'After completing a tube, Pressure does not rise for [Lv] turns.', ja:'チューブ完成後、[Lv] ターンの間、プレッシャーが上昇しない。'},            },
-            reflux: {id:'reflux',name:{en:'Reflux', ja:'逆流制御'},rarity:'common',desc:{en:'First [Lv] undos each floor are free (Pressure +2 instead).', ja:'各階層、最初の [Lv] 回のUndoはエッセンス無料。'},            },
-            steady_hand: {id:'steady_hand',name:{en:'Steady Hand', ja:'安定した手'},rarity:'rare',desc:{en:'Pressure does not rise for the first [Lv x 3] turns of a floor.', ja:'階層開始から [Lv x 3] ターンの間、プレッシャーが上昇しない。'},            },
-            overflow: {id:'overflow',name:{en:'Overflow', ja:'オーバーフロー'},rarity:'common',desc:{en:'Pressure max +[Lv x 4].', ja:'プレッシャーの最大許容量が +[Lv x 4] される。'},            },
-            purification: {id:'purification',name:{en:'Purification', ja:'浄化作用'},rarity:'epic',desc:{en:'Clearing Obsidian reduces Pressure by [2 + Lv] and grants [1 + Lv] Essence.', ja:'黒インク消滅時、プレッシャー-[2 + Lv]、エッセンス+[1 + Lv]。'},            },
-            scavenger: {id:'scavenger',name:{en:'Scavenger', ja:'スカベンジャー'},rarity:'rare',desc:{en:'[10 + Lv x 5]% chance to find item on new floor.', ja:'階層移動時、[10 + Lv x 5]% の確率でアイテムを拾う。'},            },
-            recycler: {id:'recycler',name:{en:'Recycler', ja:'リサイクル'},rarity:'epic',desc:{en:'[Lv x 10]% chance to not consume item on use.', ja:'アイテム使用時、[Lv x 10]% の確率で消費しない。'},            },
-            bargain: {id:'bargain',name:{en:'Bargain', ja:'交渉術'},rarity:'common',desc:{en:'Shop prices reduced by [15 + Lv x 5]%.', ja:'ショップ価格 [15 + Lv x 5]% OFF。'},            },
-            heavy_mastery: {id:'heavy_mastery',name:{en:'Heavy Mastery', ja:'大容量ボーナス'},rarity:'rare',desc:{en:'Clearing 5+ capacity tube reduces Pressure by [2 + Lv].', ja:'容量5以上のチューブ完成でプレッシャー [2 + Lv] 減少。'},            },
-            void_shield: {id:'void_shield',name:{en:'Void Shield', ja:'虚空の盾'},rarity:'rare',desc:{en:'[Lv x 15]% chance to negate Pressure damage.', ja:'プレッシャーダメージを受けた時、[Lv x 15]% で無効化する。'},            },
-            deep_adapt: {id:'deep_adapt',name:{en:'Deep Adapt', ja:'深層適応'},rarity:'epic',desc:{en:'Gain [Lv] Max HP if capacity > 4 at start of floor.', ja:'階層開始時、容量5以上なら最大HP+[Lv]。'},            },
-            flow_mastery: {id:'flow_mastery',name:{en:'Flow Mastery', ja:'フロー熟練'},rarity:'common',desc:{en:'Combo reduces Pressure by [Lv x 2].', ja:'コンボ発生時、プレッシャーが [Lv x 2] 下がる。'},            },
-            coupon: {id: 'coupon',name: {en:'Coupon', ja:'クーポン券'},rarity: 'common',desc: {en:'Start each floor with [Lv] free Rerolls.', ja:'各階層開始時、無料でリロールできるクーポンを [Lv] 枚得る。'}            },
-            crimson_resonance: {id:'crimson_resonance',name:{en:'Crimson Resonance', ja:'紅の熱量'},rarity:'rare',desc:{en:'Completing Crimson heals 1 HP but adds [6 - Lv] Pressure.', ja:'紅を完成させるとHPが1回復するが、プレッシャーが [6 - Lv] 上昇する。'},            },
-            azure_cycle: {id:'azure_cycle',name:{en:'Azure Cycle', ja:'蒼の循環'},rarity:'common',desc:{en:'Azure completion reduces Pressure by [Lv x 3] additional.', ja:'蒼完成時、追加でプレッシャーが [Lv x 3] 減少する。'},            },
-            amber_greed: {id:'amber_greed',name:{en:'Amber Alchemy', ja:'琥珀の錬金'},rarity:'rare',desc:{en:'Amber completion grants [Lv x 2] Essence.', ja:'琥珀完成時、エッセンスを [Lv x 2] 獲得する。'},            },
-            ivory_sanctuary: {id:'ivory_sanctuary',name:{en:'Ivory Sanctuary', ja:'象牙の聖域'},rarity:'epic',desc:{en:'Ivory completion removes [Lv] Obsidian from random tubes.', ja:'象牙完成時、ランダムなチューブから黒インクを [Lv] 個除去する。'},            },
-            emerald_vitality: {id:'emerald_vitality',name:{en:'Emerald Vitality', ja:'翠の活力'},rarity:'common',desc:{en:'Emerald completion halves current Pressure.', ja:'翠を完成させると現在のプレッシャーが半分になる。'},            },
-            amethyst_surge: {id:'amethyst_surge',name:{en:'Amethyst Surge', ja:'紫の脈動'},rarity:'rare',desc:{en:'Amethyst completion grants +[Lv] free Undo charges.', ja:'紫完成時、無料Undoの回数を [Lv] 回増やす。'},            },
-            orange_drive: {id:'orange_drive',name:{en:'Orange Drive', ja:'橙の推進'},rarity:'common',desc:{en:'Orange completion stops Pressure rise for [Lv x 2] turns.', ja:'橙完成時、[Lv x 2] ターンの間プレッシャーが上昇しなくなる。'},            },
-            teal_equilibrium: {id:'teal_equilibrium',name:{en:'Teal Analysis', ja:'青緑の分析'},rarity:'rare',desc:{en:'Teal completion progresses Secondary Goal by 1.', ja:'青緑を完成させると副目標の進行度が 1 進む。'},            },
-            pink_luck: {id:'pink_luck',name:{en:'Pink Luck', ja:'桃の幸運'},rarity:'rare',desc:{en:'Pink completion has [Lv x 10]% chance to drop a random item.', ja:'桃完成時、[Lv x 10]% の確率でランダムなアイテムを得る。'},            }
+            catalyst: {id:'catalyst',name:{en:'Catalyst', ja:'触媒反応'},rarity:'epic',desc:{en:'Complete a color only once per level to reduce pressure by [4 + Lv].', ja:'階層ごとに1回だけ色を完成させるとプレッシャーが [4 + Lv] 下がる。'},},
+            efficiency: {id:'efficiency',name:{en:'Efficiency', ja:'抽出効率'},rarity:'common',desc:{en:'Tube completion has [Lv x 20]% chance to grant +1 Essence.', ja:'色完成時、[Lv x 20]% の確率で +1 エッセンスを獲得。'},},
+            transmutation: {id:'transmutation',name:{en:'Transmutation', ja:'物質変換'},rarity:'rare',desc:{en:'Start each floor with [Lv] random items.', ja:'階層開始時、[Lv] 個のランダムアイテムを獲得する。'},},
+            momentum: {id:'momentum',name:{en:'Momentum', ja:'慣性律'},rarity:'common',desc:{en:'After completing a tube, Pressure does not rise for [Lv] turns.', ja:'チューブ完成後、[Lv] ターンの間、プレッシャーが上昇しない。'},},
+            reflux: {id:'reflux',name:{en:'Reflux', ja:'逆流制御'},rarity:'common',desc:{en:'First [Lv] undos each floor are free (Pressure +2 instead).', ja:'各階層、最初の [Lv] 回のUndoはエッセンス無料。'},},
+            steady_hand: {id:'steady_hand',name:{en:'Steady Hand', ja:'安定した手'},rarity:'rare',desc:{en:'Pressure does not rise for the first [Lv x 3] turns of a floor.', ja:'階層開始から [Lv x 3] ターンの間、プレッシャーが上昇しない。'},},
+            overflow: {id:'overflow',name:{en:'Overflow', ja:'オーバーフロー'},rarity:'common',desc:{en:'Pressure max +[Lv x 4].', ja:'プレッシャーの最大許容量が +[Lv x 4] される。'},},
+            purification: {id:'purification',name:{en:'Purification', ja:'浄化作用'},rarity:'epic',desc:{en:'Clearing Obsidian reduces Pressure by [2 + Lv] and grants [1 + Lv] Essence.', ja:'黒インク消滅時、プレッシャー-[2 + Lv]、エッセンス+[1 + Lv]。'},},
+            scavenger: {id:'scavenger',name:{en:'Scavenger', ja:'スカベンジャー'},rarity:'rare',desc:{en:'[10 + Lv x 5]% chance to find item on new floor.', ja:'階層移動時、[10 + Lv x 5]% の確率でアイテムを拾う。'},},
+            recycler: {id:'recycler',name:{en:'Recycler', ja:'リサイクル'},rarity:'epic',desc:{en:'[Lv x 10]% chance to not consume item on use.', ja:'アイテム使用時、[Lv x 10]% の確率で消費しない。'},},
+            bargain: {id:'bargain',name:{en:'Bargain', ja:'交渉術'},rarity:'common',desc:{en:'Shop prices reduced by [15 + Lv x 5]%.', ja:'ショップ価格 [15 + Lv x 5]% OFF。'},},
+            heavy_mastery: {id:'heavy_mastery',name:{en:'Heavy Mastery', ja:'大容量ボーナス'},rarity:'rare',desc:{en:'Clearing 5+ capacity tube reduces Pressure by [2 + Lv].', ja:'容量5以上のチューブ完成でプレッシャー [2 + Lv] 減少。'},},
+            void_shield: {id:'void_shield',name:{en:'Void Shield', ja:'虚空の盾'},rarity:'rare',desc:{en:'[Lv x 15]% chance to negate Pressure damage.', ja:'プレッシャーダメージを受けた時、[Lv x 15]% で無効化する。'},},
+            deep_adapt: {id:'deep_adapt',name:{en:'Deep Adapt', ja:'深層適応'},rarity:'epic',desc:{en:'Gain [Lv] Max HP if capacity > 4 at start of floor.', ja:'階層開始時、容量5以上なら最大HP+[Lv]。'},},
+            flow_mastery: {id:'flow_mastery',name:{en:'Flow Mastery', ja:'フロー熟練'},rarity:'common',desc:{en:'Combo reduces Pressure by [Lv x 2].', ja:'コンボ発生時、プレッシャーが [Lv x 2] 下がる。'},},
+            coupon: {id: 'coupon',name: {en:'Coupon', ja:'クーポン券'},rarity: 'common',desc: {en:'Start each floor with [Lv] free Rerolls.', ja:'各階層開始時、無料でリロールできるクーポンを [Lv] 枚得る。'}},
+            crimson_resonance: {id:'crimson_resonance',name:{en:'Crimson Resonance', ja:'紅の熱量'},rarity:'rare',desc:{en:'Completing Crimson heals 1 HP but adds [6 - Lv] Pressure.', ja:'紅を完成させるとHPが1回復するが、プレッシャーが [6 - Lv] 上昇する。'},},
+            azure_cycle: {id:'azure_cycle',name:{en:'Azure Cycle', ja:'蒼の循環'},rarity:'common',desc:{en:'Azure completion reduces Pressure by [Lv x 3] additional.', ja:'蒼完成時、追加でプレッシャーが [Lv x 3] 減少する。'},},
+            amber_greed: {id:'amber_greed',name:{en:'Amber Alchemy', ja:'琥珀の錬金'},rarity:'rare',desc:{en:'Amber completion grants [Lv x 2] Essence.', ja:'琥珀完成時、エッセンスを [Lv x 2] 獲得する。'},},
+            ivory_sanctuary: {id:'ivory_sanctuary',name:{en:'Ivory Sanctuary', ja:'象牙の聖域'},rarity:'epic',desc:{en:'Ivory completion removes [Lv] Obsidian from random tubes.', ja:'象牙完成時、ランダムなチューブから黒インクを [Lv] 個除去する。'},},
+            emerald_vitality: {id:'emerald_vitality',name:{en:'Emerald Vitality', ja:'翠の活力'},rarity:'common',desc:{en:'Emerald completion halves current Pressure.', ja:'翠を完成させると現在のプレッシャーが半分になる。'},},
+            amethyst_surge: {id:'amethyst_surge',name:{en:'Amethyst Surge', ja:'紫の脈動'},rarity:'rare',desc:{en:'Amethyst completion grants +[Lv] free Undo charges.', ja:'紫完成時、無料Undoの回数を [Lv] 回増やす。'},},
+            orange_drive: {id:'orange_drive',name:{en:'Orange Drive', ja:'橙の推進'},rarity:'common',desc:{en:'Orange completion stops Pressure rise for [Lv x 2] turns.', ja:'橙完成時、[Lv x 2] ターンの間プレッシャーが上昇しなくなる。'},},
+            teal_equilibrium: {id:'teal_equilibrium',name:{en:'Teal Analysis', ja:'青緑の分析'},rarity:'rare',desc:{en:'Teal completion progresses Secondary Goal by 1.', ja:'青緑を完成させると副目標の進行度が 1 進む。'},},
+            pink_luck: {id:'pink_luck',name:{en:'Pink Luck', ja:'桃の幸運'},rarity:'rare',desc:{en:'Pink completion has [Lv x 10]% chance to drop a random item.', ja:'桃完成時、[Lv x 10]% の確率でランダムなアイテムを得る。'},}
         };
         const ITEMS = {
             heal: {id: 'heal', type: 'consumable', cost: 8, icon: '🩹', name: {en:'Stabilizer', ja:'安定剤'},desc: {en:'Heal +1 HP.', ja:'HPを+1回復する'}},
-            panacea: {id: 'panacea', type: 'consumable', cost: 15, icon: '💊',name: {en:'Panacea', ja:'万能薬'},desc: {en:'Heal +2 HP.', ja:'HPを+2回復する'}            },
-            sedative: {id: 'sedative', type: 'consumable', cost: 12, icon: '💤',name: {en:'Sedative', ja:'鎮静剤'},desc: {en:'Set Pressure to 0.', ja:'プレッシャーを0にする'}            },
-            layer_swap: {id: 'layer_swap', type: 'consumable', cost: 12, icon: '🔗',name: {en:'Layer Swap', ja:'層交換'},desc: {en:'Swap top 2 layers.', ja:'上2つの層を入れ替え'}            },
-            shaker: {id: 'shaker', type: 'consumable', cost: 5, icon: '🎲',name: {en:'Shaker', ja:'シェイカー'},desc: {en:'Shuffle tube.', ja:'中身をシャッフル'}            },
-            cursed_sludge: {id: 'cursed_sludge', type: 'consumable', cost: 6, icon: '⚫',name: {en:'Cursed Sludge', ja:'呪いの泥'},desc: {en:'Add Obsidian if space.', ja:'空きがあれば黒を追加'}            },
-            void_salt: {id: 'void_salt', type: 'consumable', cost: 8, icon: '🧂',name: {en:'Void Salt', ja:'虚無の塩'},desc: {en:'Remove top Black.', ja:'一番上の【黒】を除去'}            },
-            transfer: {id: 'transfer', type: 'consumable', cost: 10, icon: '🧴',name: {en:'Surface Transfer', ja:'水面移送'},desc: {en:'Move top 1 segment anywhere.', ja:'一番上の色を吸い出しどこにでも注入する'}            },
-            vacuum: {id: 'vacuum', type: 'consumable', cost: 14, icon: '🌀',name: {en:'Obsidian Vacuum', ja:'黒吸引機'},desc: {en:'Remove all top Obsidian.', ja:'一番上の黒インクを全除去'}            },
-            midas: {id: 'midas', type: 'consumable', cost: 8, icon: '🖐️',name: {en:'Alchemy Stone', ja:'対黒変成'},desc: {en:'Obsidian > Essence.', ja:'一番上の黒をエッセンスに'}            },
-            vaporizer: {id: 'vaporizer', type: 'consumable', cost: 7, icon: '♨️',name: {en:'Vaporizer', ja:'微量蒸発'},desc: {en:'Delete top 1 segment.', ja:'一番上の1層を除去'}            },
-            sediment: {id: 'sediment', type: 'consumable', cost: 10, icon: '⏬',name: {en:'Sediment', ja:'沈殿'},desc: {en:'Move top to bottom.', ja:'一番上を一番下へ'}            },
-            quantum_pipette: {id: 'quantum_pipette', type: 'consumable', cost: 15, icon: '💉',name: {en:'Quantum Pipette', ja:'量子スポイト'},desc: {en:'Extract bottom color.', ja:'一番下の色を吸い出しどこにでも注入する'}            },
-            cycle_siphon: {id: 'cycle_siphon', type: 'consumable', cost: 10, icon: '⏫',name: {en:'Cycle Siphon', ja:'循環サイフォン'},desc: {en:'Move bottom to top.', ja:'一番下を一番上へ'}            },
-            inverter: {id: 'inverter', type: 'consumable', cost: 6, icon: '🔄',name: {en:'Gravity Coil', ja:'重力反転機'},desc: {en:'Invert contents.', ja:'中身を上下反転'}            },
-            separator: {id: 'separator', type: 'consumable', cost: 12, icon: '🌪️',name: {en:'Separator', ja:'遠心分離機'},desc: {en:'Sort tube contents.', ja:'中身を整理する'}            },
-            summon_vial: {id: 'summon_vial', type: 'consumable', cost: 20, icon: '🧪',name: {en:'Extra Vial', ja:'予備試験管'},desc: {en:'Add empty tube.', ja:'空のチューブを1つ追加'}            },
+            panacea: {id: 'panacea', type: 'consumable', cost: 15, icon: '💊',name: {en:'Panacea', ja:'万能薬'},desc: {en:'Heal +2 HP.', ja:'HPを+2回復する'}},
+            sedative: {id: 'sedative', type: 'consumable', cost: 12, icon: '💤',name: {en:'Sedative', ja:'鎮静剤'},desc: {en:'Set Pressure to 0.', ja:'プレッシャーを0にする'}},
+            layer_swap: {id: 'layer_swap', type: 'consumable', cost: 12, icon: '🔗',name: {en:'Layer Swap', ja:'層交換'},desc: {en:'Swap top 2 layers.', ja:'上2つの層を入れ替え'}},
+            shaker: {id: 'shaker', type: 'consumable', cost: 5, icon: '🎲',name: {en:'Shaker', ja:'シェイカー'},desc: {en:'Shuffle tube.', ja:'中身をシャッフル'}},
+            cursed_sludge: {id: 'cursed_sludge', type: 'consumable', cost: 6, icon: '⚫',name: {en:'Cursed Sludge', ja:'呪いの泥'},desc: {en:'Add Obsidian if space.', ja:'空きがあれば黒を追加'}},
+            void_salt: {id: 'void_salt', type: 'consumable', cost: 8, icon: '🧂',name: {en:'Void Salt', ja:'虚無の塩'},desc: {en:'Remove top Black.', ja:'一番上の【黒】を除去'}},
+            transfer: {id: 'transfer', type: 'consumable', cost: 10, icon: '🧴',name: {en:'Surface Transfer', ja:'水面移送'},desc: {en:'Move top 1 segment anywhere.', ja:'一番上の色を吸い出しどこにでも注入する'}},
+            vacuum: {id: 'vacuum', type: 'consumable', cost: 14, icon: '🌀',name: {en:'Obsidian Vacuum', ja:'黒吸引機'},desc: {en:'Remove all top Obsidian.', ja:'一番上の黒インクを全除去'}},
+            midas: {id: 'midas', type: 'consumable', cost: 8, icon: '🖐️',name: {en:'Alchemy Stone', ja:'対黒変成'},desc: {en:'Obsidian > Essence.', ja:'一番上の黒をエッセンスに'}},
+            vaporizer: {id: 'vaporizer', type: 'consumable', cost: 7, icon: '♨️',name: {en:'Vaporizer', ja:'微量蒸発'},desc: {en:'Delete top 1 segment.', ja:'一番上の1層を除去'}},
+            sediment: {id: 'sediment', type: 'consumable', cost: 10, icon: '⏬',name: {en:'Sediment', ja:'沈殿'},desc: {en:'Move top to bottom.', ja:'一番上を一番下へ'}},
+            quantum_pipette: {id: 'quantum_pipette', type: 'consumable', cost: 15, icon: '💉',name: {en:'Quantum Pipette', ja:'量子スポイト'},desc: {en:'Extract bottom color.', ja:'一番下の色を吸い出しどこにでも注入する'}},
+            cycle_siphon: {id: 'cycle_siphon', type: 'consumable', cost: 10, icon: '⏫',name: {en:'Cycle Siphon', ja:'循環サイフォン'},desc: {en:'Move bottom to top.', ja:'一番下を一番上へ'}},
+            inverter: {id: 'inverter', type: 'consumable', cost: 6, icon: '🔄',name: {en:'Gravity Coil', ja:'重力反転機'},desc: {en:'Invert contents.', ja:'中身を上下反転'}},
+            separator: {id: 'separator', type: 'consumable', cost: 12, icon: '🌪️',name: {en:'Separator', ja:'遠心分離機'},desc: {en:'Sort tube contents.', ja:'中身を整理する'}},
+            summon_vial: {id: 'summon_vial', type: 'consumable', cost: 20, icon: '🧪',name: {en:'Extra Vial', ja:'予備試験管'},desc: {en:'Add empty tube.', ja:'空のチューブを1つ追加'}},
         };
         const INSTANT_ITEMS = [
             { id:'dark_pact',   type:'stat', cost:0, name:{en:'Dark Pact', ja:'黒の契約'},  desc:{en:'HP-2, +20 Ess', ja:'HP-2, +20エッセンス'}, apply(gs){     if(gs.hp > 2){        gs.hp -= 2; gs.essence += 20;         showToast('Power at a cost...', 'purple');     } else {        showToast('Too weak...', 'red');    }}             },
@@ -457,7 +459,7 @@
             tubes: [],
             busy: false,
             perks: {},
-            inventory: {}, 
+            inventory: IS_DEBUG ? Object.keys(ITEMS).reduce((acc, key) => ({ ...acc, [key]: 3 }), {}) : {},
             pressure: 0,
             pressureMax: 20,
             catalystAvailable: true,
@@ -832,10 +834,10 @@
                         const seg = document.createElement('div');
                         seg.className = 'water-segment';
                         if (isGhost) seg.style.opacity = '0.5';
+                        seg.style.backgroundColor = c;
                         if (actualKey === 'K') {
                             seg.classList.add('void-ink');
                         }
-                        seg.style.backgroundColor = c;
                         water.appendChild(seg);
                     });
                     water.dataset.lastState = currentStateStr;
@@ -1280,7 +1282,7 @@
             const tubeEls = document.querySelectorAll(`.tube[data-idx="${tubeIdx}"]`);
             if (colorKey === 'K') {
                 gameState.busy = true; 
-                showFloatText(tubeIdx, "Purged!", "#94a3b8");
+                showToast("Purged!", 'slate');
                 if (hasPerk('purification')) {
                     const lv = getPerkLevel('purification');
                     gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
@@ -1306,17 +1308,17 @@
                 const lv = getPerkLevel('catalyst'); 
                 gameState.pressure = Math.max(0, gameState.pressure - (4 + lv));
                 gameState.catalystAvailable = false; 
-                showFloatText(tubeIdx, "Catalyst! Pressure Down", "#38bdf8");
+                showToast("Catalyst! Pressure Down", 'sky');
             }
             // 抽出効率 (Efficiency)
             if (hasPerk('efficiency') && Math.random() < getPerkLevel('efficiency') * 0.20) {
                 gameState.essence += 1;
-                showFloatText(tubeIdx, "Efficient! +1 Essence", "#fbbf24");
+                showToast("Efficient! +1 Essence", 'yellow');
             }
             // 紅 (Crimson)
             if (colorKey === 'R' && hasPerk('crimson_resonance')) {
                 gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
-                showFloatText(tubeIdx, "Resonance! HP+1 / Pressure Up", "#dc2626");
+                showToast("Resonance! HP+1 / Pressure Up", 'rose');
                 const cost = Math.max(0, 6 - getPerkLevel('crimson_resonance'));
                 if (addPressure(cost)) {
                     await applyPressureDamage();
@@ -1326,43 +1328,43 @@
             if (colorKey === 'B' && hasPerk('azure_cycle')) {
                 const amount = getPerkLevel('azure_cycle') * 3;
                 gameState.pressure = Math.max(0, gameState.pressure - amount);
-                showFloatText(tubeIdx, `Cycle! -${amount} Pressure`, "#3b82f6");
+                showToast(`Cycle! -${amount} Pressure`, 'blue');
             }
 
             // 琥珀（Amber）: エッセンス獲得
             if (colorKey === 'Y' && hasPerk('amber_greed')) {
                 const amount = getPerkLevel('amber_greed') * 2;
                 gameState.essence += amount;
-                showFloatText(tubeIdx, `Alchemy! +${amount} Essence`, "#fbbf24");
+                showToast(`Alchemy! +${amount} Essence`, 'amber');
             }
 
             // 象牙（Ivory）: 黒インク除去
             if (colorKey === 'W' && hasPerk('ivory_sanctuary')) {
                 const amount = getPerkLevel('ivory_sanctuary');
                 for(let i=0; i<amount; i++) removeOneObsidian();
-                showFloatText(tubeIdx, "Sanctuary! Purged", "#e2e8f0");
+                showToast("Sanctuary! Purged", 'slate');
             }
             // 翠（Emerald）: プレッシャー半減
             if (colorKey === 'G' && hasPerk('emerald_vitality')) {
                 gameState.pressure = Math.floor(gameState.pressure / 2);
-                showFloatText(tubeIdx, "Vitality! Pressure/2", "#22c55e");
+                showToast("Vitality! Pressure/2", 'emerald');
             }
             // 紫（Amethyst）: 無料Undo追加
             if (colorKey === 'P' && hasPerk('amethyst_surge')) {
                 const amount = getPerkLevel('amethyst_surge');
                 gameState.refluxUses += amount;
-                showFloatText(tubeIdx, `Surge! Undo+${amount}`, "#a855f7");
+                showToast(`Surge! Undo+${amount}`, 'purple');
             }
             // 橙（Orange）: プレッシャー上昇停止
             if (colorKey === 'O' && hasPerk('orange_drive')) {
                 const turns = getPerkLevel('orange_drive') * 2;
                 gameState.momentumTurns += turns;
-                showFloatText(tubeIdx, `Drive! Momentum+${turns}`, "#f97316");
+                showToast(`Drive! Momentum+${turns}`, 'orange');
             }
             // 青緑（Teal）: サブ目標進行
             if (colorKey === 'T' && hasPerk('teal_equilibrium')) {
                 gameState.secondaryProgress += 1;
-                showFloatText(tubeIdx, "Analysis! Goal+1", "#06b6d4");
+                showToast("Analysis! Goal+1", 'cyan');
             }
             // 桃（Pink）: アイテムドロップ抽選
             if (colorKey === 'M' && hasPerk('pink_luck')) {
@@ -1373,7 +1375,7 @@
                     if (availableToPick.length > 0) {
                         const k = pick(availableToPick);
                         gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
-                        showFloatText(tubeIdx, "Lucky! Item Get!", "#d946ef");
+                        showToast("Lucky! Item Get!", 'fuchsia');
                         showToast(currentLang === 'ja' ? `${ITEMS[k].name.ja}を獲得！` : `Got ${ITEMS[k].name.en}!`, 'pink');
                     }
                 }
@@ -1382,12 +1384,12 @@
             if(hasPerk('heavy_mastery') && gameState.capacity >= 5){
                 const lv = getPerkLevel('heavy_mastery'); 
                 gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
-                showFloatText(tubeIdx, "Heavy Mastery! Pressure Down", "#94a3b8");
+                showToast("Heavy Mastery! Pressure Down", 'indigo');
             }
             // 慣性律 (Momentum)
             if(hasPerk('momentum')) {
                 gameState.momentumTurns = getPerkLevel('momentum'); 
-                showFloatText(tubeIdx, "Momentum! Pressure Stop", "#a855f7");
+                showToast("Momentum! Pressure Stop", 'violet');
             }
             
             checkSecondaryGoalOnComplete(); 
@@ -1689,7 +1691,8 @@
                 return base;
             });
             const chosen = [];
-            while(chosen.length < Math.min(count, pool.length)){
+            // デバッグ用（常に全種類のスキルを表示）
+            while(chosen.length < (IS_DEBUG ? pool.length + 50 : Math.min(count, pool.length))){
                 const total = w.reduce((a,b)=>a+b,0);
                 let r = Math.random() * total;
                 let idx = 0;
@@ -1697,8 +1700,10 @@
                 idx = Math.min(idx, w.length-1);
                 const perkId = pool[idx];
                 chosen.push(PERKS[perkId]);
-                pool.splice(idx,1);
-                w.splice(idx,1);
+                if (!IS_DEBUG) {
+                    pool.splice(idx,1);
+                    w.splice(idx,1);
+                }
             }
             return chosen;
         }
@@ -1784,7 +1789,7 @@
             const isAtMax = (offer.kind==='item' && !isTool && currentInventoryCount >= 3) || 
                             (offer.id === 'mystery_box' && allItemsMax);
             const ownedTool = (isTool && currentInventoryCount > 0);
-            const disabled = !!offer.purchased || ownedTool || isAtMax || !affordable;
+            const disabled = !IS_DEBUG && (!!offer.purchased || ownedTool || isAtMax || !affordable);
             const card = document.createElement('div');
             card.className = 'shop-card glass-panel perk-card p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 h-full justify-between'; 
             card.dataset.cost = String(cost);
@@ -2104,7 +2109,7 @@
             startScreen.classList.add('hidden'); 
             Object.assign(gameState, { 
                 floor:1, 
-                essence:0, 
+                essence: IS_DEBUG ? 9999 : 0,
                 hp:3, 
                 maxHp:3,
                 capacity:4, 
@@ -2112,7 +2117,7 @@
                 pressure:0, 
                 pressureMax:20, 
                 history:[], 
-                inventory:{}, 
+                inventory: IS_DEBUG ? Object.keys(ITEMS).reduce((acc, key) => ({ ...acc, [key]: 3 }), {}) : {},
                 catalystAvailable:true, 
                 refluxUses:0, 
                 momentumTurns:0, 
