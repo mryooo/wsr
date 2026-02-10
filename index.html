@@ -7,6 +7,22 @@
     <link rel="icon" href="./icons/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        html {
+            background-color: #020617;
+        }
+        body {
+            background-color: #020617;
+            background: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 100%);
+            color: white;
+            font-family: 'Inter', system-ui, sans-serif;
+            touch-action: manipulation;
+            overflow: hidden;
+            height: 100dvh;
+            width: 100vw;
+            margin: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
         :root {
             --bg-color: #020617;
             --tube-border: #334155;
@@ -25,18 +41,6 @@
         }
         .pb-safe {
             padding-bottom: var(--safe-area-bottom);
-        }
-        body {
-            background: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 100%);
-            color: white;
-            font-family: 'Inter', system-ui, sans-serif;
-            touch-action: manipulation;
-            overflow: hidden;
-            height: 100dvh;
-            width: 100vw;
-            margin: 0;
-            user-select: none;
-            -webkit-user-select: none;
         }
         .glass-panel {
             background: rgba(15, 23, 42, 0.85);
@@ -701,7 +705,7 @@
                     探索を開始
                 </button>
             </div>
-            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.3.06</p>
+            <p class="text-slate-600 text-[10px] mt-8 tracking-widest uppercase">Alpha Ver 0.3.07</p>
         </div>
         <div id="perk-screen" class="fixed inset-0 z-[180] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
             <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
@@ -711,8 +715,8 @@
                         <p id="perk-subtitle" class="text-slate-400 text-[10px] md:text-xs mt-1 uppercase tracking-widest">強化または物資を選択してください</p>
                     </div>
                     <div class="flex items-center gap-2 md:gap-4">
-                        <button id="btn-status-perk" class="h-10 px-4 flex items-center justify-center gap-2 glass-panel font-bold text-base uppercase tracking-tight hover:bg-white/5 active:scale-95 transition-all text-sky-300 border-sky-500/30">
-                            <span>🧬</span> <span id="btn-status-perk-text">STATUS</span>
+                        <button id="btn-status-perk" class="h-10 w-10 md:w-auto md:px-4 flex items-center justify-center gap-2 glass-panel font-bold text-base uppercase tracking-tight hover:bg-white/5 active:scale-95 transition-all text-sky-300 border-sky-500/30">
+                            <span>🧬</span><span class="hidden md:inline" id="btn-status-perk-text">STATUS</span>
                         </button>
                         <div class="text-base font-bold text-rose-400 bg-rose-900/30 px-3 py-1.5 rounded border border-rose-500/20 whitespace-nowrap flex items-center gap-1" id="perk-hp">
                             <span class="text-xs">❤</span> <span id="perk-hp-val">3 / 3</span>
@@ -1698,13 +1702,13 @@
         }
         function adjustBoardScale() {
             if (!boardArea || !tubesContainer) return;
-            tubesContainer.style.transform = 'none';
-                const availableH = boardArea.clientHeight;
+            const availableH = boardArea.clientHeight;
             const contentH = tubesContainer.scrollHeight;
+            if (contentH === 0) return;
             const targetH = availableH * 0.95; 
-                let scale = targetH / contentH;
+            let scale = targetH / contentH;
             scale = Math.min(Math.max(scale, 0.3), 1.5);
-                tubesContainer.style.transform = `scale(${scale})`;
+            tubesContainer.style.transform = `scale(${scale})`;
         }
         window.addEventListener('resize', () => {
             requestAnimationFrame(adjustBoardScale);
