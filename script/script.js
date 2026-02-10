@@ -401,7 +401,7 @@
         };
         const ITEMS = {
             heal: {id: 'heal', type: 'consumable', cost: 8, icon: '🩹', name: {en:'Stabilizer', ja:'安定剤'},desc: {en:'Heal +1 HP.', ja:'HPを+1回復する'}},
-            panacea: {id: 'panacea', type: 'consumable', cost: 20, icon: '💊',name: {en:'Panacea', ja:'万能薬'},desc: {en:'Heal +2 HP.', ja:'HPを+2回復する'}            },
+            panacea: {id: 'panacea', type: 'consumable', cost: 15, icon: '💊',name: {en:'Panacea', ja:'万能薬'},desc: {en:'Heal +2 HP.', ja:'HPを+2回復する'}            },
             sedative: {id: 'sedative', type: 'consumable', cost: 12, icon: '💤',name: {en:'Sedative', ja:'鎮静剤'},desc: {en:'Set Pressure to 0.', ja:'プレッシャーを0にする'}            },
             layer_swap: {id: 'layer_swap', type: 'consumable', cost: 12, icon: '🔗',name: {en:'Layer Swap', ja:'層交換'},desc: {en:'Swap top 2 layers.', ja:'上2つの層を入れ替え'}            },
             shaker: {id: 'shaker', type: 'consumable', cost: 5, icon: '🎲',name: {en:'Shaker', ja:'シェイカー'},desc: {en:'Shuffle tube.', ja:'中身をシャッフル'}            },
@@ -459,7 +459,7 @@
             perks: {},
             inventory: {}, 
             pressure: 0,
-            pressureMax: 7,
+            pressureMax: 20,
             catalystAvailable: true,
             refluxUses: 0,
             momentumTurns: 0,
@@ -834,9 +834,8 @@
                         if (isGhost) seg.style.opacity = '0.5';
                         if (actualKey === 'K') {
                             seg.classList.add('void-ink');
-                        } else {
-                            seg.style.backgroundColor = c;
                         }
+                        seg.style.backgroundColor = c;
                         water.appendChild(seg);
                     });
                     water.dataset.lastState = currentStateStr;
@@ -1099,7 +1098,10 @@
                 pushHistory();
                 let pressureImmune = (hasPerk('steady_hand') && gameState.turnCount < getPerkLevel('steady_hand') * 3) || gameState.momentumTurns > 0;
                 if (gameState.momentumTurns > 0) { gameState.momentumTurns--; pressureImmune = true; }
-                let isOverloaded = !pressureImmune && addPressure(1);
+                let isOverloaded = false;
+                if (!pressureImmune) {
+                    isOverloaded = addPressure(check.moveCount); // 移動する量(check.moveCount)だけプレッシャーを加算
+                }
                 gameState.turnCount += 1;
                 await animatePour(fromIdx, toIdx, check.color, check.moveCount);
                 const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
@@ -1299,32 +1301,94 @@
                 if (checkLevelClear()) onLevelClear(); 
                 return; 
             }
+            // 触媒反応 (Catalyst)
             if (hasPerk('catalyst') && gameState.catalystAvailable) {
                 const lv = getPerkLevel('catalyst'); 
                 gameState.pressure = Math.max(0, gameState.pressure - (4 + lv));
                 gameState.catalystAvailable = false; 
+                showFloatText(tubeIdx, "Catalyst! Pressure Down", "#38bdf8");
             }
+            // 抽出効率 (Efficiency)
             if (hasPerk('efficiency') && Math.random() < getPerkLevel('efficiency') * 0.20) {
                 gameState.essence += 1;
+                showFloatText(tubeIdx, "Efficient! +1 Essence", "#fbbf24");
             }
+            // 紅 (Crimson)
             if (colorKey === 'R' && hasPerk('crimson_resonance')) {
                 gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
-                addPressure(Math.max(0, 6 - getPerkLevel('crimson_resonance')));
+                showFloatText(tubeIdx, "Resonance! HP+1 / Pressure Up", "#dc2626");
+                const cost = Math.max(0, 6 - getPerkLevel('crimson_resonance'));
+                if (addPressure(cost)) {
+                    await applyPressureDamage();
+                }
             }
+            // 蒼（Azure）: プレッシャー追加減少
             if (colorKey === 'B' && hasPerk('azure_cycle')) {
-                gameState.pressure = Math.max(0, gameState.pressure - (getPerkLevel('azure_cycle') * 3));
+                const amount = getPerkLevel('azure_cycle') * 3;
+                gameState.pressure = Math.max(0, gameState.pressure - amount);
+                showFloatText(tubeIdx, `Cycle! -${amount} Pressure`, "#3b82f6");
             }
+
+            // 琥珀（Amber）: エッセンス獲得
             if (colorKey === 'Y' && hasPerk('amber_greed')) {
-                gameState.essence += (getPerkLevel('amber_greed') * 2);
+                const amount = getPerkLevel('amber_greed') * 2;
+                gameState.essence += amount;
+                showFloatText(tubeIdx, `Alchemy! +${amount} Essence`, "#fbbf24");
             }
+
+            // 象牙（Ivory）: 黒インク除去
             if (colorKey === 'W' && hasPerk('ivory_sanctuary')) {
-                for(let i=0; i<getPerkLevel('ivory_sanctuary'); i++) removeOneObsidian();
+                const amount = getPerkLevel('ivory_sanctuary');
+                for(let i=0; i<amount; i++) removeOneObsidian();
+                showFloatText(tubeIdx, "Sanctuary! Purged", "#e2e8f0");
             }
+            // 翠（Emerald）: プレッシャー半減
+            if (colorKey === 'G' && hasPerk('emerald_vitality')) {
+                gameState.pressure = Math.floor(gameState.pressure / 2);
+                showFloatText(tubeIdx, "Vitality! Pressure/2", "#22c55e");
+            }
+            // 紫（Amethyst）: 無料Undo追加
+            if (colorKey === 'P' && hasPerk('amethyst_surge')) {
+                const amount = getPerkLevel('amethyst_surge');
+                gameState.refluxUses += amount;
+                showFloatText(tubeIdx, `Surge! Undo+${amount}`, "#a855f7");
+            }
+            // 橙（Orange）: プレッシャー上昇停止
+            if (colorKey === 'O' && hasPerk('orange_drive')) {
+                const turns = getPerkLevel('orange_drive') * 2;
+                gameState.momentumTurns += turns;
+                showFloatText(tubeIdx, `Drive! Momentum+${turns}`, "#f97316");
+            }
+            // 青緑（Teal）: サブ目標進行
+            if (colorKey === 'T' && hasPerk('teal_equilibrium')) {
+                gameState.secondaryProgress += 1;
+                showFloatText(tubeIdx, "Analysis! Goal+1", "#06b6d4");
+            }
+            // 桃（Pink）: アイテムドロップ抽選
+            if (colorKey === 'M' && hasPerk('pink_luck')) {
+                if(Math.random() < getPerkLevel('pink_luck') * 0.10){
+                    // ランダムな消費アイテムを付与
+                    const consumableKeys = Object.keys(ITEMS).filter(x => ITEMS[x].type === 'consumable');
+                    const availableToPick = consumableKeys.filter(k => (gameState.inventory[k] || 0) < 3);
+                    if (availableToPick.length > 0) {
+                        const k = pick(availableToPick);
+                        gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                        showFloatText(tubeIdx, "Lucky! Item Get!", "#d946ef");
+                        showToast(currentLang === 'ja' ? `${ITEMS[k].name.ja}を獲得！` : `Got ${ITEMS[k].name.en}!`, 'pink');
+                    }
+                }
+            }
+            // 大容量ボーナス (Heavy Mastery)
             if(hasPerk('heavy_mastery') && gameState.capacity >= 5){
                 const lv = getPerkLevel('heavy_mastery'); 
                 gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
+                showFloatText(tubeIdx, "Heavy Mastery! Pressure Down", "#94a3b8");
             }
-            if(hasPerk('momentum')) gameState.momentumTurns = getPerkLevel('momentum'); 
+            // 慣性律 (Momentum)
+            if(hasPerk('momentum')) {
+                gameState.momentumTurns = getPerkLevel('momentum'); 
+                showFloatText(tubeIdx, "Momentum! Pressure Stop", "#a855f7");
+            }
             
             checkSecondaryGoalOnComplete(); 
             renderHUD();
@@ -1374,14 +1438,41 @@
 
         function corruptRandomSegment() {
             return new Promise((resolve) => {
-                const targetTubes = gameState.tubes
+                const candidates = gameState.tubes
                     .map((t, i) => ({ idx: i, length: t.length }))
-                    .filter(t => t.length < gameState.capacity);
-                if (targetTubes.length > 0) {
-                    const target = pick(targetTubes);
-                    gameState.tubes[target.idx].push('K');
-                    renderBoard();
-                    showFloatText(target.idx, "CORRUPTED", "#ef4444");
+                    .filter(t => {
+                        if (t.length >= gameState.capacity) return false;
+                        const top = gameState.tubes[t.idx].length > 0 ? gameState.tubes[t.idx][gameState.tubes[t.idx].length - 1] : null;
+                        return top !== 'K';
+                    });
+                const shuffledCandidates = candidates.sort(() => Math.random() - 0.5);
+                let placed = false;
+                for (let candidate of shuffledCandidates) {
+                    gameState.tubes[candidate.idx].push('K');
+                    if (!isDeadlocked()) {
+                        placed = true;
+                        renderBoard();
+                        showFloatText(candidate.idx, "CORRUPTED", "#ef4444");
+                        break;
+                    } else {
+                        gameState.tubes[candidate.idx].pop();
+                    }
+                }
+                if (!placed) {
+                    const loss = 5;
+                    if (gameState.essence > 0) {
+                        gameState.essence = Math.max(0, gameState.essence - loss);
+                        renderHUD();
+                        const msg = currentLang === 'ja' 
+                            ? `行き場のない呪いがエッセンスを蝕んだ -${loss}` 
+                            : `Corruption overflow! Essence -${loss}`;
+                        showToast(msg, 'purple');
+                    } else {
+                        const msg = currentLang === 'ja' 
+                            ? "奇跡的に呪いを回避した..." 
+                            : "Miraculously avoided corruption...";
+                        showToast(msg, 'slate');
+                    }
                 }
                 resolve();
             });
@@ -1505,7 +1596,13 @@
                     const card = document.createElement('div');
                     card.className = 'glass-panel perk-card p-4 cursor-pointer hover:bg-white/5 border-l-4 border-l-sky-500 bg-slate-900/90';
                     card.innerHTML = `<div class="text-[16px] text-sky-300 uppercase tracking-[0.35em] mb-1">${ch.kicker}</div><div class="text-xl font-black text-white">${ch.title}</div><div class="text-slate-400 text-xs mt-2 leading-relaxed">${ch.desc}</div>`;
-                    card.onclick = () => { ch.apply(); saveGame(); eventScreen.classList.add('hidden'); eventScreen.classList.remove('flex'); resolve(); };
+                    card.onclick = async () => { 
+                        await ch.apply(); 
+                        saveGame(); 
+                        eventScreen.classList.add('hidden'); 
+                        eventScreen.classList.remove('flex'); 
+                        resolve(); 
+                    };
                     eventChoices.appendChild(card);
                 });
                 eventScreen.classList.remove('hidden'); eventScreen.classList.add('flex');
@@ -1514,8 +1611,18 @@
         function buildEventChoices(colorKey){
             if (colorKey === 'B'){ 
                 return [
-                    { kicker: currentLang==='ja'?'排出':'Vent', title: currentLang==='ja'?'プレッシャー -4':'Pressure -4', desc: currentLang==='ja'?'安全を確保する':'Release built-up pressure.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-4); } }, 
-                    { kicker: currentLang==='ja'?'知識':'Insight', title: currentLang==='ja'?'エッセンス +4':'Essence +4', desc: currentLang==='ja'?'リスクを取って富を得る':'Gain currency for the shop.', apply(){ gameState.essence += 4; } }
+                    { 
+                        kicker: currentLang==='ja'?'排出':'Vent', 
+                        title: currentLang==='ja'?'プレッシャー -4':'Pressure -4', 
+                        desc: currentLang==='ja'?'安全を確保する':'Release built-up pressure.', 
+                        async apply(){ gameState.pressure = Math.max(0, gameState.pressure-4); } 
+                    }, 
+                    { 
+                        kicker: currentLang==='ja'?'知識':'Insight', 
+                        title: currentLang==='ja'?'エッセンス +4':'Essence +4', 
+                        desc: currentLang==='ja'?'リスクを取って富を得る':'Gain currency for the shop.', 
+                        async apply(){ gameState.essence += 4; } 
+                    }
                 ]; 
             }
             if (colorKey === 'R'){ 
@@ -1524,17 +1631,44 @@
                         kicker: currentLang==='ja'?'活力':'Vitality', 
                         title: currentLang==='ja'?'HP +1 / プレッシャー +3':'HP +1 / Pressure +3', 
                         desc: currentLang==='ja'?'回復するがプレッシャーが増える':'Heal yourself, but strain the system.', 
-                        apply(){
+                        async apply(){
                             gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
-                            addPressure(3);
+                            if(addPressure(3)){
+                                await applyPressureDamage();
+                            }
                         } 
                     }, 
-                    { kicker: currentLang==='ja'?'平静':'Calm', title: currentLang==='ja'?'プレッシャー -6':'Pressure -6', desc: currentLang==='ja'?'心を落ち着ける':'Significantly reduce pressure.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-6); } }
+                    { 
+                        kicker: currentLang==='ja'?'平静':'Calm', 
+                        title: currentLang==='ja'?'プレッシャー -6':'Pressure -6', 
+                        desc: currentLang==='ja'?'心を落ち着ける':'Significantly reduce pressure.', 
+                        async apply(){ 
+                            gameState.pressure = Math.max(0, 
+                            gameState.pressure-6); 
+                        } 
+                    }
                 ]; 
             }
             return [
-                { kicker: currentLang==='ja'?'浄化':'Purify', title: currentLang==='ja'?'プレッシャー -2':'Pressure -2', desc: currentLang==='ja'?'少し落ち着く':'Minor relief.', apply(){ gameState.pressure = Math.max(0, gameState.pressure-2); } }, 
-                { kicker: currentLang==='ja'?'貪欲':'Greed', title: currentLang==='ja'?'エッセンス +3 / プレッシャー +1':'Essence +3 / Pressure +1', desc: currentLang==='ja'?'小さな代償で富を':'Wealth at a cost.', apply(){ gameState.essence += 3; addPressure(1); } }
+                { 
+                    kicker: currentLang==='ja'?'浄化':'Purify', 
+                    title: currentLang==='ja'?'プレッシャー -2':'Pressure -2', 
+                    desc: currentLang==='ja'?'少し落ち着く':'Minor relief.', 
+                    async apply(){ 
+                        gameState.pressure = Math.max(0, gameState.pressure-2); 
+                    } 
+                }, 
+                { 
+                    kicker: currentLang==='ja'?'貪欲':'Greed', 
+                    title: currentLang==='ja'?'エッセンス +3 / プレッシャー +1':'Essence +3 / Pressure +1', 
+                    desc: currentLang==='ja'?'小さな代償で富を':'Wealth at a cost.', 
+                    async apply(){ 
+                        gameState.essence += 3;
+                        if(addPressure(1)){
+                            await applyPressureDamage();
+                        }
+                    } 
+                }
             ];
         }
         function rarityWeight(r){
@@ -1976,7 +2110,7 @@
                 capacity:4, 
                 perks:{}, 
                 pressure:0, 
-                pressureMax:14, 
+                pressureMax:20, 
                 history:[], 
                 inventory:{}, 
                 catalystAvailable:true, 
@@ -2026,7 +2160,7 @@
                 gameState.hp += (gameState.maxHp - oldMaxHp);
             }
             gameState.hp = Math.min(gameState.hp, gameState.maxHp);
-            const defaultPressureMax = 14; 
+            const defaultPressureMax = 20; 
             const nextPressure = isFirst ? 0 : gameState.pressure;
             Object.assign(gameState, { 
                 turnCount:0, 
@@ -2047,7 +2181,7 @@
                 completedFlags: [] 
             });
             if(hasPerk('overflow')) {
-                gameState.pressureMax = 14 + (getPerkLevel('overflow') * 4);
+                gameState.pressureMax = defaultPressureMax + (getPerkLevel('overflow') * 4);
             }
             generateBoard(); 
             generateGoals(); 
