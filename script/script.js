@@ -644,16 +644,21 @@
             const floor = gameState.floor;
             gameState.tubeCount = Math.min(10, 6 + Math.floor((floor - 1) / 2));
             const numColors = gameState.tubeCount - 2;
-            const safeNumColors = Math.min(numColors, COLOR_POOL.length);
-            const pool = COLOR_POOL.slice(0, Math.min(COLOR_POOL.length, safeNumColors + (floor > 5 ? 1 : 0))).map(c => c.key);
-            const colors = [];
-            let colorFailsafe = 0;
-            while (colors.length < safeNumColors) {
-                const c = pick(pool);
-                if (!colors.includes(c)) colors.push(c);
-                colorFailsafe++;
-                if (colorFailsafe > 100) break;
-            }
+            
+            // --- 出現色の決定ロジック修正 ---
+            // 5階まではCOLOR_POOLの前半、6階以降は後半（桃など）も含めるように範囲を計算
+            const maxPoolIndex = Math.min(COLOR_POOL.length, numColors + (floor > 5 ? 2 : 0));
+            
+            // 現在の階層で出現可能な色の候補を作成
+            let availablePool = COLOR_POOL.slice(0, maxPoolIndex).map(c => c.key);
+            
+            // 色の候補をランダムにシャッフル
+            availablePool.sort(() => Math.random() - 0.5);
+            
+            // シャッフルされた候補から必要な色数（numColors）だけ抽出
+            const colors = availablePool.slice(0, Math.min(numColors, availablePool.length));
+            // ----------------------------
+
             const tubes = Array.from({ length: gameState.tubeCount }, () => []);
             for (let i = 0; i < colors.length; i++) {
                 for (let j = 0; j < gameState.capacity; j++) {
