@@ -324,7 +324,7 @@
             border-radius: 8px;
             font-weight: bold;
             font-size: 14px;
-            z-index: 50;
+            z-index: 200;
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.3s;
