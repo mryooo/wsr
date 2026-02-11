@@ -802,7 +802,7 @@ function renderBoard(resetScroll = false){
             tube.style.boxShadow = `0 0 20px ${colorMeta(segments[0]).hex}`;
             tube.style.borderColor = `rgba(255,255,255,0.8)`;
         } else {
-            gameState.completedFlags[i] = false;
+            gameState.completedFlags[i] = false; 
             tube.classList.remove('capped');
             tube.style.boxShadow = '';
             tube.style.borderColor = '';
