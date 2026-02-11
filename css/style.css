@@ -264,6 +264,16 @@
         #bottom-hud {
             margin-bottom: var(--safe-area-bottom);
         }
+        /* style.css に追加または修正 */
+        #ui-pressure-sub {
+            margin-top: 0 !important; /* HTMLの構成が変わるためリセット */
+            letter-spacing: 0.05em;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+        /* バーの高さを少し太くして文字を読みやすくする場合（任意） */
+        #ui-pressure-bar-container {
+            height: 20px;
+        }
         #global-tooltip {
             position: fixed;
             background: rgba(2, 6, 23, 0.98);
@@ -580,9 +590,7 @@
         .rarity-border-common.selected-perk { border: 2px solid var(--rarity-common); background: rgba(148, 163, 184, 0.15); box-shadow: 0 0 15px rgba(148, 163, 184, 0.3); }
         .rarity-border-rare.selected-perk { border: 2px solid var(--rarity-rare); background: rgba(59, 130, 246, 0.15); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
         .rarity-border-epic.selected-perk { border: 2px solid var(--rarity-epic); background: rgba(168, 85, 247, 0.15); box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
-
         .rarity-border-common:hover:not(.selected-perk) { border-color: rgba(148, 163, 184, 0.5); }
         .rarity-border-rare:hover:not(.selected-perk) { border-color: rgba(59, 130, 246, 0.5); }
         .rarity-border-epic:hover:not(.selected-perk) { border-color: rgba(168, 85, 247, 0.5); }
-
         .selected-perk { transform: scale(1.02); z-index: 10; }

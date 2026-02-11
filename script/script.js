@@ -599,7 +599,7 @@
             renderHUD(); 
             renderBoard();
             const msg = currentLang === 'ja' 
-                ? `階層クリア! ✨+${totalGained} (基本:${baseReward}${floorBonus > 0 ? ` 階層:+${floorBonus}` : ''}${subGoalBonus > 0 ? ` サブ目標:+${subGoalBonus}` : ''})`
+                ? `階層クリア! ✨+${totalGained} (基本:${baseReward}${floorBonus > 0 ? ` 階層:+${floorBonus}` : ''}${subGoalBonus > 0 ? ` サブ:+${subGoalBonus}` : ''})`
                 : `Floor Cleared! ✨+${totalGained} (Base:${baseReward}${floorBonus > 0 ? ` Floor:+${floorBonus}` : ''}${subGoalBonus > 0 ? ` SubGoal:+${subGoalBonus}` : ''})`;
             showToast(msg, subGoalBonus > 0 ? 'emerald' : 'sky');
             saveGame();
@@ -644,21 +644,10 @@
             const floor = gameState.floor;
             gameState.tubeCount = Math.min(10, 6 + Math.floor((floor - 1) / 2));
             const numColors = gameState.tubeCount - 2;
-            
-            // --- 出現色の決定ロジック修正 ---
-            // 5階まではCOLOR_POOLの前半、6階以降は後半（桃など）も含めるように範囲を計算
             const maxPoolIndex = Math.min(COLOR_POOL.length, numColors + (floor > 5 ? 2 : 0));
-            
-            // 現在の階層で出現可能な色の候補を作成
             let availablePool = COLOR_POOL.slice(0, maxPoolIndex).map(c => c.key);
-            
-            // 色の候補をランダムにシャッフル
             availablePool.sort(() => Math.random() - 0.5);
-            
-            // シャッフルされた候補から必要な色数（numColors）だけ抽出
             const colors = availablePool.slice(0, Math.min(numColors, availablePool.length));
-            // ----------------------------
-
             const tubes = Array.from({ length: gameState.tubeCount }, () => []);
             for (let i = 0; i < colors.length; i++) {
                 for (let j = 0; j < gameState.capacity; j++) {
@@ -1107,24 +1096,21 @@
                 if (gameState.momentumTurns > 0) { gameState.momentumTurns--; pressureImmune = true; }
                 let isOverloaded = false;
                 if (!pressureImmune) {
-                    isOverloaded = addPressure(check.moveCount); // 移動する量(check.moveCount)だけプレッシャーを加算
+                    isOverloaded = addPressure(check.moveCount);
                 }
                 gameState.turnCount += 1;
                 await animatePour(fromIdx, toIdx, check.color, check.moveCount);
                 const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
                 for (let i = 0; i < check.moveCount; i++) to.push(from.pop());
-                
                 if (isOverloaded) {
                     await applyPressureDamage(false);
                 }
-
                 const counts = getBoardCounts();
                 if (isCompleteTube(to, counts)) {
                     await handleCompletion(toIdx, to[0]);
                 } else if (gameState.secondaryGoal?.type === 'combo') {
                     gameState.secondaryProgress = 0;
                 }
-
                 saveGame();
             } catch (e) {
                 console.error("Pour logic error:", e);
@@ -1335,14 +1321,12 @@
                 gameState.pressure = Math.max(0, gameState.pressure - amount);
                 showToast(`Cycle! -${amount} Pressure`, 'blue');
             }
-
             // 琥珀（Amber）: エッセンス獲得
             if (colorKey === 'Y' && hasPerk('amber_greed')) {
                 const amount = getPerkLevel('amber_greed') * 2;
                 gameState.essence += amount;
                 showToast(`Alchemy! +${amount} Essence`, 'amber');
             }
-
             // 象牙（Ivory）: 黒インク除去
             if (colorKey === 'W' && hasPerk('ivory_sanctuary')) {
                 const amount = getPerkLevel('ivory_sanctuary');
@@ -1378,7 +1362,6 @@
                     if (k) {
                         gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
                         const name = currentLang === 'ja' ? ITEMS[k].name.ja : ITEMS[k].name.en;
-                        // プレイ中の獲得は、その場で浮遊テキストを出すのが気持ちいい
                         showFloatText(tubeIdx, `Lucky! ${ITEMS[k].icon}`, '#f472b6');
                         showToast(`${name} Get!`, 'pink');
                     }
@@ -1395,14 +1378,11 @@
                 gameState.momentumTurns = getPerkLevel('momentum'); 
                 showToast("Momentum! Pressure Stop", 'violet');
             }
-            
             checkSecondaryGoalOnComplete(); 
             renderHUD();
             renderBoard();
             saveGame(); 
-
             await showCompletionEvent(colorKey);
-
             renderHUD(); 
             renderBoard();
             if (checkLevelClear()) onLevelClear();
@@ -1432,16 +1412,13 @@
             container.classList.remove('animate-shake');
             void container.offsetWidth;
             container.classList.add('animate-shake');
-            
             await corruptRandomSegment();
-            
             const msg = currentLang === 'ja' ? "オーバーロード！ HP-1" : "Pressure Overload! HP -1";
             showToast(msg, "#ef4444");
             renderHUD();
             renderBoard();
             await new Promise(r => setTimeout(r, 500));
         }
-
         function corruptRandomSegment() {
             return new Promise((resolve) => {
                 const candidates = gameState.tubes
@@ -1686,7 +1663,6 @@
             const ids = Object.keys(PERKS);
             const f = clamp((gameState.floor - 1) / 10, 0, 1);
             const pool = ids.slice();
-            
             const w = pool.map(id => {
                 const r = PERKS[id].rarity;
                 let base = rarityWeight(r);
@@ -1695,27 +1671,21 @@
                 if (getPerkLevel(id) === 0) base *= 1.10;
                 return base;
             });
-
             const chosen = [];
             const targetCount = gameState.isExecutionDebug ? pool.length : Math.min(count, pool.length);
-
             while (chosen.length < targetCount) {
                 const total = w.reduce((a, b) => a + b, 0);
                 if (total <= 0) break;
-
                 let r = Math.random() * total;
                 let idx = 0;
                 while (idx < w.length && (r -= w[idx]) > 0) idx++;
-                
                 idx = Math.min(idx, w.length - 1);
                 const perkId = pool[idx];
                 chosen.push(PERKS[perkId]);
-
                 pool.splice(idx, 1);
                 w.splice(idx, 1);
             }
             return chosen;
-            
         }
         function generateShopOffers(n=4){
             const entries = [];
@@ -2113,31 +2083,35 @@
                 else { btn.classList.add('opacity-30', 'cursor-not-allowed'); btn.classList.remove('hover:bg-sky-500'); }
             });
         }
-        function acquirePerk(id){ if(!gameState.perks[id]) gameState.perks[id] = 0; gameState.perks[id]++; if(id === 'overflow') gameState.pressureMax += 4; renderHUD(); saveGame(); }
+        function acquirePerk(id){ 
+            if(!gameState.perks[id]) gameState.perks[id] = 0; 
+            gameState.perks[id]++; 
+            if(id === 'overflow') gameState.pressureMax += 4; 
+            if(id === 'reflux') {
+                gameState.refluxUses += 1;
+                showToast(currentLang === 'ja' ? '逆流制御チャージ！' : 'Reflux Charged!', 'purple');
+            }
+            renderHUD(); 
+            saveGame(); 
+        }
         function startNewRun() {
             clearSave();
-            
             let startFloor = 1;
             let effectiveDebug = IS_DEBUG;
-
             if (IS_DEBUG) {
                 const input = ui('debug-floor-input');
                 startFloor = parseInt(input.value) || 0;
-                
                 if (startFloor <= 0) {
                     effectiveDebug = false;
                     startFloor = 1;
                 }
             }
             gameState.isExecutionDebug = effectiveDebug;
-
             startScreen.classList.add('hidden');
-
             // 階層に応じた瓶の容量を計算
             let initialCapacity = 4;
             if (startFloor >= 8) initialCapacity = 6;
             else if (startFloor >= 4) initialCapacity = 5;
-
             // 初期状態の設定
             Object.assign(gameState, {
                 floor: startFloor,
@@ -2151,26 +2125,22 @@
                 history: [],
                 inventory: effectiveDebug ? Object.keys(ITEMS).reduce((acc, key) => ({ ...acc, [key]: 3 }), {}) : {},
                 catalystAvailable: true,
-                refluxUses: 0,
+                refluxUses: getPerkLevel('reflux'),
                 momentumTurns: 0,
                 rerollCoupons: 0,
                 completedFlags: []
             });
-
             perkScreen.classList.add('hidden');
-            
-            // ボード生成と表示
             generateBoard();
             generateGoals();
             renderHUD();
             renderBoard(true);
             saveGame();
-            
             // 通知
             if (effectiveDebug) {
                 showToast(`Debug Start: Floor ${startFloor}`, 'rose');
             } else {
-//                showToast(currentLang === 'ja' ? '通常モードで開始' : 'Standard Mode Start', 'sky');
+                // showToast(currentLang === 'ja' ? '通常モードで開始' : 'Standard Mode Start', 'sky');
             }
         }
         function nextFloor(isFirst=false){
@@ -2240,8 +2210,6 @@
             renderHUD(); 
             renderBoard(true);
             saveGame();
-
-            // まとめて演出を実行
             setTimeout(() => {
                 showFloorStartSequence(rewards);
             }, 600);
@@ -2256,27 +2224,22 @@
             // 1. 階層表示
             const floorMsg = currentLang === 'ja' ? `第 ${gameState.floor} 階層` : `FLOOR ${gameState.floor}`;
             showToast(floorMsg, 'sky');
-
             if (rewards.length === 0) return;
-
             // 2. アイテム獲得の集計
             // 同じアイテムが複数ある場合に「安定剤 x2」のようにまとめる
             const summary = rewards.reduce((acc, curr) => {
                 acc[curr.key] = (acc[curr.key] || 0) + 1;
                 return acc;
             }, {});
-
             // 3. 演出実行
             setTimeout(() => {
                 Object.entries(summary).forEach(([key, count], index) => {
                     const item = ITEMS[key];
                     const name = currentLang === 'ja' ? item.name.ja : item.name.en;
-                    
                     // 少しずつずらしてトーストを表示
                     setTimeout(() => {
                         const msg = `${item.icon} ${name} +${count}`;
                         showToast(msg, 'emerald');
-                        
                         // 最初の1つ目だけ中央にも出す（派手すぎ防止）
                         if (index === 0) {
                             showFloatTextAtCenter(msg, '#10b981');
@@ -2289,8 +2252,8 @@
             if (gameState.busy) return;
             if (!gameState.history.length) return;
             const prev = gameState.history[gameState.history.length - 1];
-            let isFree = prev.refluxUses > 0;
-            if(!isFree && prev.essence < 5) {
+            let isFree = gameState.refluxUses > 0;
+            if(!isFree && gameState.essence < 5) {
                 showToast(currentLang==='ja'?'エッセンス不足で戻れません':'Not enough Essence in past state', 'rose');
                 return;
             }
@@ -2317,15 +2280,9 @@
             if(isFree){ 
                 gameState.pressure += 2; 
                 gameState.refluxUses--; 
-                showFloatText(0, "Reflux Used (+2 P)", "#a855f7"); 
-                gameState.history.forEach(h => {
-                    if(h.refluxUses > 0) h.refluxUses--;
-                });
+                showFloatText(0, `Reflux Used (${gameState.refluxUses} left)`, "#a855f7");
             } else { 
                 gameState.essence -= 5; 
-                gameState.history.forEach(h => {
-                    h.essence -= 5;
-                });
             }
             updateTubeLayout(); 
             renderHUD(); 
@@ -2374,7 +2331,7 @@
             if (gameState.secondaryGoal) {
                 const isDone = secondarySucceeded();
                 const type = gameState.secondaryGoal.type;
-                const subLabel = currentLang === 'ja' ? "サブ目標：" : "Sub Goal: ";
+                const subLabel = currentLang === 'ja' ? "サブ：" : "Sub Goal: ";
                 let contentText = "";
                 if (type === 'speed') {
                     const lim = gameState.secondaryGoal.limit;
@@ -2400,11 +2357,10 @@
             }
             const curP = gameState.pressure;
             const maxP = gameState.pressureMax;
-            setText('ui-pressure', String(curP)); 
             const pct = Math.round((curP / maxP) * 100);
             const pBar = ui('ui-pressure-bar'); 
             if(pBar){ 
-                pBar.style.width=`${clamp(pct,0,100)}%`; 
+                pBar.style.width = `${clamp(pct, 0, 100)}%`; 
                 if(curP >= maxP - 3){ 
                     pBar.classList.remove('from-sky-400'); 
                     pBar.classList.add('bg-rose-600'); 
@@ -2414,7 +2370,10 @@
                 } 
             }
             setText('ui-pressure-sub', `${curP} / ${maxP}`);
-            const undoCost = gameState.refluxUses>0?'FREE':'✨5'; 
+            let undoCost = '✨5';
+            if (gameState.refluxUses > 0) {
+                undoCost = `FREE x${gameState.refluxUses}`;
+            }
             if(undoBtn){ 
                 undoBtn.innerHTML=`<span>↺</span> UNDO (${undoCost})`;
                 const canUndo = gameState.history.length > 0;
@@ -2705,14 +2664,11 @@
             const savedLang = localStorage.getItem('abyss_alchemy_lang');
             setLang(savedLang === 'en' || savedLang === 'ja' ? savedLang : 'ja');
             initPalette();
-
             // デバッグ用パネルの切り替え設定
             const debugToggle = ui('debug-toggle');
             const debugPanel = ui('debug-floor-selector');
-
             if (debugToggle && debugPanel) {
                 debugToggle.onclick = () => {
-                    // ソースコードの IS_DEBUG が true の時のみパネルを表示
                     if (IS_DEBUG) {
                         const isHidden = debugPanel.classList.contains('hidden');
                         if (isHidden) {
@@ -2722,8 +2678,7 @@
                             debugPanel.classList.add('hidden');
                         }
                     } else {
-                        // デバッグモードが無効な時にクリックされた場合（お遊び要素）
-                        showToast("Access Denied", "slate");
+                        // デバッグモードが無効な時にクリック
                     }
                 };
             }

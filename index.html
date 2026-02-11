@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -9,7 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="./css/style.css">
 </head>
-
 <body>
     <div id="help-overlay"></div>
     <div>
@@ -73,18 +71,17 @@
                     <div class="text-base font-bold" id="ui-goal-sub">—</div>
                 </div>
                 <div class="w-[180px] md:w-[220px] glass-panel px-4 py-2 border-l-4 border-l-rose-500/50">
-                    <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]" id="ui-pressure-label">PRESSURE
-                    </div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-[0.35em]" id="ui-pressure-label">PRESSURE</div>
                     <div class="flex items-center gap-2 mt-1">
-                        <div
-                            class="flex-1 h-4 rounded-full bg-slate-800/80 overflow-hidden relative border border-white/5">
+                        <div class="flex-1 h-6 rounded-full bg-slate-800/80 overflow-hidden relative border border-white/5">
                             <div id="ui-pressure-bar"
                                 class="h-full rounded-full bg-gradient-to-r from-sky-400 via-purple-400 to-rose-500 transition-all duration-300"
                                 style="width:0%"></div>
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span id="ui-pressure-sub" class="text-[11px] font-black text-white drop-shadow-md">0 / 20</span>
+                            </div>
                         </div>
-                        <div class="text-base font-black w-8 text-right" id="ui-pressure">0</div>
-                    </div>
-                    <div class="text-[10px] text-slate-500 mt-1 text-right" id="ui-pressure-sub">—</div>
+                        </div>
                 </div>
             </div>
             <div id="board-area" class="flex-1 w-full relative z-10 overflow-hidden my-2">
@@ -183,9 +180,8 @@
                 </button>
             </div>
             <p id="debug-toggle" class="text-white/60 text-[12px] mt-8 tracking-widest uppercase cursor-pointer hover:text-white transition-colors">
-                Alpha Ver 0.4.03
+                Alpha Ver 0.4.04
             </p>
-
             <div id="debug-floor-selector" class="hidden mb-4 p-2 border border-red-500/50 bg-red-900/20 rounded-lg">
                 <div class="text-[10px] text-red-400 font-bold mb-1">DEBUG: START FLOOR</div>
                 <input type="number" id="debug-floor-input" value="0" min="0" max="99" 
@@ -351,5 +347,4 @@
     </div>
     <script src="./script/script.js"></script>
 </body>
-
 </html>
