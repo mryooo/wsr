@@ -383,7 +383,7 @@ const PERKS = {
     bargain: {id:'bargain',name:{en:'Bargain', ja:'交渉術'},rarity:'common',desc:{en:'Shop prices reduced by [15 + Lv x 5]%.',                                                  ja:'ショップ価格 [15 + Lv x 5]% OFF。'},},
     heavy_mastery: {id:'heavy_mastery',name:{en:'Heavy Mastery', ja:'大容量ボーナス'},rarity:'rare',desc:{en:'Clearing 5+ capacity tube reduces Pressure by [2 + Lv].',         ja:'容量5以上のチューブ完成でプレッシャー [2 + Lv] 減少。'},},
     void_shield: {id:'void_shield',name:{en:'Void Shield', ja:'虚空の盾'},rarity:'rare',desc:{en:'[Lv x 15]% chance to negate Pressure damage.',                                ja:'プレッシャーダメージを受けた時、[Lv x 15]% で無効化する。'},},
-    transmutation: {id:'transmutation',name:{en:'Transmutation', ja:'物質変換'},rarity:'rare',desc:{en:'Start each floor with [Lv] random items.',                              ja:'階層開始時、[Lv] 個のランダムアイテムを獲得する。'},},
+    transmutation: {id:'transmutation',name:{en:'Transmutation', ja:'物質変換'},rarity:'epic',desc:{en:'Start each floor with [Lv] random items.',                              ja:'階層開始時、[Lv] 個のランダムアイテムを獲得する。'},},
     steady_hand: {id:'steady_hand',name:{en:'Steady Hand', ja:'安定した手'},rarity:'rare',desc:{en:'Pressure does not rise for the first [Lv x 3] turns of a floor.',           ja:'階層開始から [Lv x 3] ターンの間、プレッシャーが上昇しない。'},},
     deep_adapt: {id:'deep_adapt',name:{en:'Deep Adapt', ja:'深層適応'},rarity:'epic',desc:{en:'Gain [Lv] Max HP if capacity > 4 at start of floor.',                            ja:'階層開始時、容量5以上なら最大HP+[Lv]。'},},
     coupon: {id: 'coupon',name: {en:'Coupon', ja:'クーポン券'},rarity: 'common',desc: {en:'Start each floor with [Lv] free Rerolls.',                                           ja:'階層開始時、無料でリロールできるクーポンを [Lv] 枚得る。'}},
@@ -1666,7 +1666,7 @@ function buildEventChoices(colorKey){
     ];
 }
 function rarityWeight(r){
-    if(r === 'epic') return 0.45;
+    if(r === 'epic') return 0.20;
     if(r === 'rare') return 0.80;
     return 1.00;
 }
