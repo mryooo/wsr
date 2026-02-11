@@ -182,7 +182,15 @@
                     探索を開始
                 </button>
             </div>
-            <p class="text-white-600 text-[12px] mt-8 tracking-widest uppercase">Alpha Ver 0.4.01</p>
+            <p id="debug-toggle" class="text-white/60 text-[12px] mt-8 tracking-widest uppercase cursor-pointer hover:text-white transition-colors">
+                Alpha Ver 0.4.02
+            </p>
+
+            <div id="debug-floor-selector" class="hidden mb-4 p-2 border border-red-500/50 bg-red-900/20 rounded-lg">
+                <div class="text-[10px] text-red-400 font-bold mb-1">DEBUG: START FLOOR</div>
+                <input type="number" id="debug-floor-input" value="0" min="0" max="99" 
+                    class="w-full bg-black/40 border border-white/20 rounded px-2 py-1 text-white text-center font-black">
+            </div>
         </div>
         <div id="perk-screen"
             class="fixed inset-0 z-[180] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">

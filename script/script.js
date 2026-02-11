@@ -1,4 +1,4 @@
-        const IS_DEBUG = false;
+        const IS_DEBUG = true;
         
         function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
         function addPressure(amount) {
@@ -375,31 +375,31 @@
             }
         }
         const PERKS = {
-            catalyst: {id:'catalyst',name:{en:'Catalyst', ja:'触媒反応'},rarity:'epic',desc:{en:'Complete a color only once per level to reduce pressure by [4 + Lv].', ja:'階層ごとに1回だけ色を完成させるとプレッシャーが [4 + Lv] 下がる。'},},
-            efficiency: {id:'efficiency',name:{en:'Efficiency', ja:'抽出効率'},rarity:'common',desc:{en:'Tube completion has [Lv x 20]% chance to grant +1 Essence.', ja:'色完成時、[Lv x 20]% の確率で +1 エッセンスを獲得。'},},
-            transmutation: {id:'transmutation',name:{en:'Transmutation', ja:'物質変換'},rarity:'rare',desc:{en:'Start each floor with [Lv] random items.', ja:'階層開始時、[Lv] 個のランダムアイテムを獲得する。'},},
-            momentum: {id:'momentum',name:{en:'Momentum', ja:'慣性律'},rarity:'common',desc:{en:'After completing a tube, Pressure does not rise for [Lv] turns.', ja:'チューブ完成後、[Lv] ターンの間、プレッシャーが上昇しない。'},},
-            reflux: {id:'reflux',name:{en:'Reflux', ja:'逆流制御'},rarity:'common',desc:{en:'First [Lv] undos each floor are free (Pressure +2 instead).', ja:'各階層、最初の [Lv] 回のUndoはエッセンス無料。'},},
-            steady_hand: {id:'steady_hand',name:{en:'Steady Hand', ja:'安定した手'},rarity:'rare',desc:{en:'Pressure does not rise for the first [Lv x 3] turns of a floor.', ja:'階層開始から [Lv x 3] ターンの間、プレッシャーが上昇しない。'},},
-            overflow: {id:'overflow',name:{en:'Overflow', ja:'オーバーフロー'},rarity:'common',desc:{en:'Pressure max +[Lv x 4].', ja:'プレッシャーの最大許容量が +[Lv x 4] される。'},},
-            purification: {id:'purification',name:{en:'Purification', ja:'浄化作用'},rarity:'epic',desc:{en:'Clearing Obsidian reduces Pressure by [2 + Lv] and grants [1 + Lv] Essence.', ja:'黒インク消滅時、プレッシャー-[2 + Lv]、エッセンス+[1 + Lv]。'},},
-            scavenger: {id:'scavenger',name:{en:'Scavenger', ja:'スカベンジャー'},rarity:'rare',desc:{en:'[10 + Lv x 5]% chance to find item on new floor.', ja:'階層移動時、[10 + Lv x 5]% の確率でアイテムを拾う。'},},
-            recycler: {id:'recycler',name:{en:'Recycler', ja:'リサイクル'},rarity:'epic',desc:{en:'[Lv x 10]% chance to not consume item on use.', ja:'アイテム使用時、[Lv x 10]% の確率で消費しない。'},},
-            bargain: {id:'bargain',name:{en:'Bargain', ja:'交渉術'},rarity:'common',desc:{en:'Shop prices reduced by [15 + Lv x 5]%.', ja:'ショップ価格 [15 + Lv x 5]% OFF。'},},
-            heavy_mastery: {id:'heavy_mastery',name:{en:'Heavy Mastery', ja:'大容量ボーナス'},rarity:'rare',desc:{en:'Clearing 5+ capacity tube reduces Pressure by [2 + Lv].', ja:'容量5以上のチューブ完成でプレッシャー [2 + Lv] 減少。'},},
-            void_shield: {id:'void_shield',name:{en:'Void Shield', ja:'虚空の盾'},rarity:'rare',desc:{en:'[Lv x 15]% chance to negate Pressure damage.', ja:'プレッシャーダメージを受けた時、[Lv x 15]% で無効化する。'},},
-            deep_adapt: {id:'deep_adapt',name:{en:'Deep Adapt', ja:'深層適応'},rarity:'epic',desc:{en:'Gain [Lv] Max HP if capacity > 4 at start of floor.', ja:'階層開始時、容量5以上なら最大HP+[Lv]。'},},
-            flow_mastery: {id:'flow_mastery',name:{en:'Flow Mastery', ja:'フロー熟練'},rarity:'common',desc:{en:'Combo reduces Pressure by [Lv x 2].', ja:'コンボ発生時、プレッシャーが [Lv x 2] 下がる。'},},
-            coupon: {id: 'coupon',name: {en:'Coupon', ja:'クーポン券'},rarity: 'common',desc: {en:'Start each floor with [Lv] free Rerolls.', ja:'各階層開始時、無料でリロールできるクーポンを [Lv] 枚得る。'}},
-            crimson_resonance: {id:'crimson_resonance',name:{en:'Crimson Resonance', ja:'紅の熱量'},rarity:'rare',desc:{en:'Completing Crimson heals 1 HP but adds [6 - Lv] Pressure.', ja:'紅を完成させるとHPが1回復するが、プレッシャーが [6 - Lv] 上昇する。'},},
-            azure_cycle: {id:'azure_cycle',name:{en:'Azure Cycle', ja:'蒼の循環'},rarity:'common',desc:{en:'Azure completion reduces Pressure by [Lv x 3] additional.', ja:'蒼完成時、追加でプレッシャーが [Lv x 3] 減少する。'},},
-            amber_greed: {id:'amber_greed',name:{en:'Amber Alchemy', ja:'琥珀の錬金'},rarity:'rare',desc:{en:'Amber completion grants [Lv x 2] Essence.', ja:'琥珀完成時、エッセンスを [Lv x 2] 獲得する。'},},
-            ivory_sanctuary: {id:'ivory_sanctuary',name:{en:'Ivory Sanctuary', ja:'象牙の聖域'},rarity:'epic',desc:{en:'Ivory completion removes [Lv] Obsidian from random tubes.', ja:'象牙完成時、ランダムなチューブから黒インクを [Lv] 個除去する。'},},
-            emerald_vitality: {id:'emerald_vitality',name:{en:'Emerald Vitality', ja:'翠の活力'},rarity:'common',desc:{en:'Emerald completion halves current Pressure.', ja:'翠を完成させると現在のプレッシャーが半分になる。'},},
-            amethyst_surge: {id:'amethyst_surge',name:{en:'Amethyst Surge', ja:'紫の脈動'},rarity:'rare',desc:{en:'Amethyst completion grants +[Lv] free Undo charges.', ja:'紫完成時、無料Undoの回数を [Lv] 回増やす。'},},
-            orange_drive: {id:'orange_drive',name:{en:'Orange Drive', ja:'橙の推進'},rarity:'common',desc:{en:'Orange completion stops Pressure rise for [Lv x 2] turns.', ja:'橙完成時、[Lv x 2] ターンの間プレッシャーが上昇しなくなる。'},},
-            teal_equilibrium: {id:'teal_equilibrium',name:{en:'Teal Analysis', ja:'青緑の分析'},rarity:'rare',desc:{en:'Teal completion progresses Secondary Goal by 1.', ja:'青緑を完成させると副目標の進行度が 1 進む。'},},
-            pink_luck: {id:'pink_luck',name:{en:'Pink Luck', ja:'桃の幸運'},rarity:'rare',desc:{en:'Pink completion has [Lv x 10]% chance to drop a random item.', ja:'桃完成時、[Lv x 10]% の確率でランダムなアイテムを得る。'},}
+            catalyst: {id:'catalyst',name:{en:'Catalyst', ja:'触媒反応'},rarity:'epic',desc:{en:'Complete a color only once per level to reduce pressure by [4 + Lv].',                 ja:'階層ごとに1回だけ色を完成させるとプレッシャーが [4 + Lv] 下がる。'},},
+            reflux: {id:'reflux',name:{en:'Reflux', ja:'逆流制御'},rarity:'common',desc:{en:'First [Lv] undos each floor are free (Pressure +2 instead).',                              ja:'各階層、最初の [Lv] 回のUndoはエッセンス無料。'},},
+            overflow: {id:'overflow',name:{en:'Overflow', ja:'オーバーフロー'},rarity:'common',desc:{en:'Pressure max +[Lv x 4].',                                                      ja:'プレッシャーの最大許容量が +[Lv x 4] される。'},},
+            purification: {id:'purification',name:{en:'Purification', ja:'浄化作用'},rarity:'epic',desc:{en:'Clearing Obsidian reduces Pressure by [2 + Lv] and grants [1 + Lv] Essence.', ja:'黒消滅時、プレッシャー-[2 + Lv]、エッセンス+[1 + Lv]。'},},
+            scavenger: {id:'scavenger',name:{en:'Scavenger', ja:'スカベンジャー'},rarity:'rare',desc:{en:'[10 + Lv x 5]% chance to find item on new floor.',                            ja:'階層移動時、[10 + Lv x 5]% の確率でアイテムを拾う。'},},
+            recycler: {id:'recycler',name:{en:'Recycler', ja:'リサイクル'},rarity:'epic',desc:{en:'[Lv x 10]% chance to not consume item on use.',                                      ja:'アイテム使用時、[Lv x 10]% の確率で消費しない。'},},
+            bargain: {id:'bargain',name:{en:'Bargain', ja:'交渉術'},rarity:'common',desc:{en:'Shop prices reduced by [15 + Lv x 5]%.',                                                  ja:'ショップ価格 [15 + Lv x 5]% OFF。'},},
+            heavy_mastery: {id:'heavy_mastery',name:{en:'Heavy Mastery', ja:'大容量ボーナス'},rarity:'rare',desc:{en:'Clearing 5+ capacity tube reduces Pressure by [2 + Lv].',         ja:'容量5以上のチューブ完成でプレッシャー [2 + Lv] 減少。'},},
+            void_shield: {id:'void_shield',name:{en:'Void Shield', ja:'虚空の盾'},rarity:'rare',desc:{en:'[Lv x 15]% chance to negate Pressure damage.',                                ja:'プレッシャーダメージを受けた時、[Lv x 15]% で無効化する。'},},
+            transmutation: {id:'transmutation',name:{en:'Transmutation', ja:'物質変換'},rarity:'rare',desc:{en:'Start each floor with [Lv] random items.',                              ja:'階層開始時、[Lv] 個のランダムアイテムを獲得する。'},},
+            steady_hand: {id:'steady_hand',name:{en:'Steady Hand', ja:'安定した手'},rarity:'rare',desc:{en:'Pressure does not rise for the first [Lv x 3] turns of a floor.',           ja:'階層開始から [Lv x 3] ターンの間、プレッシャーが上昇しない。'},},
+            deep_adapt: {id:'deep_adapt',name:{en:'Deep Adapt', ja:'深層適応'},rarity:'epic',desc:{en:'Gain [Lv] Max HP if capacity > 4 at start of floor.',                            ja:'階層開始時、容量5以上なら最大HP+[Lv]。'},},
+            coupon: {id: 'coupon',name: {en:'Coupon', ja:'クーポン券'},rarity: 'common',desc: {en:'Start each floor with [Lv] free Rerolls.',                                           ja:'階層開始時、無料でリロールできるクーポンを [Lv] 枚得る。'}},
+            flow_mastery: {id:'flow_mastery',name:{en:'Flow Mastery', ja:'フロー熟練'},rarity:'common',desc:{en:'Combo reduces Pressure by [Lv x 2].',                                  ja:'コンボ発生時、プレッシャーが [Lv x 2] 下がる。'},},
+            efficiency: {id:'efficiency',name:{en:'Efficiency', ja:'抽出効率'},rarity:'common',desc:{en:'Tube completion has [Lv x 20]% chance to grant +1 Essence.',                   ja:'色完成時、[Lv x 20]% の確率で +1 エッセンスを獲得。'},},
+            momentum: {id:'momentum',name:{en:'Momentum', ja:'慣性律'},rarity:'common',desc:{en:'After completing a tube, Pressure does not rise for [Lv] turns.',                      ja:'色完成後、[Lv] ターンの間、プレッシャーが上昇しない。'},},
+            crimson_resonance: {id:'crimson_resonance',name:{en:'Crimson Resonance', ja:'紅の熱量'},rarity:'rare',desc:{en:'Completing Crimson heals 1 HP but adds [6 - Lv] Pressure.', ja:'紅完成時、HPが1回復するが、プレッシャーが [6 - Lv] 上昇する。'},},
+            azure_cycle: {id:'azure_cycle',name:{en:'Azure Cycle', ja:'蒼の循環'},rarity:'common',desc:{en:'Azure completion reduces Pressure by [Lv x 3] additional.',                 ja:'蒼完成時、プレッシャーが [Lv x 3] 減少する。'},},
+            amber_greed: {id:'amber_greed',name:{en:'Amber Alchemy', ja:'琥珀の錬金'},rarity:'rare',desc:{en:'Amber completion grants [Lv x 2] Essence.',                               ja:'琥珀完成時、エッセンスを [Lv x 2] 獲得する。'},},
+            ivory_sanctuary: {id:'ivory_sanctuary',name:{en:'Ivory Sanctuary', ja:'象牙の聖域'},rarity:'epic',desc:{en:'Ivory completion removes [Lv] Obsidian from random tubes.',     ja:'象牙完成時、ランダムなチューブから黒を [Lv] 個除去する。'},},
+            emerald_vitality: {id:'emerald_vitality',name:{en:'Emerald Vitality', ja:'翠の活力'},rarity:'common',desc:{en:'Emerald completion halves current Pressure.',                ja:'翠完成時、現在のプレッシャーが半分になる。'},},
+            amethyst_surge: {id:'amethyst_surge',name:{en:'Amethyst Surge', ja:'紫の脈動'},rarity:'rare',desc:{en:'Amethyst completion grants +[Lv] free Undo charges.',                ja:'紫完成時、無料Undoの回数を [Lv] 回増やす。'},},
+            orange_drive: {id:'orange_drive',name:{en:'Orange Drive', ja:'橙の推進'},rarity:'common',desc:{en:'Orange completion stops Pressure rise for [Lv x 2] turns.',              ja:'橙完成時、[Lv x 2] ターンの間プレッシャーが上昇しなくなる。'},},
+            teal_equilibrium: {id:'teal_equilibrium',name:{en:'Teal Analysis', ja:'青緑の分析'},rarity:'rare',desc:{en:'Teal completion progresses Secondary Goal by 1.',               ja:'青緑完成時、副目標の進行度が 1 進む。'},},
+            pink_luck: {id:'pink_luck',name:{en:'Pink Luck', ja:'桃の幸運'},rarity:'rare',desc:{en:'Pink completion has [Lv x 10]% chance to drop a random item.',                      ja:'桃完成時、[Lv x 10]% の確率でランダムなアイテムを得る。'},}
         };
         const ITEMS = {
             heal: {id: 'heal', type: 'consumable', cost: 8, icon: '🩹', name: {en:'Stabilizer', ja:'安定剤'},desc: {en:'Heal +1 HP.', ja:'HPを+1回復する'}},
@@ -1369,14 +1369,13 @@
             // 桃（Pink）: アイテムドロップ抽選
             if (colorKey === 'M' && hasPerk('pink_luck')) {
                 if(Math.random() < getPerkLevel('pink_luck') * 0.10){
-                    // ランダムな消費アイテムを付与
-                    const consumableKeys = Object.keys(ITEMS).filter(x => ITEMS[x].type === 'consumable');
-                    const availableToPick = consumableKeys.filter(k => (gameState.inventory[k] || 0) < 3);
-                    if (availableToPick.length > 0) {
-                        const k = pick(availableToPick);
+                    const k = getValidRandomConsumable();
+                    if (k) {
                         gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
-                        showToast("Lucky! Item Get!", 'fuchsia');
-                        showToast(currentLang === 'ja' ? `${ITEMS[k].name.ja}を獲得！` : `Got ${ITEMS[k].name.en}!`, 'pink');
+                        const name = currentLang === 'ja' ? ITEMS[k].name.ja : ITEMS[k].name.en;
+                        // プレイ中の獲得は、その場で浮遊テキストを出すのが気持ちいい
+                        showFloatText(tubeIdx, `Lucky! ${ITEMS[k].icon}`, '#f472b6');
+                        showToast(`${name} Get!`, 'pink');
                     }
                 }
             }
@@ -1678,32 +1677,41 @@
             if(r === 'rare') return 0.80;
             return 1.00;
         }
-        function rollPerkChoices(count=3){
+        function rollPerkChoices(count = 3) {
             const ids = Object.keys(PERKS);
             const f = clamp((gameState.floor - 1) / 10, 0, 1);
             const pool = ids.slice();
-            const w = pool.map(id=>{
+            
+            // 重み付けの計算
+            const w = pool.map(id => {
                 const r = PERKS[id].rarity;
                 let base = rarityWeight(r);
-                if(r === 'rare') base += 0.15 * f;
-                if(r === 'epic') base += 0.10 * f;
-                if(getPerkLevel(id) === 0) base *= 1.10;
+                if (r === 'rare') base += 0.15 * f;
+                if (r === 'epic') base += 0.10 * f;
+                if (getPerkLevel(id) === 0) base *= 1.10;
                 return base;
             });
+
             const chosen = [];
-            // デバッグ用（常に全種類のスキルを表示）
-            while(chosen.length < (IS_DEBUG ? pool.length + 50 : Math.min(count, pool.length))){
-                const total = w.reduce((a,b)=>a+b,0);
+            // デバッグ時は「3つ」ではなく「存在する全スキル数」を上限にする
+            const targetCount = IS_DEBUG ? pool.length : Math.min(count, pool.length);
+
+            while (chosen.length < targetCount) {
+                const total = w.reduce((a, b) => a + b, 0);
+                if (total <= 0) break; // 安全策
+
                 let r = Math.random() * total;
                 let idx = 0;
-                while(idx < w.length && (r -= w[idx]) > 0) idx++;
-                idx = Math.min(idx, w.length-1);
+                while (idx < w.length && (r -= w[idx]) > 0) idx++;
+                
+                idx = Math.min(idx, w.length - 1);
                 const perkId = pool[idx];
+
                 chosen.push(PERKS[perkId]);
-                if (!IS_DEBUG) {
-                    pool.splice(idx,1);
-                    w.splice(idx,1);
-                }
+
+                // デバッグモードであっても、選んだものは pool から抜かないと重複する
+                pool.splice(idx, 1);
+                w.splice(idx, 1);
             }
             return chosen;
         }
@@ -2104,54 +2112,94 @@
             });
         }
         function acquirePerk(id){ if(!gameState.perks[id]) gameState.perks[id] = 0; gameState.perks[id]++; if(id === 'overflow') gameState.pressureMax += 4; renderHUD(); saveGame(); }
-        function startNewRun(){ 
-            clearSave(); 
-            startScreen.classList.add('hidden'); 
-            Object.assign(gameState, { 
-                floor:1, 
-                essence: IS_DEBUG ? 9999 : 0,
-                hp:3, 
-                maxHp:3,
-                capacity:4, 
-                perks:{}, 
-                pressure:0, 
-                pressureMax:20, 
-                history:[], 
-                inventory: IS_DEBUG ? Object.keys(ITEMS).reduce((acc, key) => ({ ...acc, [key]: 3 }), {}) : {},
-                catalystAvailable:true, 
-                refluxUses:0, 
-                momentumTurns:0, 
-                rerollCoupons:0,
+        function startNewRun() {
+            clearSave();
+            
+            // デバッグ用の開始階層を取得
+            let startFloor = 1;
+            let effectiveDebug = IS_DEBUG; // 実行時のデバッグ状態を管理
+
+            if (IS_DEBUG) {
+                const input = ui('debug-floor-input');
+                startFloor = parseInt(input.value) || 0; // 空文字などは0扱い
+                
+                // 入力値が0なら、このランの間はデバッグ機能をオフにする
+                if (startFloor <= 0) {
+                    effectiveDebug = false;
+                    startFloor = 1; // 階層は1に戻す
+                }
+            }
+
+            startScreen.classList.add('hidden');
+
+            // 階層に応じた瓶の容量を計算
+            let initialCapacity = 4;
+            if (startFloor >= 8) initialCapacity = 6;
+            else if (startFloor >= 4) initialCapacity = 5;
+
+            // 初期状態の設定
+            Object.assign(gameState, {
+                floor: startFloor,
+                // effectiveDebugがFalseなら通常プレイと同じリソース量にする
+                essence: effectiveDebug ? 9999 : 0,
+                hp: 3,
+                maxHp: 3,
+                capacity: initialCapacity,
+                perks: {},
+                pressure: 0,
+                pressureMax: 20,
+                history: [],
+                // effectiveDebugがFalseならインベントリは空
+                inventory: effectiveDebug ? Object.keys(ITEMS).reduce((acc, key) => ({ ...acc, [key]: 3 }), {}) : {},
+                catalystAvailable: true,
+                refluxUses: 0,
+                momentumTurns: 0,
+                rerollCoupons: 0,
                 completedFlags: []
-            }); 
-            perkScreen.classList.add('hidden'); 
-            nextFloor(true); 
+            });
+
+            perkScreen.classList.add('hidden');
+            
+            // ボード生成と表示
+            generateBoard();
+            generateGoals();
+            renderHUD();
+            renderBoard(true);
+            saveGame();
+            
+            // 通知
+            if (effectiveDebug) {
+                showToast(`Debug Start: Floor ${startFloor}`, 'rose');
+            } else {
+//                showToast(currentLang === 'ja' ? '通常モードで開始' : 'Standard Mode Start', 'sky');
+            }
         }
         function nextFloor(isFirst=false){
+            const rewards = [];
             if(!isFirst) {
                 gameState.floor++; 
                 if (gameState.floor >= 8) gameState.capacity = 6; 
                 else if (gameState.floor >= 4) gameState.capacity = 5; 
                 else gameState.capacity = 4;
-                if(hasPerk('scavenger') && Math.random() < (0.10 + getPerkLevel('scavenger')*0.05)) { 
-                    const consumableKeys = Object.keys(ITEMS).filter(x => ITEMS[x].type === 'consumable');
-                    const availableToPick = consumableKeys.filter(k => (gameState.inventory[k] || 0) < 3);
-                    if (availableToPick.length > 0) {
-                        const k = pick(availableToPick);
-                        gameState.inventory[k] = (gameState.inventory[k] || 0) + 1; 
-                        showToast(currentLang === 'ja' ? `${ITEMS[k].name.ja}を拾った！` : `Scavenged ${ITEMS[k].name.en}!`, 'emerald'); 
+                // 1. スカベンジャーの判定
+                if (hasPerk('scavenger') && Math.random() < (0.10 + getPerkLevel('scavenger') * 0.05)) {
+                    const k = getValidRandomConsumable();
+                    if (k) {
+                        gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                        rewards.push({ key: k, source: 'scavenger' });
                     }
                 }
-                if(hasPerk('transmutation')) { 
-                    for(let i=0; i<getPerkLevel('transmutation'); i++){ 
-                        const consumableKeys = Object.keys(ITEMS).filter(x => ITEMS[x].type === 'consumable');
-                        const availableToPick = consumableKeys.filter(k => (gameState.inventory[k] || 0) < 3);
-                        if (availableToPick.length > 0) {
-                            const k = pick(availableToPick);
-                            gameState.inventory[k] = (gameState.inventory[k] || 0) + 1; 
+                // 2. 物質変換 (Transmutation) の判定
+                if (hasPerk('transmutation')) {
+                    for (let i = 0; i < getPerkLevel('transmutation'); i++) {
+                        const k = getValidRandomConsumable();
+                        if (k) {
+                            gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                            rewards.push({ key: k, source: 'transmutation' });
                         }
-                    } 
+                    }
                 }
+                // 3. クーポン (Coupon) の判定
                 if(hasPerk('coupon')) gameState.rerollCoupons += getPerkLevel('coupon');
             }
             const baseMaxHp = 3; 
@@ -2193,6 +2241,50 @@
             renderHUD(); 
             renderBoard(true);
             saveGame();
+
+            // まとめて演出を実行
+            setTimeout(() => {
+                showFloorStartSequence(rewards);
+            }, 600);
+        }
+        // ヘルパー：所持上限(3個)に達していないランダムな消費アイテムを返す
+        function getValidRandomConsumable() {
+            const keys = Object.keys(ITEMS).filter(x => ITEMS[x].type === 'consumable');
+            const available = keys.filter(k => (gameState.inventory[k] || 0) < 3);
+            return available.length > 0 ? pick(available) : null;
+        }
+        function showFloorStartSequence(rewards) {
+            // 1. 階層表示
+            const floorMsg = currentLang === 'ja' ? `第 ${gameState.floor} 階層` : `FLOOR ${gameState.floor}`;
+            showToast(floorMsg, 'sky');
+
+            if (rewards.length === 0) return;
+
+            // 2. アイテム獲得の集計
+            // 同じアイテムが複数ある場合に「安定剤 x2」のようにまとめる
+            const summary = rewards.reduce((acc, curr) => {
+                acc[curr.key] = (acc[curr.key] || 0) + 1;
+                return acc;
+            }, {});
+
+            // 3. 演出実行
+            setTimeout(() => {
+                Object.entries(summary).forEach(([key, count], index) => {
+                    const item = ITEMS[key];
+                    const name = currentLang === 'ja' ? item.name.ja : item.name.en;
+                    
+                    // 少しずつずらしてトーストを表示
+                    setTimeout(() => {
+                        const msg = `${item.icon} ${name} +${count}`;
+                        showToast(msg, 'emerald');
+                        
+                        // 最初の1つ目だけ中央にも出す（派手すぎ防止）
+                        if (index === 0) {
+                            showFloatTextAtCenter(msg, '#10b981');
+                        }
+                    }, index * 300);
+                });
+            }, 500);
         }
         function tryUndo(){
             if (gameState.busy) return;
@@ -2612,11 +2704,29 @@
         };
         function initGameSettings() {
             const savedLang = localStorage.getItem('abyss_alchemy_lang');
-            if (savedLang === 'en' || savedLang === 'ja') {
-                setLang(savedLang);
-            } else {
-                setLang('ja'); 
-            }
+            setLang(savedLang === 'en' || savedLang === 'ja' ? savedLang : 'ja');
             initPalette();
+
+            // デバッグ用パネルの切り替え設定
+            const debugToggle = ui('debug-toggle');
+            const debugPanel = ui('debug-floor-selector');
+
+            if (debugToggle && debugPanel) {
+                debugToggle.onclick = () => {
+                    // ソースコードの IS_DEBUG が true の時のみパネルを表示
+                    if (IS_DEBUG) {
+                        const isHidden = debugPanel.classList.contains('hidden');
+                        if (isHidden) {
+                            debugPanel.classList.remove('hidden');
+                            showToast("Debug Mode Enabled", "rose");
+                        } else {
+                            debugPanel.classList.add('hidden');
+                        }
+                    } else {
+                        // デバッグモードが無効な時にクリックされた場合（お遊び要素）
+                        showToast("Access Denied", "slate");
+                    }
+                };
+            }
         }
         initGameSettings();
