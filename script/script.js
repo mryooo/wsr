@@ -478,6 +478,7 @@
             rerollCoupons: 0,
             pendingPerkId: null,
             completedFlags: [],
+            isExecutionDebug: false,
         };
         const tubesContainer = ui('tubes-container');
         const boardArea = ui('board-area');
@@ -1681,7 +1682,6 @@
             const f = clamp((gameState.floor - 1) / 10, 0, 1);
             const pool = ids.slice();
             
-            // 重み付けの計算
             const w = pool.map(id => {
                 const r = PERKS[id].rarity;
                 let base = rarityWeight(r);
@@ -1692,12 +1692,11 @@
             });
 
             const chosen = [];
-            // デバッグ時は「3つ」ではなく「存在する全スキル数」を上限にする
-            const targetCount = IS_DEBUG ? pool.length : Math.min(count, pool.length);
+            const targetCount = gameState.isExecutionDebug ? pool.length : Math.min(count, pool.length);
 
             while (chosen.length < targetCount) {
                 const total = w.reduce((a, b) => a + b, 0);
-                if (total <= 0) break; // 安全策
+                if (total <= 0) break;
 
                 let r = Math.random() * total;
                 let idx = 0;
@@ -1705,14 +1704,13 @@
                 
                 idx = Math.min(idx, w.length - 1);
                 const perkId = pool[idx];
-
                 chosen.push(PERKS[perkId]);
 
-                // デバッグモードであっても、選んだものは pool から抜かないと重複する
                 pool.splice(idx, 1);
                 w.splice(idx, 1);
             }
             return chosen;
+            
         }
         function generateShopOffers(n=4){
             const entries = [];
@@ -2114,20 +2112,19 @@
         function startNewRun() {
             clearSave();
             
-            // デバッグ用の開始階層を取得
             let startFloor = 1;
-            let effectiveDebug = IS_DEBUG; // 実行時のデバッグ状態を管理
+            let effectiveDebug = IS_DEBUG;
 
             if (IS_DEBUG) {
                 const input = ui('debug-floor-input');
-                startFloor = parseInt(input.value) || 0; // 空文字などは0扱い
+                startFloor = parseInt(input.value) || 0;
                 
-                // 入力値が0なら、このランの間はデバッグ機能をオフにする
                 if (startFloor <= 0) {
                     effectiveDebug = false;
-                    startFloor = 1; // 階層は1に戻す
+                    startFloor = 1;
                 }
             }
+            gameState.isExecutionDebug = effectiveDebug;
 
             startScreen.classList.add('hidden');
 
@@ -2139,7 +2136,6 @@
             // 初期状態の設定
             Object.assign(gameState, {
                 floor: startFloor,
-                // effectiveDebugがFalseなら通常プレイと同じリソース量にする
                 essence: effectiveDebug ? 9999 : 0,
                 hp: 3,
                 maxHp: 3,
@@ -2148,7 +2144,6 @@
                 pressure: 0,
                 pressureMax: 20,
                 history: [],
-                // effectiveDebugがFalseならインベントリは空
                 inventory: effectiveDebug ? Object.keys(ITEMS).reduce((acc, key) => ({ ...acc, [key]: 3 }), {}) : {},
                 catalystAvailable: true,
                 refluxUses: 0,
