@@ -540,12 +540,12 @@ function getBoardCounts(){
 }
 function isCompleteTube(t, counts = null) {
     if (!t || t.length === 0) return false;
+    // 【修正】現在の階層の最大容量(capacity)と一致している時のみ「完成」とする
+    if (t.length !== gameState.capacity) return false; 
+    
     if (!counts) counts = getBoardCounts();
     const c = t[0];
-    if (!t.every(x => x === c)) return false;
-    const totalOnBoard = counts[c] || 0;
-    const requiredCount = Math.min(gameState.capacity, totalOnBoard);
-    return t.length >= requiredCount && t.length > 0;
+    return t.every(x => x === c);
 }
 function colorMeta(key){ return COLOR_POOL.find(c => c.key===key); }
 function colorName(key){ const m=colorMeta(key); return currentLang==='ja' ? m.name.ja : m.name.en; }
@@ -794,15 +794,17 @@ function renderBoard(resetScroll = false){
         setClass('deadlock-glow', deadlocked);
         const isCompletedNow = (segments.length > 0 && segments[0] !== 'K' && isCompleteTube(segments, counts));
         if (isCompletedNow) {
+            // 本物のチューブ（isCloneでない）の時だけフラグを管理する
             if (gameState.completedFlags[i]) {
                 tube.classList.add('capped');
-            } else {
+            } else if (!item.isClone) {
                 newlyCompleted.add(i);
             }
             tube.style.boxShadow = `0 0 20px ${colorMeta(segments[0]).hex}`;
             tube.style.borderColor = `rgba(255,255,255,0.8)`;
         } else {
-            gameState.completedFlags[i] = false; 
+            // 本物のチューブで未完成なら、フラグを確実に折る
+            if (!item.isClone) gameState.completedFlags[i] = false;
             tube.classList.remove('capped');
             tube.style.boxShadow = '';
             tube.style.borderColor = '';
@@ -2162,6 +2164,7 @@ function nextFloor(isFirst=false){
         if (gameState.floor >= 8) gameState.capacity = 6; 
         else if (gameState.floor >= 4) gameState.capacity = 5; 
         else gameState.capacity = 4;
+        gameState.completedFlags = [];
         // 1. スカベンジャーの判定
         if (hasPerk('scavenger') && Math.random() < (0.10 + getPerkLevel('scavenger') * 0.05)) {
             const k = getValidRandomConsumable();
