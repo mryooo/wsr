@@ -2011,7 +2011,8 @@ function openPerkScreen(isDeath){
     ui('perk-title').textContent = isDeath ? t('gameOver') : t('victory');
     ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : t('victorySub');
     ui('perk-essence').textContent = `✨ Essence: ${gameState.essence}`;
-        gameState.pendingPerkId = null;
+    refreshRerollUI();
+    gameState.pendingPerkId = null;
     perkCards.innerHTML = ''; 
     shopCards.innerHTML = '';
         if(isDeath){
