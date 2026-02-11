@@ -1,4 +1,6 @@
+const GAME_VERSION = "0.4.08";
 const IS_DEBUG = true;
+
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
 function addPressure(amount) {
     gameState.pressure += amount;
@@ -2691,8 +2693,10 @@ function initGameSettings() {
     const savedLang = localStorage.getItem('abyss_alchemy_lang');
     setLang(savedLang === 'en' || savedLang === 'ja' ? savedLang : 'ja');
     initPalette();
-    // デバッグ用パネルの切り替え設定
     const debugToggle = ui('debug-toggle');
+    if (debugToggle) {
+        debugToggle.textContent = `Alpha Ver ${GAME_VERSION}`;
+    }
     const debugPanel = ui('debug-floor-selector');
     if (debugToggle && debugPanel) {
         debugToggle.onclick = () => {
@@ -2704,8 +2708,6 @@ function initGameSettings() {
                 } else {
                     debugPanel.classList.add('hidden');
                 }
-            } else {
-                // デバッグモードが無効な時にクリック
             }
         };
     }
