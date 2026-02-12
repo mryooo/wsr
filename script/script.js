@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.4.11";
+const GAME_VERSION = "0.4.12";
 const IS_DEBUG = true;
 
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -1952,131 +1952,86 @@ ui('reroll-btn').onclick = () => {
     openPerkScreen(false);
     saveGame();
 };
-function buildShopCard(offer){
-    let name='', desc='', icon='◈', baseCost=0;
-    if(offer.kind === 'instant'){
-        const inst = findInstant(offer.id);
-        if(!inst) return document.createElement('div');
-        name = currentLang==='ja' ? inst.name.ja : inst.name.en;
-        desc = currentLang==='ja' ? inst.desc.ja : inst.desc.en;
-        baseCost = inst.cost;
-        icon = '✦';
-    }else{
-        const it = ITEMS[offer.id];
-        if(!it) return document.createElement('div');
-        name = currentLang==='ja' ? it.name.ja : it.name.en;
-        desc = currentLang==='ja' ? it.desc.ja : it.desc.en;
-        baseCost = it.cost;
-        icon = it.icon;
+function buildShopCard(offer) {
+  let name = '',
+    desc = '',
+    icon = '◈',
+    baseCost = 0;
+  if (offer.kind === 'instant') {
+    const inst = findInstant(offer.id);
+    if (!inst) return document.createElement('div');
+    name = currentLang === 'ja' ? inst.name.ja : inst.name.en;
+    desc = currentLang === 'ja' ? inst.desc.ja : inst.desc.en;
+    baseCost = inst.cost;
+    icon = '✦';
+  } else {
+    const it = ITEMS[offer.id];
+    if (!it) return document.createElement('div');
+    name = currentLang === 'ja' ? it.name.ja : it.name.en;
+    desc = currentLang === 'ja' ? it.desc.ja : it.desc.en;
+    baseCost = it.cost;
+    icon = it.icon;
+  }
+  const currentInventoryCount = gameState.inventory[offer.id] || 0;
+  let badgeHtml = '';
+  if (offer.kind === 'item' && currentInventoryCount > 0) {
+    badgeHtml = `<span class="badge-count absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-sky-500 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-white pointer-events-none shadow-sm z-10">${currentInventoryCount}</span>`;
+  }
+  const cost = getDiscountedCost(baseCost);
+  const affordable = gameState.essence >= cost;
+  const isTool = (offer.kind === 'item' && ITEMS[offer.id]?.type === 'tool');
+  const allItemsMax = Object.keys(ITEMS).filter(k => ITEMS[k].type === 'consumable').every(k => (gameState.inventory[k] || 0) >= 3);
+  const isAtMax = (offer.kind === 'item' && !isTool && currentInventoryCount >= 3) || (offer.id === 'mystery_box' && allItemsMax);
+  const ownedTool = (isTool && currentInventoryCount > 0);
+  const disabled = !IS_DEBUG && (!!offer.purchased || ownedTool || isAtMax || !affordable);
+  const card = document.createElement('div');
+  card.className = 'shop-card glass-panel perk-card p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 h-full justify-between';
+  card.dataset.cost = String(cost);
+  let priceDisplay = `<div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div>`;
+  if (hasPerk('bargain') && cost !== baseCost) {
+    priceDisplay = `<div class="flex flex-col items-end leading-none"><div class="text-[10px] text-slate-500 line-through decoration-slate-500">${baseCost}</div><div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div></div>`;
+  }
+  let btnLabel = currentLang === 'ja' ? '購入' : 'BUY';
+  let btnColorClass = '';
+  if (offer.purchased) {
+    btnLabel = currentLang === 'ja' ? '完売' : 'SOLD OUT';
+    btnColorClass = 'text-rose-500';
+  } else if (ownedTool) {
+    btnLabel = currentLang === 'ja' ? '所持済' : 'OWNED';
+  } else if (isAtMax) {
+    btnLabel = currentLang === 'ja' ? '最大数' : 'MAX';
+    btnColorClass = 'text-rose-500';
+  }
+  card.innerHTML = `<div class="flex items-start justify-between gap-1 sm:gap-2"><div class="flex items-center gap-2 sm:gap-3 min-w-0"><div class="relative w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl glass-panel flex items-center justify-center text-xl sm:text-3xl shrink-0 border border-white/10 icon-box">${icon}${badgeHtml}</div><div class="text-sm sm:text-lg font-black text-white leading-tight break-words">${name}</div></div><div class="text-right shrink-0">${priceDisplay}</div></div><div class="flex-1"><p class="text-xs sm:text-base text-slate-300 leading-snug break-words italic">${desc}</p></div><button class="shop-btn w-full py-2 sm:py-3 rounded-lg sm:rounded-xl font-black text-sm sm:text-lg uppercase tracking-widest border border-white/10 ${btnColorClass} ${disabled?'opacity-30 cursor-not-allowed':'hover:bg-white/10'}">${btnLabel}</button>`;
+  const btn = card.querySelector('.shop-btn');
+  btn.disabled = disabled;
+  btn.onclick = () => {
+    if (btn.disabled) return;
+    const finalCost = getDiscountedCost(baseCost);
+    if (gameState.essence < finalCost) return;
+    if (offer.kind === 'instant') {
+      gameState.essence -= finalCost;
+      const inst = findInstant(offer.id);
+      if (inst && typeof inst.apply === 'function') inst.apply(gameState);
+      offer.purchased = true;
+    } else {
+      const it = ITEMS[offer.id];
+      const currentCount = (gameState.inventory[offer.id] || 0);
+      if (it.type === 'tool') {
+        gameState.essence -= finalCost;
+        gameState.inventory[offer.id] = 1;
+        offer.purchased = true;
+      } else if (currentCount < 3) {
+        gameState.essence -= finalCost;
+        gameState.inventory[offer.id] = currentCount + 1;
+      }
     }
-    const currentInventoryCount = gameState.inventory[offer.id] || 0;
-    let badgeHtml = '';
-    if(offer.kind === 'item' && currentInventoryCount > 0){
-        badgeHtml = `<span class="badge-count absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-sky-500 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-white pointer-events-none shadow-sm z-10">${currentInventoryCount}</span>`;
-    }
-    const cost = getDiscountedCost(baseCost);
-    const affordable = gameState.essence >= cost;
-    const isTool = (offer.kind==='item' && ITEMS[offer.id]?.type==='tool');
-    const allItemsMax = Object.keys(ITEMS)
-        .filter(k => ITEMS[k].type === 'consumable')
-        .every(k => (gameState.inventory[k] || 0) >= 3);
-    const isAtMax = (offer.kind==='item' && !isTool && currentInventoryCount >= 3) || 
-                    (offer.id === 'mystery_box' && allItemsMax);
-    const ownedTool = (isTool && currentInventoryCount > 0);
-    const disabled = !IS_DEBUG && (!!offer.purchased || ownedTool || isAtMax || !affordable);
-    const card = document.createElement('div');
-    card.className = 'shop-card glass-panel perk-card p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 h-full justify-between'; 
-    card.dataset.cost = String(cost);
-    let priceDisplay = `<div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div>`;
-    if (hasPerk('bargain') && cost !== baseCost) {
-        priceDisplay = `
-            <div class="flex flex-col items-end leading-none">
-                <div class="text-[10px] text-slate-500 line-through decoration-slate-500">${baseCost}</div>
-                <div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div>
-            </div>
-        `;
-    }
-    let btnLabel = currentLang==='ja'?'購入':'BUY';
-    let btnColorClass = '';
-    if(offer.purchased) btnLabel = currentLang==='ja'?'購入済':'BOUGHT';
-    else if(ownedTool) btnLabel = currentLang==='ja'?'所持済':'OWNED';
-    else if(isAtMax) {
-        btnLabel = currentLang==='ja'?'最大数':'MAX';
-        btnColorClass = 'text-rose-500';
-    }
-    card.innerHTML = `
-        <div class="flex items-start justify-between gap-1 sm:gap-2">
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-                <div class="relative w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl glass-panel flex items-center justify-center text-xl sm:text-3xl shrink-0 border border-white/10 icon-box">
-                    ${icon}
-                    ${badgeHtml}
-                </div>
-                <div class="text-sm sm:text-lg font-black text-white leading-tight break-words">
-                    ${name}
-                </div>
-            </div>
-            <div class="text-right shrink-0">
-                ${priceDisplay}
-            </div>
-        </div>
-        <div class="flex-1">
-            <p class="text-xs sm:text-base text-slate-300 leading-snug break-words italic">
-                ${desc}
-            </p>
-        </div>
-        <button class="shop-btn w-full py-2 sm:py-3 rounded-lg sm:rounded-xl font-black text-sm sm:text-lg uppercase tracking-widest border border-white/10 ${btnColorClass} ${disabled?'opacity-30 cursor-not-allowed':'hover:bg-white/10'}">
-            ${btnLabel}
-        </button>
-    `;
-    const btn = card.querySelector('.shop-btn');
-    btn.disabled = disabled;
-    btn.onclick = () => {
-        if(btn.disabled) return;
-        const finalCost = getDiscountedCost(baseCost);
-        if(gameState.essence < finalCost) return;
-        if(offer.kind === 'instant'){
-            gameState.essence -= finalCost;
-            const inst = findInstant(offer.id);
-            if(inst && typeof inst.apply === 'function') inst.apply(gameState);
-            offer.purchased = true;
-        } else {
-            const it = ITEMS[offer.id];
-            const currentCount = (gameState.inventory[offer.id] || 0);
-            if(it.type === 'tool') {
-                gameState.essence -= finalCost;
-                gameState.inventory[offer.id] = 1;
-                offer.purchased = true;
-            } else if (currentCount < 3) {
-                gameState.essence -= finalCost;
-                gameState.inventory[offer.id] = currentCount + 1;
-                const newCount = gameState.inventory[offer.id];
-                let badge = card.querySelector('.badge-count');
-                if (!badge) {
-                    const iconBox = card.querySelector('.icon-box');
-                    badge = document.createElement('span');
-                    badge.className = 'badge-count absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-sky-500 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-white pointer-events-none shadow-sm z-10';
-                    iconBox.appendChild(badge);
-                }
-                badge.textContent = newCount;
-                if (newCount >= 3) {
-                    btn.textContent = currentLang==='ja'?'最大数':'MAX';
-                    btn.classList.add('text-rose-500');
-                    btn.disabled = true;
-                    btn.classList.add('opacity-30', 'cursor-not-allowed');
-                }
-            }
-        }
-        saveGame();
-        refreshRerollUI();
-        renderHUD();
-        updateShopButtons();
-        if (offer.purchased) {
-            btn.textContent = currentLang==='ja'?'購入済':'BOUGHT';
-            btn.disabled = true;
-            btn.classList.add('opacity-30', 'cursor-not-allowed');
-        }
-    };
-    return card;
+    saveGame();
+    refreshRerollUI();
+    renderHUD();
+    openPerkScreen(false);
+  };
+  return card;
 }
 function generateShareText(){
     const perkList = Object.entries(gameState.perks || {})
