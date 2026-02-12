@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.4.08";
+const GAME_VERSION = "0.4.09";
 const IS_DEBUG = true;
 
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -542,12 +542,22 @@ function getBoardCounts(){
 }
 function isCompleteTube(t, counts = null) {
     if (!t || t.length === 0) return false;
-    // 【修正】現在の階層の最大容量(capacity)と一致している時のみ「完成」とする
-    if (t.length !== gameState.capacity) return false; 
-    
     if (!counts) counts = getBoardCounts();
+    
     const c = t[0];
-    return t.every(x => x === c);
+    // チューブ内が単一の色で構成されているかチェック
+    if (!t.every(x => x === c)) return false;
+
+    const totalOnBoard = counts[c] || 0;
+    
+    // 【判定条件】
+    // 通常は「容量いっぱい」で完成だが、
+    // 盤面上のその色の全数（totalOnBoard）が現在のチューブ内の数と一致し、
+    // かつそれが0でないなら、総数が減った色としての「完成」とみなす
+    if (t.length === totalOnBoard && totalOnBoard > 0) return true;
+    
+    // 従来の判定（容量上限まで満たされている）
+    return t.length >= gameState.capacity;
 }
 function colorMeta(key){ return COLOR_POOL.find(c => c.key===key); }
 function colorName(key){ const m=colorMeta(key); return currentLang==='ja' ? m.name.ja : m.name.en; }
@@ -1201,12 +1211,17 @@ async function applySkillEffect(idx){
     const skillKey = gameState.targetMode;
     const tube = gameState.tubes[idx];
     if(!skillKey || !gameState.inventory[skillKey] || gameState.inventory[skillKey] <= 0) return;
+    
     let success = false;
     let consume = true;
+    let removedColor = null; // 蒸発させた色を保持する変数
+
     if(hasPerk('recycler') && Math.random() < getPerkLevel('recycler') * 0.1) consume = false;
+    
     gameState.busy = true;
     try {
         pushHistory();
+        
         if(skillKey === 'inverter' && tube.length >= 2){
             tube.reverse(); showFloatText(idx, "Inverted!", "#a855f7"); success = true;
         } else if (skillKey === 'void_salt' && tube.length > 0 && tube[tube.length-1] === 'K'){
@@ -1237,24 +1252,36 @@ async function applySkillEffect(idx){
         } else if (skillKey === 'cursed_sludge' && tube.length < gameState.capacity){
             tube.push('K'); showFloatText(idx, "Cursed!", "#0f172a"); success = true;
         } else if (skillKey === 'vaporizer' && tube.length > 0){
-            tube.pop(); showFloatText(idx, "Vaporized!", "#94a3b8"); success = true;
+            removedColor = tube.pop(); // 消した色を特定
+            showFloatText(idx, "Vaporized!", "#94a3b8"); success = true;
         }
+
         if(success) {
             if(consume) gameState.inventory[skillKey]--;
             gameState.targetMode = null;
+            
             const boardCounts = getBoardCounts();
             for (let i = 0; i < gameState.tubes.length; i++) {
                 const t = gameState.tubes[i];
-                if (!gameState.completedFlags[i] && isCompleteTube(t, boardCounts)) {
-                    await handleCompletion(i, t[0]);
+                if (gameState.completedFlags[i]) continue;
+                
+                // 微量蒸発で減った色、または通常どおり満たされた色を確認
+                if (isCompleteTube(t, boardCounts)) {
+                    // vaporizer使用時は「消した色」のチューブのみを、それ以外は全色を判定
+                    if (skillKey !== 'vaporizer' || (t.length > 0 && t[0] === removedColor)) {
+                        await handleCompletion(i, t[0]);
+                    }
                 }
             }
         } else {
             gameState.history.pop();
         }
-    } catch(e) { console.error(e); }
-    gameState.busy = false;
-    renderHUD(); renderBoard(); saveGame();
+    } catch(e) { 
+        console.error(e); 
+    } finally {
+        gameState.busy = false;
+        renderHUD(); renderBoard(); saveGame();
+    }
 }
 function canPour(fromIdx, toIdx){
     if (fromIdx === toIdx) return {ok:false};
