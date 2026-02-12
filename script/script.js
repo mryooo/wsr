@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.4.09";
+const GAME_VERSION = "0.4.10";
 const IS_DEBUG = true;
 
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -1314,8 +1314,11 @@ function pushHistory(){
 async function handleCompletion(tubeIdx, colorKey) {
     const tubeEls = document.querySelectorAll(`.tube[data-idx="${tubeIdx}"]`);
     if (colorKey === 'K') {
-        gameState.busy = true; 
-        showToast("Purged!", 'slate');
+        gameState.busy = true;
+        const segmentCount = gameState.tubes[tubeIdx].length;
+        const reward = Math.floor(segmentCount * 1.0); 
+        gameState.essence += reward;
+        showToast(`Purged! ✨+${reward}`, 'slate');
         if (hasPerk('purification')) {
             const lv = getPerkLevel('purification');
             gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
