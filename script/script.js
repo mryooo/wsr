@@ -156,8 +156,8 @@ const translations = {
         statusBtn: "STATUS",
         retireBtn: "Retire",
         helpBtn: "Help",
-        paletteBtn: "Pallet",
-        paletteTitle: "Color Pallet",
+        paletteBtn: "Pallette",
+        paletteTitle: "Color Palette",
         close: "Close"
     },
     ja: {
@@ -193,8 +193,8 @@ const translations = {
         shopSub: "エッセンスを消費して安定を得る",
         gameOver: "奈落に呑まれた",
         gameOverSub: "深淵はまた一つ魂を喰らった...",
-        victory: "報酬",
-        victorySub: "進化するスキルを選択する",
+        victory: "進化",
+        victorySub: "進化させる能力を選択してください",
         typeInstant: "即時実行",
         typeItem: "所持アイテム",
         reroll: "リロール",
@@ -380,7 +380,7 @@ const PERKS = {
     reflux: {id:'reflux',name:{en:'Reflux', ja:'逆流制御'},rarity:'common',desc:{en:'First [Lv] undos each floor are free (Pressure +2 instead).',                              ja:'各階層、最初の [Lv] 回のUndoはエッセンス無料。'},},
     overflow: {id:'overflow',name:{en:'Overflow', ja:'オーバーフロー'},rarity:'common',desc:{en:'Pressure max +[Lv x 4].',                                                      ja:'プレッシャーの最大許容量が +[Lv x 4] される。'},},
     purification: {id:'purification',name:{en:'Purification', ja:'浄化作用'},rarity:'epic',desc:{en:'Clearing Obsidian reduces Pressure by [2 + Lv] and grants [1 + Lv] Essence.', ja:'黒消滅時、プレッシャー-[2 + Lv]、エッセンス+[1 + Lv]。'},},
-    scavenger: {id:'scavenger',name:{en:'Scavenger', ja:'スカベンジャー'},rarity:'rare',desc:{en:'[10 + Lv x 5]% chance to find item on new floor.',                            ja:'階層移動時、[10 + Lv x 5]% の確率でアイテムを拾う。'},},
+    scavenger: {id:'scavenger',name:{en:'Scavenger', ja:'スカベンジャー'},rarity:'rare',desc:{en:'[10 + Lv x 5]% chance to find item on new floor.',                            ja:'階層移動時、[10 + Lv x 5]% の確率でアイテムを獲得する。'},},
     recycler: {id:'recycler',name:{en:'Recycler', ja:'リサイクル'},rarity:'epic',desc:{en:'[Lv x 10]% chance to not consume item on use.',                                      ja:'アイテム使用時、[Lv x 10]% の確率で消費しない。'},},
     bargain: {id:'bargain',name:{en:'Bargain', ja:'交渉術'},rarity:'common',desc:{en:'Shop prices reduced by [15 + Lv x 5]%.',                                                  ja:'ショップ価格 [15 + Lv x 5]% OFF。'},},
     heavy_mastery: {id:'heavy_mastery',name:{en:'Heavy Mastery', ja:'大容量ボーナス'},rarity:'rare',desc:{en:'Clearing 5+ capacity tube reduces Pressure by [2 + Lv].',         ja:'容量5以上のチューブ完成でプレッシャー [2 + Lv] 減少。'},},
@@ -400,7 +400,7 @@ const PERKS = {
     amethyst_surge: {id:'amethyst_surge',name:{en:'Amethyst Surge', ja:'紫の脈動'},rarity:'rare',desc:{en:'Amethyst completion grants +[Lv] free Undo charges.',                ja:'紫完成時、無料Undoの回数を [Lv] 回増やす。'},},
     orange_drive: {id:'orange_drive',name:{en:'Orange Drive', ja:'橙の推進'},rarity:'common',desc:{en:'Orange completion stops Pressure rise for [Lv x 2] turns.',              ja:'橙完成時、[Lv x 2] ターンの間プレッシャーが上昇しなくなる。'},},
     teal_equilibrium: {id:'teal_equilibrium',name:{en:'Teal Analysis', ja:'青緑の分析'},rarity:'rare',desc:{en:'Teal completion progresses Secondary Goal by 1.',               ja:'青緑完成時、副目標の進行度が 1 進む。'},},
-    pink_luck: {id:'pink_luck',name:{en:'Pink Luck', ja:'桃の幸運'},rarity:'rare',desc:{en:'Pink completion has [Lv x 10]% chance to drop a random item.',                      ja:'桃完成時、[Lv x 10]% の確率でランダムなアイテムを得る。'},}
+    pink_luck: {id:'pink_luck',name:{en:'Pink Luck', ja:'桃の幸運'},rarity:'rare',desc:{en:'Pink completion has [Lv x 10]% chance to drop a random item.',                      ja:'桃完成時、[Lv x 10]% の確率でアイテムを獲得する。'},}
 };
 const ITEMS = {
     heal: {id: 'heal', type: 'consumable', cost: 8, icon: '🩹', name: {en:'Stabilizer', ja:'安定剤'},desc: {en:'Heal +1 HP.', ja:'HPを+1回復する'}},
@@ -436,7 +436,10 @@ const INSTANT_ITEMS = [
                 const gift = pick(availableKeys);
                 if (!gs.inventory[gift]) gs.inventory[gift] = 0;
                 gs.inventory[gift]++;
-                showToast(`Got ${ITEMS[gift].name[currentLang === 'ja' ? 'ja' : 'en']}!`, 'yellow');
+                const item = ITEMS[gift];
+                const itemName = currentLang === 'ja' ? item.name.ja : item.name.en;
+                const msg = currentLang === 'ja' ? `${item.icon} ${itemName} を獲得` : `${item.icon} ${itemName} Obtained`;
+                showToast(msg, 'yellow');
                 refreshRerollUI();
                 updateShopButtons();
                 const shopContainer = document.getElementById('shop-cards');
@@ -1385,9 +1388,11 @@ async function handleCompletion(tubeIdx, colorKey) {
             const k = getValidRandomConsumable();
             if (k) {
                 gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
-                const name = currentLang === 'ja' ? ITEMS[k].name.ja : ITEMS[k].name.en;
-                showFloatText(tubeIdx, `Lucky! ${ITEMS[k].icon}`, '#f472b6');
-                showToast(`${name} Get!`, 'pink');
+                const item = ITEMS[k];
+                const itemName = currentLang === 'ja' ? item.name.ja : item.name.en;
+                const msg = currentLang === 'ja' ? `${item.icon} ${itemName} を獲得` : `${item.icon} ${itemName} Obtained`;
+                showFloatText(tubeIdx, msg, '#f472b6');
+                showToast(msg, 'pink');
             }
         }
     }
@@ -1617,9 +1622,7 @@ function showCompletionEvent(colorKey){
 }
 function buildEventChoices(colorKey){
     const isJa = (currentLang === 'ja');
-    // トースト用の簡易ヘルパー
     const toast = (msg, color) => showToast(msg, color);
-
     // --- 蒼 (Azure) ---
     if (colorKey === 'B'){ 
         return [
@@ -1759,10 +1762,23 @@ function buildEventChoices(colorKey){
                 title: isJa ? 'ランダムアイテム x2' : '2 Random Items',
                 desc: isJa ? '深淵から道具を惹き寄せる' : 'Pull items from the void.',
                 async apply(){
-                    toast(isJa ? "虚空から道具を惹き寄せた (+2 Items)" : "Warped 2 items from void", "purple");
-                    for(let i=0; i<2; i++) {
+                    for(let i = 0; i < 2; i++) {
                         const k = getValidRandomConsumable();
-                        if(k) gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                        if(k) {
+                            gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                            const item = ITEMS[k];
+                            const itemName = isJa ? item.name.ja : item.name.en;
+                            const msg = isJa ? `${item.icon} ${itemName} を獲得` : `${item.icon} ${itemName} Obtained`;
+                            setTimeout(() => {
+                                toast(msg, "purple");
+                            }, i * 400); 
+                        } else {
+                            const msg = isJa ? "インベントリ満タン：✨+5" : "Inventory Full: ✨+5";
+                            gameState.essence += 5;
+                            setTimeout(() => {
+                                toast(msg, "slate");
+                            }, i * 400);
+                        }
                     }
                 }
             }
@@ -1821,14 +1837,16 @@ function buildEventChoices(colorKey){
         return [
             {
                 kicker: isJa ? '幸運' : 'Fortune',
-                title: isJa ? 'アイテム x1 / エッセンス +2' : 'Item x1 / Ess +2',
+                title: isJa ? 'アイテム獲得' : 'Obtain Item',
                 desc: isJa ? '偶然の産物を見つける' : 'Find a lucky byproduct.',
                 async apply(){
                     const k = getValidRandomConsumable();
                     if(k) {
                         gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
-                        const name = isJa ? ITEMS[k].name.ja : ITEMS[k].name.en;
-                        toast(isJa ? `${name} を入手した！` : `Got ${name}!`, "pink");
+                        const item = ITEMS[k];
+                        const itemName = isJa ? item.name.ja : item.name.en;
+                        const msg = isJa ? `${item.icon} ${itemName} を獲得` : `${item.icon} ${itemName} Obtained`;
+                        toast(msg, "pink");
                     }
                     gameState.essence += 2;
                 }
@@ -1845,7 +1863,6 @@ function buildEventChoices(colorKey){
             }
         ];
     }
-    // --- デフォルト ---
     return [
         { 
             kicker: isJa ? '浄化' : 'Purify', 
@@ -2317,7 +2334,7 @@ function nextFloor(isFirst=false){
         else if (gameState.floor >= 4) gameState.capacity = 5; 
         else gameState.capacity = 4;
         gameState.completedFlags = [];
-        // 1. スカベンジャーの判定
+        // スカベンジャーの判定
         if (hasPerk('scavenger') && Math.random() < (0.10 + getPerkLevel('scavenger') * 0.05)) {
             const k = getValidRandomConsumable();
             if (k) {
@@ -2325,7 +2342,7 @@ function nextFloor(isFirst=false){
                 rewards.push({ key: k, source: 'scavenger' });
             }
         }
-        // 2. 物質変換 (Transmutation) の判定
+        // 物質変換 (Transmutation) の判定
         if (hasPerk('transmutation')) {
             for (let i = 0; i < getPerkLevel('transmutation'); i++) {
                 const k = getValidRandomConsumable();
@@ -2335,7 +2352,7 @@ function nextFloor(isFirst=false){
                 }
             }
         }
-        // 3. クーポン (Coupon) の判定
+        // クーポン (Coupon) の判定
         if(hasPerk('coupon')) gameState.rerollCoupons += getPerkLevel('coupon');
     }
     const baseMaxHp = 3; 
@@ -2381,7 +2398,7 @@ function nextFloor(isFirst=false){
         showFloorStartSequence(rewards);
     }, 600);
 }
-// ヘルパー：所持上限(3個)に達していないランダムな消費アイテムを返す
+// 所持上限(3個)に達していないランダムな消費アイテムを返す
 function getValidRandomConsumable() {
     const keys = Object.keys(ITEMS).filter(x => ITEMS[x].type === 'consumable');
     const available = keys.filter(k => (gameState.inventory[k] || 0) < 3);
@@ -2398,9 +2415,11 @@ function showFloorStartSequence(rewards) {
     setTimeout(() => {
         Object.entries(summary).forEach(([key, count], index) => {
             const item = ITEMS[key];
-            const name = currentLang === 'ja' ? item.name.ja : item.name.en;
+            const itemName = currentLang === 'ja' ? item.name.ja : item.name.en;
+            const msg = currentLang === 'ja' 
+                ? `${item.icon} ${itemName} を獲得 (x${count})` 
+                : `${item.icon} ${itemName} Obtained (x${count})`;
             setTimeout(() => {
-                const msg = `${item.icon} ${name} +${count}`;
                 showToast(msg, 'emerald');
                 if (index === 0) {
                     showFloatTextAtCenter(msg, '#10b981');
