@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.4.10";
+const GAME_VERSION = "0.4.11";
 const IS_DEBUG = true;
 
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -543,20 +543,10 @@ function getBoardCounts(){
 function isCompleteTube(t, counts = null) {
     if (!t || t.length === 0) return false;
     if (!counts) counts = getBoardCounts();
-    
     const c = t[0];
-    // チューブ内が単一の色で構成されているかチェック
     if (!t.every(x => x === c)) return false;
-
     const totalOnBoard = counts[c] || 0;
-    
-    // 【判定条件】
-    // 通常は「容量いっぱい」で完成だが、
-    // 盤面上のその色の全数（totalOnBoard）が現在のチューブ内の数と一致し、
-    // かつそれが0でないなら、総数が減った色としての「完成」とみなす
     if (t.length === totalOnBoard && totalOnBoard > 0) return true;
-    
-    // 従来の判定（容量上限まで満たされている）
     return t.length >= gameState.capacity;
 }
 function colorMeta(key){ return COLOR_POOL.find(c => c.key===key); }
@@ -806,7 +796,6 @@ function renderBoard(resetScroll = false){
         setClass('deadlock-glow', deadlocked);
         const isCompletedNow = (segments.length > 0 && segments[0] !== 'K' && isCompleteTube(segments, counts));
         if (isCompletedNow) {
-            // 本物のチューブ（isCloneでない）の時だけフラグを管理する
             if (gameState.completedFlags[i]) {
                 tube.classList.add('capped');
             } else if (!item.isClone) {
@@ -815,7 +804,6 @@ function renderBoard(resetScroll = false){
             tube.style.boxShadow = `0 0 20px ${colorMeta(segments[0]).hex}`;
             tube.style.borderColor = `rgba(255,255,255,0.8)`;
         } else {
-            // 本物のチューブで未完成なら、フラグを確実に折る
             if (!item.isClone) gameState.completedFlags[i] = false;
             tube.classList.remove('capped');
             tube.style.boxShadow = '';
@@ -1143,8 +1131,8 @@ async function tryPour(fromIdx, toIdx) {
         renderHUD();
         renderBoard();
         if (gameState.hp <= 0) {
-            gameState.hp = 0; // 表示用にHPを0に固定
-            renderHUD();    // 0の状態でHUDを再描画
+            gameState.hp = 0;
+            renderHUD();
             clearSave();
             openPerkScreen(true);
         } else if (checkLevelClear()) {
@@ -1211,17 +1199,13 @@ async function applySkillEffect(idx){
     const skillKey = gameState.targetMode;
     const tube = gameState.tubes[idx];
     if(!skillKey || !gameState.inventory[skillKey] || gameState.inventory[skillKey] <= 0) return;
-    
     let success = false;
     let consume = true;
-    let removedColor = null; // 蒸発させた色を保持する変数
-
+    let removedColor = null;
     if(hasPerk('recycler') && Math.random() < getPerkLevel('recycler') * 0.1) consume = false;
-    
     gameState.busy = true;
     try {
         pushHistory();
-        
         if(skillKey === 'inverter' && tube.length >= 2){
             tube.reverse(); showFloatText(idx, "Inverted!", "#a855f7"); success = true;
         } else if (skillKey === 'void_salt' && tube.length > 0 && tube[tube.length-1] === 'K'){
@@ -1252,22 +1236,17 @@ async function applySkillEffect(idx){
         } else if (skillKey === 'cursed_sludge' && tube.length < gameState.capacity){
             tube.push('K'); showFloatText(idx, "Cursed!", "#0f172a"); success = true;
         } else if (skillKey === 'vaporizer' && tube.length > 0){
-            removedColor = tube.pop(); // 消した色を特定
+            removedColor = tube.pop();
             showFloatText(idx, "Vaporized!", "#94a3b8"); success = true;
         }
-
         if(success) {
             if(consume) gameState.inventory[skillKey]--;
             gameState.targetMode = null;
-            
             const boardCounts = getBoardCounts();
             for (let i = 0; i < gameState.tubes.length; i++) {
                 const t = gameState.tubes[i];
                 if (gameState.completedFlags[i]) continue;
-                
-                // 微量蒸発で減った色、または通常どおり満たされた色を確認
                 if (isCompleteTube(t, boardCounts)) {
-                    // vaporizer使用時は「消した色」のチューブのみを、それ以外は全色を判定
                     if (skillKey !== 'vaporizer' || (t.length > 0 && t[0] === removedColor)) {
                         await handleCompletion(i, t[0]);
                     }
@@ -1637,64 +1616,208 @@ function showCompletionEvent(colorKey){
     });
 }
 function buildEventChoices(colorKey){
+    const isJa = (currentLang === 'ja');
+    // --- 蒼 (Azure) ---
     if (colorKey === 'B'){ 
         return [
             { 
-                kicker: currentLang==='ja'?'排出':'Vent', 
-                title: currentLang==='ja'?'プレッシャー -4':'Pressure -4', 
-                desc: currentLang==='ja'?'安全を確保する':'Release built-up pressure.', 
-                async apply(){ gameState.pressure = Math.max(0, gameState.pressure-4); } 
+                kicker: isJa ? '排出' : 'Vent', 
+                title: isJa ? 'プレッシャー -4' : 'Pressure -4', 
+                desc: isJa ? '安全を確保する' : 'Release built-up pressure.', 
+                async apply(){ gameState.pressure = Math.max(0, gameState.pressure - 4); } 
             }, 
             { 
-                kicker: currentLang==='ja'?'知識':'Insight', 
-                title: currentLang==='ja'?'エッセンス +4':'Essence +4', 
-                desc: currentLang==='ja'?'リスクを取って富を得る':'Gain currency for the shop.', 
+                kicker: isJa ? '知識' : 'Insight', 
+                title: isJa ? 'エッセンス +4' : 'Essence +4', 
+                desc: isJa ? 'リスクを取って富を得る' : 'Gain currency for the shop.', 
                 async apply(){ gameState.essence += 4; } 
             }
         ]; 
     }
+    // --- 紅 (Crimson) ---
     if (colorKey === 'R'){ 
         return [
             { 
-                kicker: currentLang==='ja'?'活力':'Vitality', 
-                title: currentLang==='ja'?'HP +1 / プレッシャー +3':'HP +1 / Pressure +3', 
-                desc: currentLang==='ja'?'回復するがプレッシャーが増える':'Heal yourself, but strain the system.', 
+                kicker: isJa ? '活力' : 'Vitality', 
+                title: isJa ? 'HP +1 / プレッシャー +3' : 'HP +1 / Pressure +3', 
+                desc: isJa ? '回復するがプレッシャーが増える' : 'Heal yourself, but strain the system.', 
                 async apply(){
                     gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
-                    if(addPressure(3)){
-                        await applyPressureDamage();
-                    }
+                    if(addPressure(3)) await applyPressureDamage();
                 } 
             }, 
             { 
-                kicker: currentLang==='ja'?'平静':'Calm', 
-                title: currentLang==='ja'?'プレッシャー -6':'Pressure -6', 
-                desc: currentLang==='ja'?'心を落ち着ける':'Significantly reduce pressure.', 
-                async apply(){ 
-                    gameState.pressure = Math.max(0, 
-                    gameState.pressure-6); 
-                } 
+                kicker: isJa ? '平静' : 'Calm', 
+                title: isJa ? 'プレッシャー -6' : 'Pressure -6', 
+                desc: isJa ? '心を落ち着ける' : 'Significantly reduce pressure.', 
+                async apply(){ gameState.pressure = Math.max(0, gameState.pressure - 6); } 
             }
         ]; 
     }
+    // --- 琥珀 (Amber / Yellow) ---
+    if (colorKey === 'Y'){
+        return [
+            {
+                kicker: isJa ? '投資' : 'Investment',
+                title: isJa ? 'エッセンス +6' : 'Essence +6',
+                desc: isJa ? '純度の高いエッセンスを抽出する' : 'Extract high-purity essence.',
+                async apply(){ gameState.essence += 6; }
+            },
+            {
+                kicker: isJa ? '錬金' : 'Alchemy',
+                title: isJa ? 'アイテム獲得' : 'Get Random Item',
+                desc: isJa ? '物質をランダムな道具に変換する' : 'Transmute matter into a tool.',
+                async apply(){
+                    const k = getValidRandomConsumable();
+                    if(k) {
+                        gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                        showToast(`${ITEMS[k].icon} Get!`, 'yellow');
+                    }
+                }
+            }
+        ];
+    }
+    // --- 象牙 (Ivory / White) ---
+    if (colorKey === 'W'){
+        return [
+            {
+                kicker: isJa ? '聖域' : 'Sanctuary',
+                title: isJa ? '黒除去 x2' : 'Remove 2 Obsidian',
+                desc: isJa ? '瓶に溜まった穢れを浄化する' : 'Purify the abyss within tubes.',
+                async apply(){ removeOneObsidian(); removeOneObsidian(); }
+            },
+            {
+                kicker: isJa ? '反響' : 'Echo',
+                title: isJa ? '無料Undo +2' : 'Free Undo +2',
+                desc: isJa ? '過去をやり直す力を蓄える' : 'Store power to rewrite history.',
+                async apply(){ gameState.refluxUses += 2; }
+            }
+        ];
+    }
+    // --- 翠 (Emerald / Green) ---
+    if (colorKey === 'G'){
+        return [
+            {
+                kicker: isJa ? '再生' : 'Regrow',
+                title: isJa ? 'プレッシャーを0にする' : 'Set Pressure to 0',
+                desc: isJa ? 'システムを完全にリセットする' : 'Completely reset the system.',
+                async apply(){ gameState.pressure = 0; }
+            },
+            {
+                kicker: isJa ? '循環' : 'Circulate',
+                title: isJa ? '最大HP +1 / HP回復' : 'Max HP +1 / Heal',
+                desc: isJa ? '器そのものを強化する' : 'Strengthen the vessel itself.',
+                async apply(){
+                    gameState.maxHp += 1;
+                    gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
+                }
+            }
+        ];
+    }
+    // --- 紫 (Amethyst / Purple) ---
+    if (colorKey === 'P'){
+        return [
+            {
+                kicker: isJa ? '深淵' : 'Abyss',
+                title: isJa ? 'エッセンス +12 / プレッシャー +8' : 'Ess +12 / Press +8',
+                desc: isJa ? '大きな代償で莫大な富を得る' : 'Gain wealth at a heavy cost.',
+                async apply(){
+                    gameState.essence += 12;
+                    if(addPressure(8)) await applyPressureDamage();
+                }
+            },
+            {
+                kicker: isJa ? '歪み' : 'Warp',
+                title: isJa ? 'ランダムアイテム x2' : '2 Random Items',
+                desc: isJa ? '深淵から道具を惹き寄せる' : 'Pull items from the void.',
+                async apply(){
+                    for(let i=0; i<2; i++) {
+                        const k = getValidRandomConsumable();
+                        if(k) gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                    }
+                }
+            }
+        ];
+    }
+    // --- 橙 (Orange) ---
+    if (colorKey === 'O'){
+        return [
+            {
+                kicker: isJa ? '加速' : 'Accel',
+                title: isJa ? 'プレッシャー停止 (10T)' : 'Freeze Press (10T)',
+                desc: isJa ? 'しばらくの間、負荷を無効化する' : 'Nullify pressure for a while.',
+                async apply(){ gameState.momentumTurns += 10; }
+            },
+            {
+                kicker: isJa ? '推進' : 'Thrust',
+                title: isJa ? 'エッセンス +2 / HP +1' : 'Ess +2 / HP +1',
+                desc: isJa ? '進むための活力を得る' : 'Gain energy to push forward.',
+                async apply(){
+                    gameState.essence += 2;
+                    gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
+                }
+            }
+        ];
+    }
+    // --- 青緑 (Teal) ---
+    if (colorKey === 'T'){
+        return [
+            {
+                kicker: isJa ? '分析' : 'Analysis',
+                title: isJa ? 'サブ目標進行 +2' : 'Sub Goal +2',
+                desc: isJa ? '構造を解析し効率を高める' : 'Analyze structure for efficiency.',
+                async apply(){ gameState.secondaryProgress += 2; }
+            },
+            {
+                kicker: isJa ? '均衡' : 'Equilibrium',
+                title: isJa ? 'プレッシャー -3 / エッセンス +2' : 'Press -3 / Ess +2',
+                desc: isJa ? '理想的なバランスを保つ' : 'Maintain perfect balance.',
+                async apply(){
+                    gameState.pressure = Math.max(0, gameState.pressure - 3);
+                    gameState.essence += 2;
+                }
+            }
+        ];
+    }
+    // --- 桃 (Pink) ---
+    if (colorKey === 'M'){
+        return [
+            {
+                kicker: isJa ? '幸運' : 'Fortune',
+                title: isJa ? 'アイテム x1 / エッセンス +2' : 'Item x1 / Ess +2',
+                desc: isJa ? '偶然の産物を見つける' : 'Find a lucky byproduct.',
+                async apply(){
+                    const k = getValidRandomConsumable();
+                    if(k) gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                    gameState.essence += 2;
+                }
+            },
+            {
+                kicker: isJa ? '魅了' : 'Charm',
+                title: isJa ? 'プレッシャー -2 / HP +1' : 'Press -2 / HP +1',
+                desc: isJa ? '深淵の怒りを和らげる' : 'Soothe the abyss\'s wrath.',
+                async apply(){
+                    gameState.pressure = Math.max(0, gameState.pressure - 2);
+                    gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
+                }
+            }
+        ];
+    }
+    // --- デフォルト (万が一、色が未定義の場合) ---
     return [
         { 
-            kicker: currentLang==='ja'?'浄化':'Purify', 
-            title: currentLang==='ja'?'プレッシャー -2':'Pressure -2', 
-            desc: currentLang==='ja'?'少し落ち着く':'Minor relief.', 
-            async apply(){ 
-                gameState.pressure = Math.max(0, gameState.pressure-2); 
-            } 
+            kicker: isJa ? '浄化' : 'Purify', 
+            title: isJa ? 'プレッシャー -2' : 'Pressure -2', 
+            desc: isJa ? '少し落ち着く' : 'Minor relief.', 
+            async apply(){ gameState.pressure = Math.max(0, gameState.pressure - 2); } 
         }, 
         { 
-            kicker: currentLang==='ja'?'貪欲':'Greed', 
-            title: currentLang==='ja'?'エッセンス +3 / プレッシャー +1':'Essence +3 / Pressure +1', 
-            desc: currentLang==='ja'?'小さな代償で富を':'Wealth at a cost.', 
+            kicker: isJa ? '貪欲' : 'Greed', 
+            title: isJa ? 'エッセンス +3 / プレッシャー +1' : 'Essence +3 / Press +1', 
+            desc: isJa ? '小さな代償で富を' : 'Wealth at a cost.', 
             async apply(){ 
                 gameState.essence += 3;
-                if(addPressure(1)){
-                    await applyPressureDamage();
-                }
+                if(addPressure(1)) await applyPressureDamage();
             } 
         }
     ];
@@ -2154,11 +2277,9 @@ function startNewRun() {
     }
     gameState.isExecutionDebug = effectiveDebug;
     startScreen.classList.add('hidden');
-    // 階層に応じた瓶の容量を計算
     let initialCapacity = 4;
     if (startFloor >= 8) initialCapacity = 6;
     else if (startFloor >= 4) initialCapacity = 5;
-    // 初期状態の設定
     Object.assign(gameState, {
         floor: startFloor,
         essence: effectiveDebug ? 9999 : 0,
@@ -2182,11 +2303,9 @@ function startNewRun() {
     renderHUD();
     renderBoard(true);
     saveGame();
-    // 通知
     if (effectiveDebug) {
         showToast(`Debug Start: Floor ${startFloor}`, 'rose');
     } else {
-        // showToast(currentLang === 'ja' ? '通常モードで開始' : 'Standard Mode Start', 'sky');
     }
 }
 function nextFloor(isFirst=false){
@@ -2268,26 +2387,20 @@ function getValidRandomConsumable() {
     return available.length > 0 ? pick(available) : null;
 }
 function showFloorStartSequence(rewards) {
-    // 1. 階層表示
     const floorMsg = currentLang === 'ja' ? `第 ${gameState.floor} 階層` : `FLOOR ${gameState.floor}`;
     showToast(floorMsg, 'sky');
     if (rewards.length === 0) return;
-    // 2. アイテム獲得の集計
-    // 同じアイテムが複数ある場合に「安定剤 x2」のようにまとめる
     const summary = rewards.reduce((acc, curr) => {
         acc[curr.key] = (acc[curr.key] || 0) + 1;
         return acc;
     }, {});
-    // 3. 演出実行
     setTimeout(() => {
         Object.entries(summary).forEach(([key, count], index) => {
             const item = ITEMS[key];
             const name = currentLang === 'ja' ? item.name.ja : item.name.en;
-            // 少しずつずらしてトーストを表示
             setTimeout(() => {
                 const msg = `${item.icon} ${name} +${count}`;
                 showToast(msg, 'emerald');
-                // 最初の1つ目だけ中央にも出す（派手すぎ防止）
                 if (index === 0) {
                     showFloatTextAtCenter(msg, '#10b981');
                 }
@@ -2305,21 +2418,16 @@ function tryUndo(){
         return;
     }
     gameState.history.pop();
-
     const currentHP = gameState.hp;
     const currentEssence = gameState.essence;
     const currentPressure = gameState.pressure;
     const currentTurn = gameState.turnCount;
-
     Object.assign(gameState, { 
         tubes: deepCopy(prev.tubes), 
-        // リソース系は prev から復元せず、現在の値を再代入（または計算）
         hp: currentHP,
         essence: currentEssence,
         pressure: currentPressure,
         turnCount: currentTurn,
-        
-        // 盤面状況に付随するフラグは戻す
         secondaryProgress: prev.secondaryProgress, 
         catalystAvailable: prev.catalystAvailable, 
         inventory: {...prev.inventory}, 
@@ -2328,14 +2436,11 @@ function tryUndo(){
         momentumTurns: prev.momentumTurns, 
         refluxUses: prev.refluxUses,
         completedFlags: prev.completedFlags ? [...prev.completedFlags] : [],
-        
-        // モードリセット
         targetMode: null, 
         pendingSkill: null, 
         extractorHeldColor: null, 
         selectedIdx: null
     });
-
     if(isFree){ 
         gameState.pressure += 2; 
         gameState.refluxUses--; 
