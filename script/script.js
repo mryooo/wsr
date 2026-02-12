@@ -396,7 +396,7 @@ const PERKS = {
     azure_cycle: {id:'azure_cycle',name:{en:'Azure Cycle', ja:'蒼の循環'},rarity:'common',desc:{en:'Azure completion reduces Pressure by [Lv x 3] additional.',                 ja:'蒼完成時、プレッシャーが [Lv x 3] 減少する。'},},
     amber_greed: {id:'amber_greed',name:{en:'Amber Alchemy', ja:'琥珀の錬金'},rarity:'rare',desc:{en:'Amber completion grants [Lv x 2] Essence.',                               ja:'琥珀完成時、エッセンスを [Lv x 2] 獲得する。'},},
     ivory_sanctuary: {id:'ivory_sanctuary',name:{en:'Ivory Sanctuary', ja:'象牙の聖域'},rarity:'epic',desc:{en:'Ivory completion removes [Lv] Obsidian from random tubes.',     ja:'象牙完成時、ランダムなチューブから黒を [Lv] 個除去する。'},},
-    emerald_vitality: {id:'emerald_vitality',name:{en:'Emerald Vitality', ja:'翠の活力'},rarity:'common',desc:{en:'Emerald completion halves current Pressure.',                ja:'翠完成時、現在のプレッシャーが半分になる。'},},
+    emerald_vitality: {id:'emerald_vitality',name:{en:'Emerald Vitality', ja:'翠の活力'},rarity:'common',desc:{en:'Emerald completion reduces Pressure by [40 + Lv x 10]% + [Lv].',ja:'翠完成時、プレッシャーを [40 + Lv x 10]% 減少させ、さらに [Lv] 下げる。'},},
     amethyst_surge: {id:'amethyst_surge',name:{en:'Amethyst Surge', ja:'紫の脈動'},rarity:'rare',desc:{en:'Amethyst completion grants +[Lv] free Undo charges.',                ja:'紫完成時、無料Undoの回数を [Lv] 回増やす。'},},
     orange_drive: {id:'orange_drive',name:{en:'Orange Drive', ja:'橙の推進'},rarity:'common',desc:{en:'Orange completion stops Pressure rise for [Lv x 2] turns.',              ja:'橙完成時、[Lv x 2] ターンの間プレッシャーが上昇しなくなる。'},},
     teal_equilibrium: {id:'teal_equilibrium',name:{en:'Teal Analysis', ja:'青緑の分析'},rarity:'rare',desc:{en:'Teal completion progresses Secondary Goal by 1.',               ja:'青緑完成時、副目標の進行度が 1 進む。'},},
@@ -520,16 +520,17 @@ function getPerkDesc(id, level=1){
     txt = txt.replace(/\[Lv\]/g, level);
     txt = txt.replace(/\[4 \+ Lv\]/g, 4 + level);
     txt = txt.replace(/\[6 \- Lv\]/g, 6 - level);
-    txt = txt.replace(/\[Lv x 20\]/g, level * 20);
+    txt = txt.replace(/\[Lv x 2\]/g, level * 2);
     txt = txt.replace(/\[Lv x 3\]/g, level * 3);
     txt = txt.replace(/\[Lv x 4\]/g, level * 4);
-    txt = txt.replace(/\[2 \+ Lv\]/g, 2 + level);
     txt = txt.replace(/\[1 \+ Lv\]/g, 1 + level);
-    txt = txt.replace(/\[10 \+ Lv x 5\]/g, 10 + level * 5);
+    txt = txt.replace(/\[2 \+ Lv\]/g, 2 + level);
     txt = txt.replace(/\[Lv x 10\]/g, level * 10);
-    txt = txt.replace(/\[15 \+ Lv x 5\]/g, 15 + level * 5);
     txt = txt.replace(/\[Lv x 15\]/g, level * 15);
-    txt = txt.replace(/\[Lv x 2\]/g, level * 2);
+    txt = txt.replace(/\[Lv x 20\]/g, level * 20);
+    txt = txt.replace(/\[10 \+ Lv x 5\]/g, 10 + level * 5);
+    txt = txt.replace(/\[15 \+ Lv x 5\]/g, 15 + level * 5);
+    txt = txt.replace(/\[40 \+ Lv x 10\]/g, 40 + level * 10);
     return txt;
 }
 function tubeTop(t){ return t.length ? t[t.length-1] : null; }
@@ -1364,6 +1365,14 @@ async function handleCompletion(tubeIdx, colorKey) {
     if (colorKey === 'G' && hasPerk('emerald_vitality')) {
         gameState.pressure = Math.floor(gameState.pressure / 2);
         showToast("Vitality! Pressure/2", 'emerald');
+    }
+    if (colorKey === 'G' && hasPerk('emerald_vitality')) {
+        const lv = getPerkLevel('emerald_vitality');
+        const ratio = Math.min(0.9, 0.4 + (lv * 0.1));
+        const percentReduction = Math.floor(gameState.pressure * ratio);
+        const totalReduction = percentReduction + lv;
+        gameState.pressure = Math.max(0, gameState.pressure - totalReduction);
+        showToast(`Emerald Vitality! -${totalReduction} Pressure`, 'emerald');
     }
     // 紫（Amethyst）: 無料Undo追加
     if (colorKey === 'P' && hasPerk('amethyst_surge')) {
