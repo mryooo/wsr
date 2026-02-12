@@ -1617,6 +1617,9 @@ function showCompletionEvent(colorKey){
 }
 function buildEventChoices(colorKey){
     const isJa = (currentLang === 'ja');
+    // トースト用の簡易ヘルパー
+    const toast = (msg, color) => showToast(msg, color);
+
     // --- 蒼 (Azure) ---
     if (colorKey === 'B'){ 
         return [
@@ -1624,13 +1627,19 @@ function buildEventChoices(colorKey){
                 kicker: isJa ? '排出' : 'Vent', 
                 title: isJa ? 'プレッシャー -4' : 'Pressure -4', 
                 desc: isJa ? '安全を確保する' : 'Release built-up pressure.', 
-                async apply(){ gameState.pressure = Math.max(0, gameState.pressure - 4); } 
+                async apply(){ 
+                    gameState.pressure = Math.max(0, gameState.pressure - 4); 
+                    toast(isJa ? "プレッシャーを排出した" : "Pressure Vented", "sky");
+                } 
             }, 
             { 
                 kicker: isJa ? '知識' : 'Insight', 
                 title: isJa ? 'エッセンス +4' : 'Essence +4', 
                 desc: isJa ? 'リスクを取って富を得る' : 'Gain currency for the shop.', 
-                async apply(){ gameState.essence += 4; } 
+                async apply(){ 
+                    gameState.essence += 4; 
+                    toast(isJa ? "未知の知識を得た (+4 Essence)" : "Insight Gained (+4 Essence)", "amber");
+                } 
             }
         ]; 
     }
@@ -1643,6 +1652,7 @@ function buildEventChoices(colorKey){
                 desc: isJa ? '回復するがプレッシャーが増える' : 'Heal yourself, but strain the system.', 
                 async apply(){
                     gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
+                    toast(isJa ? "生命力が活性化した (HP+1)" : "Vitality Restored (HP+1)", "emerald");
                     if(addPressure(3)) await applyPressureDamage();
                 } 
             }, 
@@ -1650,7 +1660,10 @@ function buildEventChoices(colorKey){
                 kicker: isJa ? '平静' : 'Calm', 
                 title: isJa ? 'プレッシャー -6' : 'Pressure -6', 
                 desc: isJa ? '心を落ち着ける' : 'Significantly reduce pressure.', 
-                async apply(){ gameState.pressure = Math.max(0, gameState.pressure - 6); } 
+                async apply(){ 
+                    gameState.pressure = Math.max(0, gameState.pressure - 6); 
+                    toast(isJa ? "精神を安定させた" : "Calm Mind", "sky");
+                } 
             }
         ]; 
     }
@@ -1661,7 +1674,10 @@ function buildEventChoices(colorKey){
                 kicker: isJa ? '投資' : 'Investment',
                 title: isJa ? 'エッセンス +6' : 'Essence +6',
                 desc: isJa ? '純度の高いエッセンスを抽出する' : 'Extract high-purity essence.',
-                async apply(){ gameState.essence += 6; }
+                async apply(){ 
+                    gameState.essence += 6; 
+                    toast(isJa ? "高純度のエッセンスを抽出した (+6)" : "Extracted High-Purity Essence (+6)", "amber");
+                }
             },
             {
                 kicker: isJa ? '錬金' : 'Alchemy',
@@ -1671,7 +1687,8 @@ function buildEventChoices(colorKey){
                     const k = getValidRandomConsumable();
                     if(k) {
                         gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
-                        showToast(`${ITEMS[k].icon} Get!`, 'yellow');
+                        const name = isJa ? ITEMS[k].name.ja : ITEMS[k].name.en;
+                        toast(isJa ? `${name} を精製した` : `Transmuted ${name}`, "yellow");
                     }
                 }
             }
@@ -1684,13 +1701,19 @@ function buildEventChoices(colorKey){
                 kicker: isJa ? '聖域' : 'Sanctuary',
                 title: isJa ? '黒除去 x2' : 'Remove 2 Obsidian',
                 desc: isJa ? '瓶に溜まった穢れを浄化する' : 'Purify the abyss within tubes.',
-                async apply(){ removeOneObsidian(); removeOneObsidian(); }
+                async apply(){ 
+                    removeOneObsidian(); removeOneObsidian(); 
+                    toast(isJa ? "穢れが浄化された" : "Purified Darkness", "slate");
+                }
             },
             {
                 kicker: isJa ? '反響' : 'Echo',
                 title: isJa ? '無料Undo +2' : 'Free Undo +2',
                 desc: isJa ? '過去をやり直す力を蓄える' : 'Store power to rewrite history.',
-                async apply(){ gameState.refluxUses += 2; }
+                async apply(){ 
+                    gameState.refluxUses += 2; 
+                    toast(isJa ? "過去を書き換える力を蓄積した (+2 Undo)" : "Time Echoes Stored (+2 Undo)", "purple");
+                }
             }
         ];
     }
@@ -1701,7 +1724,10 @@ function buildEventChoices(colorKey){
                 kicker: isJa ? '再生' : 'Regrow',
                 title: isJa ? 'プレッシャーを0にする' : 'Set Pressure to 0',
                 desc: isJa ? 'システムを完全にリセットする' : 'Completely reset the system.',
-                async apply(){ gameState.pressure = 0; }
+                async apply(){ 
+                    gameState.pressure = 0; 
+                    toast(isJa ? "システムが再生し負荷が消失した" : "System Regrown (Press set 0)", "emerald");
+                }
             },
             {
                 kicker: isJa ? '循環' : 'Circulate',
@@ -1710,6 +1736,7 @@ function buildEventChoices(colorKey){
                 async apply(){
                     gameState.maxHp += 1;
                     gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
+                    toast(isJa ? "器の限界が拡張された (MaxHP+1)" : "Vessel Expanded (MaxHP+1)", "emerald");
                 }
             }
         ];
@@ -1723,6 +1750,7 @@ function buildEventChoices(colorKey){
                 desc: isJa ? '大きな代償で莫大な富を得る' : 'Gain wealth at a heavy cost.',
                 async apply(){
                     gameState.essence += 12;
+                    toast(isJa ? "深淵の代償を支払った (+12 Essence)" : "Paid Abyssal Price (+12 Essence)", "purple");
                     if(addPressure(8)) await applyPressureDamage();
                 }
             },
@@ -1731,6 +1759,7 @@ function buildEventChoices(colorKey){
                 title: isJa ? 'ランダムアイテム x2' : '2 Random Items',
                 desc: isJa ? '深淵から道具を惹き寄せる' : 'Pull items from the void.',
                 async apply(){
+                    toast(isJa ? "虚空から道具を惹き寄せた (+2 Items)" : "Warped 2 items from void", "purple");
                     for(let i=0; i<2; i++) {
                         const k = getValidRandomConsumable();
                         if(k) gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
@@ -1746,7 +1775,10 @@ function buildEventChoices(colorKey){
                 kicker: isJa ? '加速' : 'Accel',
                 title: isJa ? 'プレッシャー停止 (10T)' : 'Freeze Press (10T)',
                 desc: isJa ? 'しばらくの間、負荷を無効化する' : 'Nullify pressure for a while.',
-                async apply(){ gameState.momentumTurns += 10; }
+                async apply(){ 
+                    gameState.momentumTurns += 10; 
+                    toast(isJa ? "時間の加速を感じる (10ターン無効化)" : "Time Accelerated (10T Silence)", "orange");
+                }
             },
             {
                 kicker: isJa ? '推進' : 'Thrust',
@@ -1755,6 +1787,7 @@ function buildEventChoices(colorKey){
                 async apply(){
                     gameState.essence += 2;
                     gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
+                    toast(isJa ? "前進する力を得た (Ess+2 / HP+1)" : "Thrust Forward (Ess+2 / HP+1)", "orange");
                 }
             }
         ];
@@ -1766,7 +1799,10 @@ function buildEventChoices(colorKey){
                 kicker: isJa ? '分析' : 'Analysis',
                 title: isJa ? 'サブ目標進行 +2' : 'Sub Goal +2',
                 desc: isJa ? '構造を解析し効率を高める' : 'Analyze structure for efficiency.',
-                async apply(){ gameState.secondaryProgress += 2; }
+                async apply(){ 
+                    gameState.secondaryProgress += 2; 
+                    toast(isJa ? "構造を分析し効率を高めた (Goal+2)" : "Analysis Complete (Goal+2)", "cyan");
+                }
             },
             {
                 kicker: isJa ? '均衡' : 'Equilibrium',
@@ -1775,6 +1811,7 @@ function buildEventChoices(colorKey){
                 async apply(){
                     gameState.pressure = Math.max(0, gameState.pressure - 3);
                     gameState.essence += 2;
+                    toast(isJa ? "完璧な均衡を保った" : "Equilibrium Restored", "cyan");
                 }
             }
         ];
@@ -1788,7 +1825,11 @@ function buildEventChoices(colorKey){
                 desc: isJa ? '偶然の産物を見つける' : 'Find a lucky byproduct.',
                 async apply(){
                     const k = getValidRandomConsumable();
-                    if(k) gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                    if(k) {
+                        gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                        const name = isJa ? ITEMS[k].name.ja : ITEMS[k].name.en;
+                        toast(isJa ? `${name} を入手した！` : `Got ${name}!`, "pink");
+                    }
                     gameState.essence += 2;
                 }
             },
@@ -1799,17 +1840,21 @@ function buildEventChoices(colorKey){
                 async apply(){
                     gameState.pressure = Math.max(0, gameState.pressure - 2);
                     gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
+                    toast(isJa ? "深淵の怒りを和らげた" : "Abyss Charmed", "pink");
                 }
             }
         ];
     }
-    // --- デフォルト (万が一、色が未定義の場合) ---
+    // --- デフォルト ---
     return [
         { 
             kicker: isJa ? '浄化' : 'Purify', 
             title: isJa ? 'プレッシャー -2' : 'Pressure -2', 
             desc: isJa ? '少し落ち着く' : 'Minor relief.', 
-            async apply(){ gameState.pressure = Math.max(0, gameState.pressure - 2); } 
+            async apply(){ 
+                gameState.pressure = Math.max(0, gameState.pressure - 2); 
+                toast(isJa ? "システムを浄化した" : "Purified", "sky");
+            } 
         }, 
         { 
             kicker: isJa ? '貪欲' : 'Greed', 
@@ -1817,6 +1862,7 @@ function buildEventChoices(colorKey){
             desc: isJa ? '小さな代償で富を' : 'Wealth at a cost.', 
             async apply(){ 
                 gameState.essence += 3;
+                toast(isJa ? "富を貪った (+3 Essence)" : "Greed Rewarded (+3 Essence)", "amber");
                 if(addPressure(1)) await applyPressureDamage();
             } 
         }
