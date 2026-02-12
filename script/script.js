@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.4.12";
+const GAME_VERSION = "0.4.13";
 const IS_DEBUG = true;
 
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
