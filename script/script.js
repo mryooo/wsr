@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.4.15";
+const GAME_VERSION = "0.4.16";
 
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -1875,19 +1875,16 @@ function buildShopCard(offer) {
     const name = currentLang === 'ja' ? itemDef.name.ja : itemDef.name.en;
     const desc = currentLang === 'ja' ? itemDef.desc.ja : itemDef.desc.en;
     const currentInventoryCount = gameState.inventory[rawId] || 0;
-    let badgeHtml = '';
-    if (currentInventoryCount > 0) {
-        badgeHtml = `<span class="badge-count absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-sky-500 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-white pointer-events-none shadow-sm z-10">${currentInventoryCount}</span>`;
-    }
+    const LIMIT = 3;
+    const isTool = (itemDef.type === 'tool');
+    const isAtMax = (!isTool && currentInventoryCount >= LIMIT);
+    const purchased = offer.purchased;
     const cost = getDiscountedCost(baseCost);
     const affordable = gameState.essence >= cost;
-    const isTool = (itemDef.type === 'tool');
-    const allItemsMax = Object.keys(ITEM_REGISTRY).filter(k => ITEM_REGISTRY[k].type === 'consumable').every(k => (gameState.inventory[k] || 0) >= 3);
-    const isAtMax = (offer.kind === 'item' && !isTool && currentInventoryCount >= 3) || (rawId === 'mystery_box' && allItemsMax);
     const ownedTool = (isTool && currentInventoryCount > 0);
-    const purchased = offer.purchased;
     const isLocked = !!purchased || ownedTool || isAtMax;
     const disabled = isLocked || !affordable;
+    const badgeHtml = currentInventoryCount > 0 ? `<span class="badge-count absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-sky-500 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-white pointer-events-none shadow-sm z-10">${currentInventoryCount}</span>` : '';
     const card = document.createElement('div');
     card.className = 'shop-card glass-panel perk-card p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 h-full justify-between';
     card.dataset.cost = String(cost);
@@ -1926,22 +1923,23 @@ function buildShopCard(offer) {
     btn.disabled = disabled;
     btn.onclick = () => {
         if (btn.disabled) return;
+        const latestCount = gameState.inventory[rawId] || 0;
+        if (!isTool && latestCount >= LIMIT) {
+            showToast(currentLang === 'ja' ? "これ以上持てません" : "Max capacity reached", 'rose');
+            openPerkScreen(false);
+            return;
+        }
         gameState.essence -= cost;
         offer.purchased = true;
         if (offer.kind === 'instant') {
-             const result = itemDef.effect(gameState);
-             showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'emerald');
-             if(result.isMystery) {
-                 refreshRerollUI();
-                 updateShopButtons(); 
-                 const shopContainer = document.getElementById('shop-cards');
-                 if (shopContainer && gameState.currentShopOffers) {
-                     shopContainer.innerHTML = '';
-                     gameState.currentShopOffers.forEach(o => shopContainer.appendChild(buildShopCard(o)));
-                 }
-                 renderHUD();
-                 return;
-             }
+            const result = itemDef.effect(gameState);
+            showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'emerald');
+            if(result.isMystery) {
+                gameState.currentShopOffers = null;
+                openPerkScreen(false);
+                renderHUD();
+                return;
+            }
         } else {
             if (itemDef.type === 'tool') {
                 gameState.inventory[rawId] = 1;
@@ -1955,7 +1953,7 @@ function buildShopCard(offer) {
         renderHUD();
         openPerkScreen(false);
     };
-    return card; 
+    return card;
 }
 function generateShareText(){
     const perkList = Object.entries(gameState.perks || {})
