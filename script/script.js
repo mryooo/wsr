@@ -1,6 +1,6 @@
-const GAME_VERSION = "0.4.14";
-const IS_DEBUG = true;
+const GAME_VERSION = "0.4.15";
 
+const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
 function addPressure(amount) {
     gameState.pressure += amount;
@@ -376,90 +376,139 @@ function initPalette() {
     }
 }
 const PERKS = {
-    catalyst: {id:'catalyst',name:{en:'Catalyst', ja:'触媒反応'},rarity:'epic',desc:{en:'Complete a color only once per level to reduce pressure by [4 + Lv].',                 ja:'階層ごとに1回だけ色を完成させるとプレッシャーが [4 + Lv] 下がる。'},},
-    reflux: {id:'reflux',name:{en:'Reflux', ja:'逆流制御'},rarity:'common',desc:{en:'First [Lv] undos each floor are free (Pressure +2 instead).',                              ja:'各階層、最初の [Lv] 回のUndoはエッセンス無料。'},},
-    overflow: {id:'overflow',name:{en:'Overflow', ja:'オーバーフロー'},rarity:'common',desc:{en:'Pressure max +[Lv x 4].',                                                      ja:'プレッシャーの最大許容量が +[Lv x 4] される。'},},
-    purification: {id:'purification',name:{en:'Purification', ja:'浄化作用'},rarity:'epic',desc:{en:'Clearing Obsidian reduces Pressure by [2 + Lv] and grants [1 + Lv] Essence.', ja:'黒消滅時、プレッシャー-[2 + Lv]、エッセンス+[1 + Lv]。'},},
-    scavenger: {id:'scavenger',name:{en:'Scavenger', ja:'スカベンジャー'},rarity:'rare',desc:{en:'[10 + Lv x 5]% chance to find item on new floor.',                            ja:'階層移動時、[10 + Lv x 5]% の確率でアイテムを獲得する。'},},
-    recycler: {id:'recycler',name:{en:'Recycler', ja:'リサイクル'},rarity:'epic',desc:{en:'[Lv x 10]% chance to not consume item on use.',                                      ja:'アイテム使用時、[Lv x 10]% の確率で消費しない。'},},
-    bargain: {id:'bargain',name:{en:'Bargain', ja:'交渉術'},rarity:'common',desc:{en:'Shop prices reduced by [15 + Lv x 5]%.',                                                  ja:'ショップ価格 [15 + Lv x 5]% OFF。'},},
-    heavy_mastery: {id:'heavy_mastery',name:{en:'Heavy Mastery', ja:'大容量ボーナス'},rarity:'rare',desc:{en:'Clearing 5+ capacity tube reduces Pressure by [2 + Lv].',         ja:'容量5以上のチューブ完成でプレッシャー [2 + Lv] 減少。'},},
-    void_shield: {id:'void_shield',name:{en:'Void Shield', ja:'虚空の盾'},rarity:'rare',desc:{en:'[Lv x 15]% chance to negate Pressure damage.',                                ja:'プレッシャーダメージを受けた時、[Lv x 15]% で無効化する。'},},
-    transmutation: {id:'transmutation',name:{en:'Transmutation', ja:'物質変換'},rarity:'epic',desc:{en:'Start each floor with [Lv] random items.',                              ja:'階層開始時、[Lv] 個のランダムアイテムを獲得する。'},},
-    steady_hand: {id:'steady_hand',name:{en:'Steady Hand', ja:'安定した手'},rarity:'rare',desc:{en:'Pressure does not rise for the first [Lv x 3] turns of a floor.',           ja:'階層開始から [Lv x 3] ターンの間、プレッシャーが上昇しない。'},},
-    deep_adapt: {id:'deep_adapt',name:{en:'Deep Adapt', ja:'深層適応'},rarity:'epic',desc:{en:'Gain [Lv] Max HP if capacity > 4 at start of floor.',                            ja:'階層開始時、容量5以上なら最大HP+[Lv]。'},},
-    coupon: {id: 'coupon',name: {en:'Coupon', ja:'クーポン券'},rarity: 'common',desc: {en:'Start each floor with [Lv] free Rerolls.',                                           ja:'階層開始時、無料でリロールできるクーポンを [Lv] 枚得る。'}},
-    flow_mastery: {id:'flow_mastery',name:{en:'Flow Mastery', ja:'フロー熟練'},rarity:'common',desc:{en:'Combo reduces Pressure by [Lv x 2].',                                  ja:'コンボ発生時、プレッシャーが [Lv x 2] 下がる。'},},
-    efficiency: {id:'efficiency',name:{en:'Efficiency', ja:'抽出効率'},rarity:'common',desc:{en:'Tube completion has [Lv x 20]% chance to grant +1 Essence.',                   ja:'色完成時、[Lv x 20]% の確率で +1 エッセンスを獲得。'},},
-    momentum: {id:'momentum',name:{en:'Momentum', ja:'慣性律'},rarity:'common',desc:{en:'After completing a tube, Pressure does not rise for [Lv] turns.',                      ja:'色完成後、[Lv] ターンの間、プレッシャーが上昇しない。'},},
-    crimson_resonance: {id:'crimson_resonance',name:{en:'Crimson Resonance', ja:'紅の熱量'},rarity:'rare',desc:{en:'Completing Crimson heals 1 HP but adds [6 - Lv] Pressure.', ja:'紅完成時、HPが1回復するが、プレッシャーが [6 - Lv] 上昇する。'},},
-    azure_cycle: {id:'azure_cycle',name:{en:'Azure Cycle', ja:'蒼の循環'},rarity:'common',desc:{en:'Azure completion reduces Pressure by [Lv x 3] additional.',                 ja:'蒼完成時、プレッシャーが [Lv x 3] 減少する。'},},
-    amber_greed: {id:'amber_greed',name:{en:'Amber Alchemy', ja:'琥珀の錬金'},rarity:'rare',desc:{en:'Amber completion grants [Lv x 2] Essence.',                               ja:'琥珀完成時、エッセンスを [Lv x 2] 獲得する。'},},
-    ivory_sanctuary: {id:'ivory_sanctuary',name:{en:'Ivory Sanctuary', ja:'象牙の聖域'},rarity:'epic',desc:{en:'Ivory completion removes [Lv] Obsidian from random tubes.',     ja:'象牙完成時、ランダムなチューブから黒を [Lv] 個除去する。'},},
-    emerald_vitality: {id:'emerald_vitality',name:{en:'Emerald Vitality', ja:'翠の活力'},rarity:'common',desc:{en:'Emerald completion reduces Pressure by [40 + Lv x 10]% + [Lv].',ja:'翠完成時、プレッシャーを [40 + Lv x 10]% 減少させ、さらに [Lv] 下げる。'},},
-    amethyst_surge: {id:'amethyst_surge',name:{en:'Amethyst Surge', ja:'紫の脈動'},rarity:'rare',desc:{en:'Amethyst completion grants +[Lv] free Undo charges.',                ja:'紫完成時、無料Undoの回数を [Lv] 回増やす。'},},
-    orange_drive: {id:'orange_drive',name:{en:'Orange Drive', ja:'橙の推進'},rarity:'common',desc:{en:'Orange completion stops Pressure rise for [Lv x 2] turns.',              ja:'橙完成時、[Lv x 2] ターンの間プレッシャーが上昇しなくなる。'},},
-    teal_equilibrium: {id:'teal_equilibrium',name:{en:'Teal Analysis', ja:'青緑の分析'},rarity:'rare',desc:{en:'Teal completion progresses Secondary Goal by 1.',               ja:'青緑完成時、副目標の進行度が 1 進む。'},},
-    pink_luck: {id:'pink_luck',name:{en:'Pink Luck', ja:'桃の幸運'},rarity:'rare',desc:{en:'Pink completion has [Lv x 10]% chance to drop a random item.',                      ja:'桃完成時、[Lv x 10]% の確率でアイテムを獲得する。'},}
+    catalyst:          { id: 'catalyst',          name: { en: 'Catalyst',          ja: '触媒反応' },      rarity: 'epic',   desc: { en: 'Complete a color only once per level to reduce pressure by [4 + Lv].',          ja: '階層ごとに1回だけ色を完成させるとプレッシャーが [4 + Lv] 下がる。' } },
+    reflux:            { id: 'reflux',            name: { en: 'Reflux',            ja: '逆流制御' },      rarity: 'common', desc: { en: 'First [Lv] undos each floor are free (Pressure +2 instead).',                   ja: '各階層、最初の [Lv] 回のUndoはエッセンス無料。' } },
+    overflow:          { id: 'overflow',          name: { en: 'Overflow',          ja: 'オーバーフロー' }, rarity: 'common', desc: { en: 'Pressure max +[Lv x 4].',                                                       ja: 'プレッシャーの最大許容量が +[Lv x 4] される。' } },
+    purification:      { id: 'purification',      name: { en: 'Purification',      ja: '浄化作用' },      rarity: 'epic',   desc: { en: 'Clearing Obsidian reduces Pressure by [2 + Lv] and grants [1 + Lv] Essence.',   ja: '黒消滅時、プレッシャー-[2 + Lv]、エッセンス+[1 + Lv]。' } },
+    scavenger:         { id: 'scavenger',         name: { en: 'Scavenger',         ja: 'スカベンジャー' }, rarity: 'rare',   desc: { en: '[10 + Lv x 5]% chance to find item on new floor.',                             ja: '階層移動時、[10 + Lv x 5]% の確率でアイテムを獲得する。' } },
+    recycler:          { id: 'recycler',          name: { en: 'Recycler',          ja: 'リサイクル' },     rarity: 'epic',   desc: { en: '[Lv x 10]% chance to not consume item on use.',                                ja: 'アイテム使用時、[Lv x 10]% の確率で消費しない。' } },
+    bargain:           { id: 'bargain',           name: { en: 'Bargain',           ja: '交渉術' },        rarity: 'common', desc: { en: 'Shop prices reduced by [15 + Lv x 5]%.',                                        ja: 'ショップ価格 [15 + Lv x 5]% OFF。' } },
+    heavy_mastery:     { id: 'heavy_mastery',     name: { en: 'Heavy Mastery',     ja: '大容量ボーナス' }, rarity: 'rare',   desc: { en: 'Clearing 5+ capacity tube reduces Pressure by [2 + Lv].',                       ja: '容量5以上のチューブ完成でプレッシャー [2 + Lv] 減少。' } },
+    void_shield:       { id: 'void_shield',       name: { en: 'Void Shield',       ja: '虚空の盾' },      rarity: 'rare',   desc: { en: '[Lv x 15]% chance to negate Pressure damage.',                                  ja: 'プレッシャーダメージを受けた時、[Lv x 15]% で無効化する。' } },
+    transmutation:     { id: 'transmutation',     name: { en: 'Transmutation',     ja: '物質変換' },      rarity: 'epic',   desc: { en: 'Start each floor with [Lv] random items.',                                      ja: '階層開始時、[Lv] 個のランダムアイテムを獲得する。' } },
+    steady_hand:       { id: 'steady_hand',       name: { en: 'Steady Hand',       ja: '安定した手' },     rarity: 'rare',   desc: { en: 'Pressure does not rise for the first [Lv x 3] turns of a floor.',              ja: '階層開始から [Lv x 3] ターンの間、プレッシャーが上昇しない。' } },
+    deep_adapt:        { id: 'deep_adapt',        name: { en: 'Deep Adapt',        ja: '深層適応' },      rarity: 'epic',   desc: { en: 'Gain [Lv] Max HP if capacity > 4 at start of floor.',                           ja: '階層開始時、容量5以上なら最大HP+[Lv]。' } },
+    coupon:            { id: 'coupon',            name: { en: 'Coupon',            ja: 'クーポン券' },     rarity: 'common', desc: { en: 'Start each floor with [Lv] free Rerolls.',                                     ja: '階層開始時、無料でリロールできるクーポンを [Lv] 枚得る。' } },
+    flow_mastery:      { id: 'flow_mastery',      name: { en: 'Flow Mastery',      ja: 'フロー熟練' },     rarity: 'common', desc: { en: 'Combo reduces Pressure by [Lv x 2].',                                          ja: 'コンボ発生時、プレッシャーが [Lv x 2] 下がる。' } },
+    efficiency:        { id: 'efficiency',        name: { en: 'Efficiency',        ja: '抽出効率' },      rarity: 'common', desc: { en: 'Tube completion has [Lv x 20]% chance to grant +1 Essence.',                    ja: '色完成時、[Lv x 20]% の確率で +1 エッセンスを獲得。' } },
+    momentum:          { id: 'momentum',          name: { en: 'Momentum',          ja: '慣性律' },        rarity: 'common', desc: { en: 'After completing a tube, Pressure does not rise for [Lv] turns.',               ja: '色完成後、[Lv] ターンの間、プレッシャーが上昇しない。' } },
+    crimson_resonance: { id: 'crimson_resonance', name: { en: 'Crimson Resonance', ja: '紅の熱量' },      rarity: 'rare',   desc: { en: 'Completing Crimson heals 1 HP but adds [6 - Lv] Pressure.',                     ja: '紅完成時、HPが1回復するが、プレッシャーが [6 - Lv] 上昇する。' } },
+    azure_cycle:       { id: 'azure_cycle',       name: { en: 'Azure Cycle',       ja: '蒼の循環' },      rarity: 'common', desc: { en: 'Azure completion reduces Pressure by [Lv x 3] additional.',                     ja: '蒼完成時、プレッシャーが [Lv x 3] 減少する。' } },
+    amber_greed:       { id: 'amber_greed',       name: { en: 'Amber Alchemy',     ja: '琥珀の錬金' },     rarity: 'rare',   desc: { en: 'Amber completion grants [Lv x 2] Essence.',                                    ja: '琥珀完成時、エッセンスを [Lv x 2] 獲得する。' } },
+    ivory_sanctuary:   { id: 'ivory_sanctuary',   name: { en: 'Ivory Sanctuary',   ja: '象牙の聖域' },     rarity: 'epic',   desc: { en: 'Ivory completion removes [Lv] Obsidian from random tubes.',                    ja: '象牙完成時、ランダムなチューブから黒を [Lv] 個除去する。' } },
+    emerald_vitality:  { id: 'emerald_vitality',  name: { en: 'Emerald Vitality',  ja: '翠の活力' },      rarity: 'common', desc: { en: 'Emerald completion reduces Pressure by [40 + Lv x 10]% + [Lv].',                ja: '翠完成時、プレッシャーを [40 + Lv x 10]% 減少させ、さらに [Lv] 下げる。' } },
+    amethyst_surge:    { id: 'amethyst_surge',    name: { en: 'Amethyst Surge',    ja: '紫の脈動' },      rarity: 'rare',   desc: { en: 'Amethyst completion grants +[Lv] free Undo charges.',                           ja: '紫完成時、無料Undoの回数を [Lv] 回増やす。' } },
+    orange_drive:      { id: 'orange_drive',      name: { en: 'Orange Drive',      ja: '橙の推進' },      rarity: 'common', desc: { en: 'Orange completion stops Pressure rise for [Lv x 2] turns.',                     ja: '橙完成時、[Lv x 2] ターンの間プレッシャーが上昇しなくなる。' } },
+    teal_equilibrium:  { id: 'teal_equilibrium',  name: { en: 'Teal Analysis',     ja: '青緑の分析' },     rarity: 'rare',   desc: { en: 'Teal completion progresses Secondary Goal by 1.',                              ja: '青緑完成時、副目標の進行度が 1 進む。' } },
+    pink_luck:         { id: 'pink_luck',         name: { en: 'Pink Luck',         ja: '桃の幸運' },      rarity: 'rare',   desc: { en: 'Pink completion has [Lv x 10]% chance to drop a random item.',                  ja: '桃完成時、[Lv x 10]% の確率でアイテムを獲得する。' } }
 };
-const ITEMS = {
-    heal: {id: 'heal', type: 'consumable', cost: 8, icon: '🩹', name: {en:'Stabilizer', ja:'安定剤'},desc: {en:'Heal +1 HP.', ja:'HPを+1回復する'}},
-    panacea: {id: 'panacea', type: 'consumable', cost: 15, icon: '💊',name: {en:'Panacea', ja:'万能薬'},desc: {en:'Heal +2 HP.', ja:'HPを+2回復する'}},
-    sedative: {id: 'sedative', type: 'consumable', cost: 12, icon: '💤',name: {en:'Sedative', ja:'鎮静剤'},desc: {en:'Set Pressure to 0.', ja:'プレッシャーを0にする'}},
-    layer_swap: {id: 'layer_swap', type: 'consumable', cost: 12, icon: '🔗',name: {en:'Layer Swap', ja:'層交換'},desc: {en:'Swap top 2 layers.', ja:'上2つの層を入れ替え'}},
-    shaker: {id: 'shaker', type: 'consumable', cost: 5, icon: '🎲',name: {en:'Shaker', ja:'シェイカー'},desc: {en:'Shuffle tube.', ja:'中身をシャッフル'}},
-    cursed_sludge: {id: 'cursed_sludge', type: 'consumable', cost: 6, icon: '⚫',name: {en:'Cursed Sludge', ja:'呪いの泥'},desc: {en:'Add Obsidian if space.', ja:'空きがあれば黒を追加'}},
-    void_salt: {id: 'void_salt', type: 'consumable', cost: 8, icon: '🧂',name: {en:'Void Salt', ja:'虚無の塩'},desc: {en:'Remove top Black.', ja:'一番上の【黒】を除去'}},
-    transfer: {id: 'transfer', type: 'consumable', cost: 10, icon: '🧴',name: {en:'Surface Transfer', ja:'水面移送'},desc: {en:'Move top 1 segment anywhere.', ja:'一番上の色を吸い出しどこにでも注入する'}},
-    vacuum: {id: 'vacuum', type: 'consumable', cost: 14, icon: '🌀',name: {en:'Obsidian Vacuum', ja:'黒吸引機'},desc: {en:'Remove all top Obsidian.', ja:'一番上の黒インクを全除去'}},
-    midas: {id: 'midas', type: 'consumable', cost: 8, icon: '🖐️',name: {en:'Alchemy Stone', ja:'対黒変成'},desc: {en:'Obsidian > Essence.', ja:'一番上の黒をエッセンスに'}},
-    vaporizer: {id: 'vaporizer', type: 'consumable', cost: 7, icon: '♨️',name: {en:'Vaporizer', ja:'微量蒸発'},desc: {en:'Delete top 1 segment.', ja:'一番上の1層を除去'}},
-    sediment: {id: 'sediment', type: 'consumable', cost: 10, icon: '⏬',name: {en:'Sediment', ja:'沈殿'},desc: {en:'Move top to bottom.', ja:'一番上を一番下へ'}},
-    quantum_pipette: {id: 'quantum_pipette', type: 'consumable', cost: 15, icon: '💉',name: {en:'Quantum Pipette', ja:'量子スポイト'},desc: {en:'Extract bottom color.', ja:'一番下の色を吸い出しどこにでも注入する'}},
-    cycle_siphon: {id: 'cycle_siphon', type: 'consumable', cost: 10, icon: '⏫',name: {en:'Cycle Siphon', ja:'循環サイフォン'},desc: {en:'Move bottom to top.', ja:'一番下を一番上へ'}},
-    inverter: {id: 'inverter', type: 'consumable', cost: 6, icon: '🔄',name: {en:'Gravity Coil', ja:'重力反転機'},desc: {en:'Invert contents.', ja:'中身を上下反転'}},
-    separator: {id: 'separator', type: 'consumable', cost: 12, icon: '🌪️',name: {en:'Separator', ja:'遠心分離機'},desc: {en:'Sort tube contents.', ja:'中身を整理する'}},
-    summon_vial: {id: 'summon_vial', type: 'consumable', cost: 20, icon: '🧪',name: {en:'Extra Vial', ja:'予備試験管'},desc: {en:'Add empty tube.', ja:'空のチューブを1つ追加'}},
+const ITEM_REGISTRY = {
+   heal: {id: 'heal', type: 'consumable', behaviorType: 'instant', cost: 8, icon: '🩹', name: { en: 'Stabilizer', ja: '安定剤' }, desc: { en: 'Heal +1 HP.', ja: 'HPを+1回復する' },
+       effect: (gs) => {
+           if (gs.hp >= gs.maxHp) return { success: false, msg: { ja: 'HPは満タンです', en: 'HP is full' }, color: 'yellow' };
+           gs.hp = Math.min(gs.maxHp, gs.hp + 1);
+           return { success: true, msg: { ja: 'HP回復！', en: 'HP Restored!' }, color: 'emerald' };
+       }
+   },
+   panacea: {id: 'panacea', type: 'consumable', behaviorType: 'instant', cost: 15, icon: '💊', name: { en: 'Panacea', ja: '万能薬' }, desc: { en: 'Heal +2 HP.', ja: 'HPを+2回復する' },
+       effect: (gs) => {
+           if (gs.hp >= gs.maxHp) return { success: false, msg: { ja: 'HPは満タンです', en: 'HP is full' }, color: 'yellow' };
+           gs.hp = Math.min(gs.maxHp, gs.hp + 2);
+           return { success: true, msg: { ja: '完全回復！', en: 'Fully Restored!' }, color: 'emerald' };
+       }
+   },
+   sedative: {id: 'sedative', type: 'consumable', behaviorType: 'instant', cost: 12, icon: '💤', name: { en: 'Sedative', ja: '鎮静剤' }, desc: { en: 'Set Pressure to 0.', ja: 'プレッシャーを0にする' },
+       effect: (gs) => {
+           gs.pressure = 0;
+           return { success: true, msg: { ja: '鎮静剤を使用', en: 'Sedative Active!' }, color: 'purple' };
+       }
+   },
+   summon_vial: {id: 'summon_vial', type: 'consumable', behaviorType: 'instant', cost: 20, icon: '🧪', name: { en: 'Extra Vial', ja: '予備試験管' }, desc: { en: 'Add empty tube.', ja: '空のチューブを1つ追加' },
+       effect: (gs) => {
+           gs.tubeCount++; gs.tubes.push([]);
+           return { success: true, msg: { ja: '空き瓶を追加！', en: 'Extra Tube Added!' }, color: 'purple', requiresRender: true };
+       }
+   },
+   dark_pact: {id: 'dark_pact', type: 'stat', behaviorType: 'instant', cost: 0, icon: '✦', name: {en:'Dark Pact', ja:'黒の契約'}, desc:{en:'HP-2, +20 Ess', ja:'HP-2, +20エッセンス'},
+       effect: (gs) => {
+           if(gs.hp > 2){ gs.hp -= 2; gs.essence += 20; return { success: true, msg: {ja:'契約成立...', en:'Power at a cost...'}, color: 'purple' }; }
+           return { success: false, msg: {ja:'体力が足りない', en:'Too weak...'}, color: 'red' };
+       }
+   },
+   mystery_box: {id: 'mystery_box', type: 'stat', behaviorType: 'instant', cost: 8, icon: '✦', name:{en:'Mystery Box', ja:'福袋'}, desc:{en:'Random Item', ja:'ランダムアイテム'},
+       effect: (gs) => {
+           const keys = Object.keys(ITEM_REGISTRY).filter(k => ITEM_REGISTRY[k].type === 'consumable');
+           const available = keys.filter(k => (gs.inventory[k] || 0) < 3);
+           if (available.length > 0) {
+               const gift = pick(available);
+               if (!gs.inventory[gift]) gs.inventory[gift] = 0;
+               gs.inventory[gift]++;
+               const item = ITEM_REGISTRY[gift];
+               return { success: true, msg: {ja:`${item.name.ja} を獲得`, en:`${item.name.en} Obtained`}, color: 'yellow', isMystery: true };
+           }
+           gs.essence += 8;
+           return { success: false, msg: {ja:'所持数上限: ✨+8', en:'Max Capacity: ✨+8'}, color: 'rose' };
+       }
+   },
+   layer_swap: {id: 'layer_swap', type: 'consumable', behaviorType: 'target_effect', cost: 12, icon: '🔗', name: { en: 'Layer Swap', ja: '層交換' }, desc: { en: 'Swap top 2 layers.', ja: '上2つの層を入れ替え' },
+       canUseOn: (tube) => { if (tube.length < 2) return { ok: false, msg: 'Layers < 2' }; return { ok: true }; },
+       apply: (tube) => { const t1 = tube.pop(); const t2 = tube.pop(); tube.push(t1); tube.push(t2); return { success: true, floatText: "Swapped!", color: "#a855f7" }; }
+   },
+   shaker: {id: 'shaker', type: 'consumable', behaviorType: 'target_effect', cost: 5, icon: '🎲', name: { en: 'Shaker', ja: 'シェイカー' }, desc: { en: 'Shuffle tube.', ja: '中身をシャッフル' },
+       canUseOn: (tube) => { if (tube.length < 2) return { ok: false, msg: 'Layers < 2' }; return { ok: true }; },
+       apply: (tube) => { const orig = JSON.stringify(tube); for (let i = 0; i < 50; i++) { tube.sort(() => Math.random() - 0.5); if (JSON.stringify(tube) !== orig) break; } return { success: true, floatText: "Shaken!", color: "#a855f7" }; }
+   },
+   cursed_sludge: {id: 'cursed_sludge', type: 'consumable', behaviorType: 'target_effect', cost: 6, icon: '⚫', name: { en: 'Cursed Sludge', ja: '呪いの泥' }, desc: { en: 'Add Obsidian if space.', ja: '空きがあれば黒を追加' },
+       canUseOn: (tube, cap) => { if (tube.length >= cap) return { ok: false, msg: 'Full!' }; return { ok: true }; },
+       apply: (tube) => { tube.push('K'); return { success: true, floatText: "Cursed!", color: "#0f172a" }; }
+   },
+   void_salt: {id: 'void_salt', type: 'consumable', behaviorType: 'target_effect', cost: 8, icon: '🧂', name: { en: 'Void Salt', ja: '虚無の塩' }, desc: { en: 'Remove top Black.', ja: '一番上の【黒】を除去' },
+       canUseOn: (tube) => { if (tube.length === 0 || tube[tube.length - 1] !== 'K') return { ok: false, msg: 'No Obsidian!' }; return { ok: true }; },
+       apply: (tube) => { tube.pop(); return { success: true, floatText: "Voided!", color: "#a855f7" }; }
+   },
+   vacuum: {id: 'vacuum', type: 'consumable', behaviorType: 'target_effect', cost: 14, icon: '🌀', name: { en: 'Obsidian Vacuum', ja: '黒吸引機' }, desc: { en: 'Remove all top Obsidian.', ja: '一番上の黒インクを全除去' },
+       canUseOn: (tube) => { if (tube.length === 0 || tube[tube.length - 1] !== 'K') return { ok: false, msg: 'No Obsidian!' }; return { ok: true }; },
+       apply: (tube) => { while (tube.length > 0 && tube[tube.length - 1] === 'K') { tube.pop(); } return { success: true, floatText: "Vacuumed!", color: "#a855f7" }; }
+   },
+   midas: {id: 'midas', type: 'consumable', behaviorType: 'target_effect', cost: 8, icon: '🖐️', name: { en: 'Alchemy Stone', ja: '対黒変成' }, desc: { en: 'Obsidian > Essence.', ja: '一番上の黒をエッセンスに' },
+       canUseOn: (tube) => { if (tube.length === 0 || tube[tube.length - 1] !== 'K') return { ok: false, msg: 'No Obsidian!' }; return { ok: true }; },
+       apply: (tube) => { tube.pop(); return { success: true, essenceDelta: 2, floatText: "Gold! ✨+2", color: "#fbbf24" }; }
+   },
+   vaporizer: {id: 'vaporizer', type: 'consumable', behaviorType: 'target_effect', cost: 7, icon: '♨️', name: { en: 'Vaporizer', ja: '微量蒸発' }, desc: { en: 'Delete top 1 segment.', ja: '一番上の1層を除去' },
+       canUseOn: (tube) => { if (tube.length === 0) return { ok: false, msg: 'Empty!' }; return { ok: true }; },
+       apply: (tube) => { const r = tube.pop(); return { success: true, floatText: "Vaporized!", color: "#94a3b8", removedColor: r }; }
+   },
+   sediment: {id: 'sediment', type: 'consumable', behaviorType: 'target_effect', cost: 10, icon: '⏬', name: { en: 'Sediment', ja: '沈殿' }, desc: { en: 'Move top to bottom.', ja: '一番上を一番下へ' },
+       canUseOn: (tube) => { if (tube.length < 2) return { ok: false, msg: 'Layers < 2' }; return { ok: true }; },
+       apply: (tube) => { const top = tube.pop(); tube.unshift(top); return { success: true, floatText: "Sunk!", color: "#a855f7" }; }
+   },
+   cycle_siphon: {id: 'cycle_siphon', type: 'consumable', behaviorType: 'target_effect', cost: 10, icon: '⏫', name: { en: 'Cycle Siphon', ja: '循環サイフォン' }, desc: { en: 'Move bottom to top.', ja: '一番下を一番上へ' },
+       canUseOn: (tube) => { if (tube.length < 2) return { ok: false, msg: 'Layers < 2' }; return { ok: true }; },
+       apply: (tube) => { const b = tube.shift(); tube.push(b); return { success: true, floatText: "Cycled!", color: "#a855f7" }; }
+   },
+   inverter: {id: 'inverter', type: 'consumable', behaviorType: 'target_effect', cost: 6, icon: '🔄', name: { en: 'Gravity Coil', ja: '重力反転機' }, desc: { en: 'Invert contents.', ja: '中身を上下反転' },
+       canUseOn: (tube) => { if (tube.length < 2) return { ok: false, msg: 'Layers < 2' }; return { ok: true }; },
+       apply: (tube) => { tube.reverse(); return { success: true, floatText: "Inverted!", color: "#a855f7" }; }
+   },
+   separator: {id: 'separator', type: 'consumable', behaviorType: 'target_effect', cost: 12, icon: '🌪️', name: { en: 'Separator', ja: '遠心分離機' }, desc: { en: 'Sort tube contents.', ja: '中身を整理する' },
+       canUseOn: (tube) => { if (tube.length < 2) return { ok: false, msg: 'Layers < 2' }; return { ok: true }; },
+       apply: (tube) => { const c = {}; tube.forEach(x => c[x] = (c[x] || 0) + 1); tube.length = 0; Object.keys(c).sort().forEach(k => { for (let i = 0; i < c[k]; i++) tube.push(k); }); return { success: true, floatText: "Separated!", color: "#a855f7" }; }
+   },
+   transfer: {id: 'transfer', type: 'consumable', behaviorType: 'two_step', cost: 10, icon: '🧴', name: { en: 'Surface Transfer', ja: '水面移送' }, desc: { en: 'Move top 1 segment anywhere.', ja: '一番上の色を吸い出しどこにでも注入する' },
+       extractLogic: (t) => t.pop(), placeLogic: (t, c) => t.push(c)
+   },
+   quantum_pipette: {id: 'quantum_pipette', type: 'consumable', behaviorType: 'two_step', cost: 15, icon: '💉', name: { en: 'Quantum Pipette', ja: '量子スポイト' }, desc: { en: 'Extract bottom color.', ja: '一番下の色を吸い出しどこにでも注入する' },
+       extractLogic: (t) => t.shift(), placeLogic: (t, c) => t.push(c)
+   },
 };
-const INSTANT_ITEMS = [
-    { id:'dark_pact',   type:'stat', cost:0, name:{en:'Dark Pact', ja:'黒の契約'},  desc:{en:'HP-2, +20 Ess', ja:'HP-2, +20エッセンス'}, apply(gs){     if(gs.hp > 2){        gs.hp -= 2; gs.essence += 20;         showToast('Power at a cost...', 'purple');     } else {        showToast('Too weak...', 'red');    }}             },
-    { 
-        id:'mystery_box', 
-        type:'stat', 
-        cost:8, 
-        name:{en:'Mystery Box', ja:'福袋'},    
-        desc:{en:'Random Item', ja:'ランダムアイテム'}, 
-        apply(gs) {
-            const keys = Object.keys(ITEMS).filter(k => ITEMS[k].type === 'consumable');
-            const availableKeys = keys.filter(k => (gs.inventory[k] || 0) < 3);
-            if (availableKeys.length > 0) {
-                const gift = pick(availableKeys);
-                if (!gs.inventory[gift]) gs.inventory[gift] = 0;
-                gs.inventory[gift]++;
-                const item = ITEMS[gift];
-                const itemName = currentLang === 'ja' ? item.name.ja : item.name.en;
-                const msg = currentLang === 'ja' ? `${item.icon} ${itemName} を獲得` : `${item.icon} ${itemName} Obtained`;
-                showToast(msg, 'yellow');
-                refreshRerollUI();
-                updateShopButtons();
-                const shopContainer = document.getElementById('shop-cards');
-                if (shopContainer && gs.currentShopOffers) {
-                    shopContainer.innerHTML = '';
-                    gs.currentShopOffers.forEach(offer => {
-                        shopContainer.appendChild(buildShopCard(offer));
-                    });
-                }
-            } else {
-                showToast(currentLang === 'ja' ? 'すべてのアイテムが最大数です' : 'All items at max capacity!', 'rose');
-                gs.essence += 8;
-            }
-        }
-    }
-];
-const SHOP_POOL = [
-    ...INSTANT_ITEMS,
-    ...Object.values(ITEMS).map(i => ({ id: `buy_${i.id}`, type: 'item', ref: i }))
-];
+const ITEMS = ITEM_REGISTRY;
+const SHOP_POOL = Object.values(ITEM_REGISTRY)
+   .filter(i => i.type !== 'tool') 
+   .map(i => {
+       if (i.behaviorType === 'instant' && i.type === 'stat') return { id: i.id, kind: 'instant', ...i };
+       if (i.behaviorType === 'instant' && i.type === 'consumable') return { id: `buy_${i.id}`, type: 'item', ref: i }; 
+       return { id: `buy_${i.id}`, type: 'item', ref: i };
+   });
 const gameState = {
     floor: 1,
     essence: 0,
@@ -889,198 +938,169 @@ window.addEventListener('resize', () => {
 });
 function renderSkills(){
     skillsContainer.innerHTML = '';
-        const isHoldingColor = gameState.extractorHeldColor !== null;
+    const isHoldingColor = gameState.extractorHeldColor !== null;
     Object.keys(gameState.inventory).forEach(key => {
         const count = gameState.inventory[key];
-        if(count > 0 || ITEMS[key].type === 'tool'){
-            const def = ITEMS[key];
+        const def = ITEM_REGISTRY[key]; 
+        if (!def) return;
+        if (count > 0 || def.type === 'tool') {
             const btn = document.createElement('button');
-                                    const isCurrentActiveTool = (key === 'pipette' && gameState.pipetteMode) || (gameState.targetMode === key);
+            const isCurrentActiveTool = (key === 'pipette' && gameState.pipetteMode) || (gameState.targetMode === key);
             btn.disabled = isHoldingColor && !isCurrentActiveTool;
-            btn.className = 'skill-btn w-12 h-12 glass-panel flex items-center justify-center text-xl rounded-full border border-white/10 shrink-0';
+            btn.className = 'skill-btn w-12 h-12 glass-panel flex items-center justify-center text-xl rounded-full border border-white/10 shrink-0 relative';
             if (btn.disabled) {
                 btn.classList.add('opacity-20', 'grayscale', 'pointer-events-none');
             }
-            btn.dataset.id = key; 
-            const name = currentLang==='ja' ? def.name.ja : def.name.en;
-            const desc = currentLang==='ja' ? def.desc.ja : def.desc.en;
+            const name = currentLang === 'ja' ? def.name.ja : def.name.en;
+            const desc = currentLang === 'ja' ? def.desc.ja : def.desc.en;
             let badgeHtml = '';
-            if(def.type === 'consumable'){
-                badgeHtml = `<span class="absolute -top-1 -right-1 bg-sky-500 text-[10px] font-bold px-1.5 rounded-full text-white pointer-events-none">${count}</span>`;
+            if (def.type !== 'tool' && count > 0) {
+                badgeHtml = `<span class="absolute -top-1 -right-1 bg-sky-500 text-[10px] font-bold px-1.5 rounded-full text-white pointer-events-none z-20 shadow-sm">${count}</span>`;
             }
             btn.innerHTML = `${def.icon}${badgeHtml}`;
             if (key === 'pipette' && gameState.pipetteMode) btn.classList.add('active');
             if (gameState.pendingSkill === key) btn.classList.add('pending');
             if (gameState.targetMode === key) btn.classList.add('active-mode');
-                        if (['extractor', 'transfer', 'quantum_pipette'].includes(gameState.targetMode) && key === gameState.targetMode) {
-                if(gameState.extractorHeldColor) {
+            if (['extractor', 'transfer', 'quantum_pipette'].includes(gameState.targetMode) && key === gameState.targetMode) {
+                if (gameState.extractorHeldColor) {
                     btn.classList.add('extracting');
                     btn.innerHTML = `<div style="width:16px;height:16px;border-radius:50%;background:${colorMeta(gameState.extractorHeldColor).hex};border:2px solid white;"></div>` + badgeHtml;
-                } else {
-                    btn.classList.add('active-mode');
                 }
             }
-                        btn.onclick = () => activateSkill(key);
+            btn.onclick = () => useItem(key);
             btn.onmouseenter = () => showGlobalTooltip(btn, name, desc);
             btn.onmouseleave = () => hideGlobalTooltip();
             skillsContainer.appendChild(btn);
         }
     });
 }
-function activateSkill(key){
-    if(gameState.busy) return;
-            if (gameState.extractorHeldColor !== null) {
-        showToast(currentLang==='ja'?'配置を完了させてください':'Finish placing the color first', 'rose');
+function useItem(key) {
+    if (gameState.busy) return;
+    if (gameState.extractorHeldColor) {
+        cancelInteraction(); 
         return;
     }
-    const def = ITEMS[key];
-            if (gameState.pendingSkill === key) {
-        gameState.pendingSkill = null; 
-        hideGlobalTooltip();
-                        if(key === 'heal' || key === 'panacea'){
-                if(gameState.inventory[key] > 0){
-                    if(gameState.hp >= gameState.maxHp){
-                        showToast(currentLang==='ja'?'HPは満タンです':'HP is full', 'yellow');
-                        return; 
-                    }
-                    gameState.inventory[key]--;
-                    const healAmount = (key === 'panacea') ? 2 : 1;
-                    gameState.hp = Math.min(gameState.maxHp, gameState.hp + healAmount);
-                    saveGame();
-                    renderHUD();
-                    showToast(currentLang==='ja'?'HP回復！':'HP Restored!', 'emerald');
-                }
-                return;
-        }
-        if(key === 'summon_vial'){
-                if(gameState.inventory[key] > 0){
-                    gameState.inventory[key]--;
-                    gameState.tubeCount++;
-                    gameState.tubes.push([]);
-                    saveGame();
-                    renderBoard();
-                    showToast(currentLang==='ja'?'空き瓶を追加！':'Extra Tube Added!', 'purple');
-                }
-                return;
-        }
-        if(key === 'sedative'){
-                if(gameState.inventory[key] > 0){
-                    gameState.inventory[key]--;
-                    gameState.pressure = 0;
-                    saveGame();
-                    renderHUD();
-                    showToast("Sedative Active!", 'purple');
-                }
-                return;
-        }
-                        if(def.type === 'tool' && key === 'pipette'){
-            gameState.pipetteMode = !gameState.pipetteMode;
-            gameState.targetMode = null; 
-        } else if (def.type === 'consumable'){
-            gameState.targetMode = key;
-            gameState.pipetteMode = false;
-            showToast(currentLang==='ja' ? "対象を選択してください" : "Select target", 'sky');
-        }
-                renderSkills();
-        renderBoard();
-        return;
-    }
+    const item = ITEM_REGISTRY[key];
+    if (!item) return;
+    if (gameState.pendingSkill !== key) {
         gameState.pendingSkill = key;
-    gameState.targetMode = null; 
-    showToast(currentLang==='ja'?'もう一度タップして使用':'Tap again to use', 'yellow');
+        gameState.targetMode = null;
+        gameState.pipetteMode = false;
+        const name = currentLang === 'ja' ? item.name.ja : item.name.en;
+        const msg = currentLang === 'ja' ? `${name}: もう一度タップして使用` : `${name}: Tap again to use`;
+        showToast(msg, 'yellow');
         renderSkills();
-    renderBoard();
-}
-function cancelInteraction() {
-    if (!gameState.extractorHeldColor || gameState.extractorSourceIdx === null) return;
-    const srcIdx = gameState.extractorSourceIdx;
-    const color = gameState.extractorHeldColor;
-    if (gameState.targetMode === 'quantum_pipette' || gameState.pipetteMode) {
-        gameState.tubes[srcIdx].unshift(color);
-    } else {
-        gameState.tubes[srcIdx].push(color);
+        renderBoard(); 
+        return; 
     }
-    gameState.extractorHeldColor = null;
-    gameState.extractorSourceIdx = null;
-    gameState.busy = false;
-    showToast(currentLang === 'ja' ? 'キャンセル' : 'Canceled', 'sky');
-    renderHUD();
-    renderBoard();
+    if (item.type !== 'tool' && (!gameState.inventory[key] || gameState.inventory[key] <= 0)) {
+        return;
+    }
+    gameState.pendingSkill = null; 
+    if (item.behaviorType === 'instant') {
+        const result = item.effect(gameState);
+        if (result.success) {
+            if (item.type !== 'tool' && item.cost > 0) gameState.inventory[key]--;
+            showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'emerald');
+            if (result.requiresRender) {
+                updateTubeLayout();
+                renderBoard();
+            }
+            if (result.isMystery) {
+                refreshRerollUI();
+                updateShopButtons();
+                const sc = document.getElementById('shop-cards');
+                if (sc && gameState.currentShopOffers) {
+                    sc.innerHTML = '';
+                    gameState.currentShopOffers.forEach(o => sc.appendChild(buildShopCard(o)));
+                }
+            }
+            renderHUD();
+            saveGame();
+        } else {
+            showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'yellow');
+        }
+        renderSkills();
+        return;
+    }
+    if (item.behaviorType === 'target_effect' || item.behaviorType === 'two_step') {
+        gameState.targetMode = key;
+        if (key === 'pipette') gameState.pipetteMode = true;
+        showToast(currentLang === 'ja' ? "対象を選択してください" : "Select target", 'sky');
+        renderSkills(); 
+        renderBoard();  
+    }
+}
+async function applyItemToTube(idx) {
+    const key = gameState.targetMode;
+    const item = ITEM_REGISTRY[key];
+    if (!item) return;
+    if (gameState.completedFlags[idx]) {
+        showFloatText(idx, "Locked!", "#94a3b8");
+        return;
+    }
+    const tube = gameState.tubes[idx];
+    if (item.behaviorType === 'two_step') {
+        if (!gameState.extractorHeldColor) {
+            if (tube.length === 0) { showFloatText(idx, "Empty!", "#ef4444"); return; }
+            gameState.extractorHeldColor = item.extractLogic(tube);
+            gameState.extractorSourceIdx = idx;
+            showFloatText(idx, "Extracted!", "#22c55e");
+            showToast(currentLang === 'ja' ? '配置先を選択' : 'Select Target', 'emerald');
+            renderBoard(); renderSkills();
+            return;
+        } else {
+            if (tubeFree(tube) <= 0) { showFloatText(idx, "Full!", "#ef4444"); return; }
+            pushHistory();
+            item.placeLogic(tube, gameState.extractorHeldColor);
+            const placedColor = gameState.extractorHeldColor;
+            gameState.extractorHeldColor = null; gameState.extractorSourceIdx = null;
+            consumeItem(key, item);
+            showFloatText(idx, "Placed!", "#22c55e");
+            await finalizeItemAction(idx, placedColor);
+            return;
+        }
+    }
+    if (item.behaviorType === 'target_effect') {
+        const check = item.canUseOn(tube, gameState.capacity);
+        if (!check.ok) { showFloatText(idx, check.msg || "Invalid!", "#ef4444"); return; }
+        pushHistory(); gameState.busy = true;
+        try {
+            const result = item.apply(tube);
+            if (result.success) {
+                showFloatText(idx, result.floatText, result.color);
+                if (result.essenceDelta) gameState.essence += result.essenceDelta;
+                consumeItem(key, item);
+                let checkColor = tube.length > 0 ? tube[0] : null;
+                if (result.removedColor) checkColor = result.removedColor;
+                await finalizeItemAction(idx, checkColor);
+            }
+        } catch (e) { console.error(e); gameState.history.pop(); gameState.busy = false; }
+    }
+}
+function consumeItem(key, item) {
+    if (item.type === 'tool') return;
+    if (hasPerk('recycler') && Math.random() < getPerkLevel('recycler') * 0.1) { showToast("Recycled!", 'purple'); return; }
+    gameState.inventory[key]--;
+    gameState.targetMode = null; gameState.pendingSkill = null;
+    if (key === 'pipette') gameState.pipetteMode = false;
+}
+async function finalizeItemAction(idx, colorHint) {
+    gameState.busy = false; renderHUD(); renderBoard(); saveGame();
+    const tube = gameState.tubes[idx];
+    if (tube && isCompleteTube(tube)) { await handleCompletion(idx, tube[0] || colorHint); }
+    if (checkLevelClear()) { onLevelClear(); }
 }
 async function handleTubeClick(idx) {
     if (gameState.busy) return;
-    if (gameState.extractorHeldColor !== null && gameState.extractorSourceIdx === idx) {
-        const tube = gameState.tubes[idx];
-        if (tubeFree(tube) <= 0) {
-            showFloatText(idx, "Full!", "#ef4444");
-            return;
-        }
-        pushHistory();
-        tube.push(gameState.extractorHeldColor);
-        const colorBeingPlaced = gameState.extractorHeldColor;
-        gameState.extractorHeldColor = null;
-        gameState.extractorSourceIdx = null;
-        if (gameState.pipetteMode) {
-            gameState.pipetteMode = false;
-            if(gameState.inventory['pipette'] > 0) gameState.inventory['pipette']--;
-        } else if (gameState.inventory[gameState.targetMode] > 0) {
-            let consume = true;
-            if(hasPerk('recycler') && Math.random() < getPerkLevel('recycler') * 0.1) {
-                consume = false;
-                showToast("Recycled!", 'purple');
-            }
-            if(consume) gameState.inventory[gameState.targetMode]--;
-            gameState.targetMode = null;
-        }
-        showFloatText(idx, "Placed!", "#22c55e");
-        saveGame();
-        renderHUD();
-        renderBoard();
-        if(isCompleteTube(tube)) await handleCompletion(idx, colorBeingPlaced);
-        renderSkills();
+    if (gameState.targetMode) {
+        await applyItemToTube(idx);
+        renderSkills(); 
         return;
     }
     if (gameState.pendingSkill !== null) {
         gameState.pendingSkill = null;
         renderSkills();
-    }
-    if (['extractor', 'transfer', 'quantum_pipette'].includes(gameState.targetMode)) {
-        await handleTwoStepSkill(idx);
-        renderSkills();
-        return;
-    }
-    if (gameState.pipetteMode) {
-        const tube = gameState.tubes[idx];
-        if (!gameState.extractorHeldColor) {
-            if (tube.length === 0) return;
-            gameState.extractorHeldColor = tube.shift();
-            gameState.extractorSourceIdx = idx;
-            showToast(currentLang === 'ja' ? '抽出完了：配置先を選択' : 'Extracted: Select Target', 'emerald');
-            renderSkills();
-            renderBoard();
-        } else {
-            if (tube.length >= gameState.capacity) {
-                showFloatText(idx, "Full!", "#ef4444");
-                return;
-            }
-            pushHistory();
-            tube.push(gameState.extractorHeldColor);
-            const colorBeingPlaced = gameState.extractorHeldColor;
-            gameState.extractorHeldColor = null;
-            gameState.extractorSourceIdx = null;
-            gameState.pipetteMode = false;
-            if(gameState.inventory['pipette'] > 0) gameState.inventory['pipette']--;
-            renderHUD();
-            renderBoard();
-            saveGame();
-            if(isCompleteTube(tube)) await handleCompletion(idx, colorBeingPlaced);
-            renderSkills();
-        }
-        return;
-    }
-    if (gameState.targetMode) {
-        await applySkillEffect(idx);
-        return;
     }
     const content = gameState.tubes[idx];
     if (gameState.selectedIdx === idx) {
@@ -1144,128 +1164,6 @@ async function tryPour(fromIdx, toIdx) {
         }
     }
 }
-async function handleTwoStepSkill(idx) {
-    const tube = gameState.tubes[idx];
-    const skillKey = gameState.targetMode;
-    if (!gameState.extractorHeldColor) {
-        if (tube.length === 0) {
-            showFloatText(idx, "Empty!", "#ef4444");
-            return;
-        }
-        gameState.busy = true;
-        gameState.extractorHeldColor = (skillKey === 'quantum_pipette') ? tube.shift() : tube.pop();
-        gameState.extractorSourceIdx = idx;
-        showFloatText(idx, "Extracted!", "#22c55e");
-        renderBoard(); 
-        gameState.busy = false;
-        showToast(currentLang==='ja' ? "配置先を選択してください" : "Select destination", 'emerald');
-    } 
-    else {
-        if ((skillKey !== 'transfer' && skillKey !== 'quantum_pipette') && tube.length > 0 && tube[tube.length-1] !== gameState.extractorHeldColor) {
-            showFloatText(idx, "Mismatch!", "#ef4444");
-            return;
-        }
-        if (tubeFree(tube) <= 0) {
-            showFloatText(idx, "Full!", "#ef4444");
-            return;
-        }
-        pushHistory();
-        gameState.busy = true;
-        const heldColor = gameState.extractorHeldColor;
-        tube.push(heldColor);
-        gameState.extractorHeldColor = null;
-        gameState.extractorSourceIdx = null;
-        if (gameState.inventory[skillKey] > 0) {
-            let consume = true;
-            if(hasPerk('recycler') && Math.random() < getPerkLevel('recycler') * 0.1){
-                consume = false;
-                showToast("Recycled!", 'purple');
-            }
-            if(consume) gameState.inventory[skillKey]--;
-        }
-        gameState.targetMode = null; 
-        showFloatText(idx, "Placed!", "#22c55e");
-        renderBoard();
-        if(isCompleteTube(tube)){
-            await handleCompletion(idx, heldColor);
-        }
-        gameState.busy = false;
-        saveGame();
-        renderHUD();
-        renderBoard();
-        renderSkills();
-        if (checkLevelClear()) {
-            onLevelClear();
-        }
-    }
-}
-async function applySkillEffect(idx){
-    const skillKey = gameState.targetMode;
-    const tube = gameState.tubes[idx];
-    if(!skillKey || !gameState.inventory[skillKey] || gameState.inventory[skillKey] <= 0) return;
-    let success = false;
-    let consume = true;
-    let removedColor = null;
-    if(hasPerk('recycler') && Math.random() < getPerkLevel('recycler') * 0.1) consume = false;
-    gameState.busy = true;
-    try {
-        pushHistory();
-        if(skillKey === 'inverter' && tube.length >= 2){
-            tube.reverse(); showFloatText(idx, "Inverted!", "#a855f7"); success = true;
-        } else if (skillKey === 'void_salt' && tube.length > 0 && tube[tube.length-1] === 'K'){
-            tube.pop(); showFloatText(idx, "Voided!", "#a855f7"); success = true;
-        } else if (skillKey === 'separator' && tube.length >= 2){
-            const counts = {}; tube.forEach(c => counts[c] = (counts[c]||0)+1);
-            const newTube = []; Object.keys(counts).sort().forEach(c => { for(let i=0; i<counts[c]; i++) newTube.push(c); });
-            gameState.tubes[idx] = newTube; showFloatText(idx, "Separated!", "#a855f7"); success = true;
-        } else if (skillKey === 'cycle_siphon' && tube.length > 0){
-            tube.push(tube.shift()); showFloatText(idx, "Cycled!", "#a855f7"); success = true;
-        } else if (skillKey === 'sediment' && tube.length >= 2){
-            tube.unshift(tube.pop()); showFloatText(idx, "Sunk!", "#a855f7"); success = true;
-        } else if (skillKey === 'layer_swap' && tube.length >= 2){
-            const t1 = tube.pop(), t2 = tube.pop(); tube.push(t1); tube.push(t2);
-            showFloatText(idx, "Swapped!", "#a855f7"); success = true;
-        } else if (skillKey === 'vacuum' && tube.length > 0 && tube[tube.length-1] === 'K'){
-            while(tube.length > 0 && tube[tube.length-1] === 'K') tube.pop();
-            showFloatText(idx, "Vacuumed!", "#a855f7"); success = true;
-        } else if (skillKey === 'midas' && tube.length > 0 && tube[tube.length-1] === 'K'){
-            tube.pop(); gameState.essence += 2; showFloatText(idx, "Gold! ✨+2", "#fbbf24"); success = true;
-        } else if (skillKey === 'shaker' && tube.length >= 2){
-            const orig = JSON.stringify(tube);
-            for(let i=0; i<50; i++) {
-                tube.sort(() => Math.random() - 0.5);
-                if(JSON.stringify(tube) !== orig) break;
-            }
-            showFloatText(idx, "Shaken!", "#a855f7"); success = true;
-        } else if (skillKey === 'cursed_sludge' && tube.length < gameState.capacity){
-            tube.push('K'); showFloatText(idx, "Cursed!", "#0f172a"); success = true;
-        } else if (skillKey === 'vaporizer' && tube.length > 0){
-            removedColor = tube.pop();
-            showFloatText(idx, "Vaporized!", "#94a3b8"); success = true;
-        }
-        if(success) {
-            if(consume) gameState.inventory[skillKey]--;
-            gameState.targetMode = null;
-            const boardCounts = getBoardCounts();
-            for (let i = 0; i < gameState.tubes.length; i++) {
-                const t = gameState.tubes[i];
-                if (gameState.completedFlags[i]) continue;
-                if (isCompleteTube(t, boardCounts)) {
-                    if (skillKey !== 'vaporizer' || (t.length > 0 && t[0] === removedColor)) {
-                        await handleCompletion(i, t[0]);
-                    }
-                }
-            }
-        } else {
-            gameState.history.pop();
-        }
-    } catch(e) { 
-        console.error(e); 
-    } finally {
-        gameState.busy = false;
-        renderHUD(); renderBoard(); saveGame();
-    }
-}
 function canPour(fromIdx, toIdx){
     if (fromIdx === toIdx) return {ok:false};
     const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
@@ -1322,19 +1220,16 @@ async function handleCompletion(tubeIdx, colorKey) {
         if (checkLevelClear()) onLevelClear(); 
         return; 
     }
-    // 触媒反応 (Catalyst)
     if (hasPerk('catalyst') && gameState.catalystAvailable) {
         const lv = getPerkLevel('catalyst'); 
         gameState.pressure = Math.max(0, gameState.pressure - (4 + lv));
         gameState.catalystAvailable = false; 
         showToast("Catalyst! Pressure Down", 'sky');
     }
-    // 抽出効率 (Efficiency)
     if (hasPerk('efficiency') && Math.random() < getPerkLevel('efficiency') * 0.20) {
         gameState.essence += 1;
         showToast("Efficient! +1 Essence", 'yellow');
     }
-    // 紅 (Crimson)
     if (colorKey === 'R' && hasPerk('crimson_resonance')) {
         gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
         showToast("Resonance! HP+1 / Pressure Up", 'rose');
@@ -1343,25 +1238,21 @@ async function handleCompletion(tubeIdx, colorKey) {
             await applyPressureDamage();
         }
     }
-    // 蒼（Azure）: プレッシャー追加減少
     if (colorKey === 'B' && hasPerk('azure_cycle')) {
         const amount = getPerkLevel('azure_cycle') * 3;
         gameState.pressure = Math.max(0, gameState.pressure - amount);
         showToast(`Cycle! -${amount} Pressure`, 'blue');
     }
-    // 琥珀（Amber）: エッセンス獲得
     if (colorKey === 'Y' && hasPerk('amber_greed')) {
         const amount = getPerkLevel('amber_greed') * 2;
         gameState.essence += amount;
         showToast(`Alchemy! +${amount} Essence`, 'amber');
     }
-    // 象牙（Ivory）: 黒インク除去
     if (colorKey === 'W' && hasPerk('ivory_sanctuary')) {
         const amount = getPerkLevel('ivory_sanctuary');
         for(let i=0; i<amount; i++) removeOneObsidian();
         showToast("Sanctuary! Purged", 'slate');
     }
-    // 翠（Emerald）: プレッシャー半減
     if (colorKey === 'G' && hasPerk('emerald_vitality')) {
         gameState.pressure = Math.floor(gameState.pressure / 2);
         showToast("Vitality! Pressure/2", 'emerald');
@@ -1374,24 +1265,20 @@ async function handleCompletion(tubeIdx, colorKey) {
         gameState.pressure = Math.max(0, gameState.pressure - totalReduction);
         showToast(`Emerald Vitality! -${totalReduction} Pressure`, 'emerald');
     }
-    // 紫（Amethyst）: 無料Undo追加
     if (colorKey === 'P' && hasPerk('amethyst_surge')) {
         const amount = getPerkLevel('amethyst_surge');
         gameState.refluxUses += amount;
         showToast(`Surge! Undo+${amount}`, 'purple');
     }
-    // 橙（Orange）: プレッシャー上昇停止
     if (colorKey === 'O' && hasPerk('orange_drive')) {
         const turns = getPerkLevel('orange_drive') * 2;
         gameState.momentumTurns += turns;
         showToast(`Drive! Momentum+${turns}`, 'orange');
     }
-    // 青緑（Teal）: サブ目標進行
     if (colorKey === 'T' && hasPerk('teal_equilibrium')) {
         gameState.secondaryProgress += 1;
         showToast("Analysis! Goal+1", 'cyan');
     }
-    // 桃（Pink）: アイテムドロップ抽選
     if (colorKey === 'M' && hasPerk('pink_luck')) {
         if(Math.random() < getPerkLevel('pink_luck') * 0.10){
             const k = getValidRandomConsumable();
@@ -1405,13 +1292,11 @@ async function handleCompletion(tubeIdx, colorKey) {
             }
         }
     }
-    // 大容量ボーナス (Heavy Mastery)
     if(hasPerk('heavy_mastery') && gameState.capacity >= 5){
         const lv = getPerkLevel('heavy_mastery'); 
         gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
         showToast("Heavy Mastery! Pressure Down", 'indigo');
     }
-    // 慣性律 (Momentum)
     if(hasPerk('momentum')) {
         gameState.momentumTurns = getPerkLevel('momentum'); 
         showToast("Momentum! Pressure Stop", 'violet');
@@ -1632,7 +1517,6 @@ function showCompletionEvent(colorKey){
 function buildEventChoices(colorKey){
     const isJa = (currentLang === 'ja');
     const toast = (msg, color) => showToast(msg, color);
-    // --- 蒼 (Azure) ---
     if (colorKey === 'B'){ 
         return [
             { 
@@ -1655,7 +1539,6 @@ function buildEventChoices(colorKey){
             }
         ]; 
     }
-    // --- 紅 (Crimson) ---
     if (colorKey === 'R'){ 
         return [
             { 
@@ -1679,7 +1562,6 @@ function buildEventChoices(colorKey){
             }
         ]; 
     }
-    // --- 琥珀 (Amber / Yellow) ---
     if (colorKey === 'Y'){
         return [
             {
@@ -1706,7 +1588,6 @@ function buildEventChoices(colorKey){
             }
         ];
     }
-    // --- 象牙 (Ivory / White) ---
     if (colorKey === 'W'){
         return [
             {
@@ -1718,27 +1599,26 @@ function buildEventChoices(colorKey){
                     toast(isJa ? "穢れが浄化された" : "Purified Darkness", "slate");
                 }
             },
-            {
+{
                 kicker: isJa ? '反響' : 'Echo',
-                title: isJa ? '無料Undo +2' : 'Free Undo +2',
-                desc: isJa ? '過去をやり直す力を蓄える' : 'Store power to rewrite history.',
+                title: isJa ? 'プレッシャー -2' : 'Pressure -2',
+                desc: isJa ? '静かな波動が負荷を和らげる' : 'A quiet resonance eases the system load.',
                 async apply(){ 
-                    gameState.refluxUses += 2; 
-                    toast(isJa ? "過去を書き換える力を蓄積した (+2 Undo)" : "Time Echoes Stored (+2 Undo)", "purple");
+                    gameState.pressure = Math.max(0, gameState.pressure - 2); 
+                    toast(isJa ? "プレッシャーが緩和された" : "Pressure Eased", "sky");
                 }
             }
         ];
     }
-    // --- 翠 (Emerald / Green) ---
     if (colorKey === 'G'){
         return [
             {
                 kicker: isJa ? '再生' : 'Regrow',
                 title: isJa ? 'プレッシャーを0にする' : 'Set Pressure to 0',
-                desc: isJa ? 'システムを完全にリセットする' : 'Completely reset the system.',
+                desc: isJa ? '負荷を完全にリセットする' : 'Completely reset the system.',
                 async apply(){ 
                     gameState.pressure = 0; 
-                    toast(isJa ? "システムが再生し負荷が消失した" : "System Regrown (Press set 0)", "emerald");
+                    toast(isJa ? "負荷が消失した" : "System Regrown (Press set 0)", "emerald");
                 }
             },
             {
@@ -1753,7 +1633,6 @@ function buildEventChoices(colorKey){
             }
         ];
     }
-    // --- 紫 (Amethyst / Purple) ---
     if (colorKey === 'P'){
         return [
             {
@@ -1793,7 +1672,6 @@ function buildEventChoices(colorKey){
             }
         ];
     }
-    // --- 橙 (Orange) ---
     if (colorKey === 'O'){
         return [
             {
@@ -1817,7 +1695,6 @@ function buildEventChoices(colorKey){
             }
         ];
     }
-    // --- 青緑 (Teal) ---
     if (colorKey === 'T'){
         return [
             {
@@ -1841,7 +1718,6 @@ function buildEventChoices(colorKey){
             }
         ];
     }
-    // --- 桃 (Pink) ---
     if (colorKey === 'M'){
         return [
             {
@@ -1879,7 +1755,7 @@ function buildEventChoices(colorKey){
             desc: isJa ? '少し落ち着く' : 'Minor relief.', 
             async apply(){ 
                 gameState.pressure = Math.max(0, gameState.pressure - 2); 
-                toast(isJa ? "システムを浄化した" : "Purified", "sky");
+                toast(isJa ? "心を浄化した" : "Purified", "sky");
             } 
         }, 
         { 
@@ -1928,10 +1804,7 @@ function rollPerkChoices(count = 3) {
     return chosen;
 }
 function generateShopOffers(n=4){
-    const entries = [];
-    INSTANT_ITEMS.forEach(x => entries.push({kind:'instant', id:x.id}));
-    Object.values(ITEMS).forEach(x => entries.push({kind:'item', id:x.id}));
-    const pool = entries.slice();
+    const pool = SHOP_POOL.slice();
     const picks = [];
     while(picks.length < Math.min(n, pool.length)){
         const p = pool.splice(randInt(pool.length),1)[0];
@@ -1940,7 +1813,7 @@ function generateShopOffers(n=4){
     return picks;
 }
 function findInstant(id){
-    return INSTANT_ITEMS.find(x => x.id === id) || null;
+    return ITEM_REGISTRY[id] || null;
 }
 function refreshRerollUI(){
     if(rerollBtn) {
@@ -1979,85 +1852,110 @@ ui('reroll-btn').onclick = () => {
     saveGame();
 };
 function buildShopCard(offer) {
-  let name = '',
-    desc = '',
-    icon = '◈',
-    baseCost = 0;
-  if (offer.kind === 'instant') {
-    const inst = findInstant(offer.id);
-    if (!inst) return document.createElement('div');
-    name = currentLang === 'ja' ? inst.name.ja : inst.name.en;
-    desc = currentLang === 'ja' ? inst.desc.ja : inst.desc.en;
-    baseCost = inst.cost;
-    icon = '✦';
-  } else {
-    const it = ITEMS[offer.id];
-    if (!it) return document.createElement('div');
-    name = currentLang === 'ja' ? it.name.ja : it.name.en;
-    desc = currentLang === 'ja' ? it.desc.ja : it.desc.en;
-    baseCost = it.cost;
-    icon = it.icon;
-  }
-  const currentInventoryCount = gameState.inventory[offer.id] || 0;
-  let badgeHtml = '';
-  if (offer.kind === 'item' && currentInventoryCount > 0) {
-    badgeHtml = `<span class="badge-count absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-sky-500 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-white pointer-events-none shadow-sm z-10">${currentInventoryCount}</span>`;
-  }
-  const cost = getDiscountedCost(baseCost);
-  const affordable = gameState.essence >= cost;
-  const isTool = (offer.kind === 'item' && ITEMS[offer.id]?.type === 'tool');
-  const allItemsMax = Object.keys(ITEMS).filter(k => ITEMS[k].type === 'consumable').every(k => (gameState.inventory[k] || 0) >= 3);
-  const isAtMax = (offer.kind === 'item' && !isTool && currentInventoryCount >= 3) || (offer.id === 'mystery_box' && allItemsMax);
-  const ownedTool = (isTool && currentInventoryCount > 0);
-  const disabled = !IS_DEBUG && (!!offer.purchased || ownedTool || isAtMax || !affordable);
-  const card = document.createElement('div');
-  card.className = 'shop-card glass-panel perk-card p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 h-full justify-between';
-  card.dataset.cost = String(cost);
-  let priceDisplay = `<div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div>`;
-  if (hasPerk('bargain') && cost !== baseCost) {
-    priceDisplay = `<div class="flex flex-col items-end leading-none"><div class="text-[10px] text-slate-500 line-through decoration-slate-500">${baseCost}</div><div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div></div>`;
-  }
-  let btnLabel = currentLang === 'ja' ? '購入' : 'BUY';
-  let btnColorClass = '';
-  if (offer.purchased) {
-    btnLabel = currentLang === 'ja' ? '完売' : 'SOLD OUT';
-    btnColorClass = 'text-rose-500';
-  } else if (ownedTool) {
-    btnLabel = currentLang === 'ja' ? '所持済' : 'OWNED';
-  } else if (isAtMax) {
-    btnLabel = currentLang === 'ja' ? '最大数' : 'MAX';
-    btnColorClass = 'text-rose-500';
-  }
-  card.innerHTML = `<div class="flex items-start justify-between gap-1 sm:gap-2"><div class="flex items-center gap-2 sm:gap-3 min-w-0"><div class="relative w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl glass-panel flex items-center justify-center text-xl sm:text-3xl shrink-0 border border-white/10 icon-box">${icon}${badgeHtml}</div><div class="text-sm sm:text-lg font-black text-white leading-tight break-words">${name}</div></div><div class="text-right shrink-0">${priceDisplay}</div></div><div class="flex-1"><p class="text-xs sm:text-base text-slate-300 leading-snug break-words italic">${desc}</p></div><button class="shop-btn w-full py-2 sm:py-3 rounded-lg sm:rounded-xl font-black text-sm sm:text-lg uppercase tracking-widest border border-white/10 ${btnColorClass} ${disabled?'opacity-30 cursor-not-allowed':'hover:bg-white/10'}">${btnLabel}</button>`;
-  const btn = card.querySelector('.shop-btn');
-  btn.disabled = disabled;
-  btn.onclick = () => {
-    if (btn.disabled) return;
-    const finalCost = getDiscountedCost(baseCost);
-    if (gameState.essence < finalCost) return;
+    let itemDef;
+    let baseCost = 0;
+    let icon = '◈';
+    let rawId = '';
     if (offer.kind === 'instant') {
-      gameState.essence -= finalCost;
-      const inst = findInstant(offer.id);
-      if (inst && typeof inst.apply === 'function') inst.apply(gameState);
-      offer.purchased = true;
+        rawId = offer.id;
+        itemDef = ITEM_REGISTRY[rawId];
+        if (itemDef) {
+            baseCost = itemDef.cost;
+            icon = '✦';
+        }
     } else {
-      const it = ITEMS[offer.id];
-      const currentCount = (gameState.inventory[offer.id] || 0);
-      if (it.type === 'tool') {
-        gameState.essence -= finalCost;
-        gameState.inventory[offer.id] = 1;
-        offer.purchased = true;
-      } else if (currentCount < 3) {
-        gameState.essence -= finalCost;
-        gameState.inventory[offer.id] = currentCount + 1;
-      }
+        rawId = offer.id.startsWith('buy_') ? offer.id.replace('buy_', '') : offer.id;
+        itemDef = ITEM_REGISTRY[rawId];
+        if (itemDef) {
+            baseCost = itemDef.cost;
+            icon = itemDef.icon;
+        }
     }
-    saveGame();
-    refreshRerollUI();
-    renderHUD();
-    openPerkScreen(false);
-  };
-  return card;
+    if (!itemDef) return document.createElement('div');
+    const name = currentLang === 'ja' ? itemDef.name.ja : itemDef.name.en;
+    const desc = currentLang === 'ja' ? itemDef.desc.ja : itemDef.desc.en;
+    const currentInventoryCount = gameState.inventory[rawId] || 0;
+    let badgeHtml = '';
+    if (currentInventoryCount > 0) {
+        badgeHtml = `<span class="badge-count absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-sky-500 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-white pointer-events-none shadow-sm z-10">${currentInventoryCount}</span>`;
+    }
+    const cost = getDiscountedCost(baseCost);
+    const affordable = gameState.essence >= cost;
+    const isTool = (itemDef.type === 'tool');
+    const allItemsMax = Object.keys(ITEM_REGISTRY).filter(k => ITEM_REGISTRY[k].type === 'consumable').every(k => (gameState.inventory[k] || 0) >= 3);
+    const isAtMax = (offer.kind === 'item' && !isTool && currentInventoryCount >= 3) || (rawId === 'mystery_box' && allItemsMax);
+    const ownedTool = (isTool && currentInventoryCount > 0);
+    const purchased = offer.purchased;
+    const isLocked = !!purchased || ownedTool || isAtMax;
+    const disabled = isLocked || !affordable;
+    const card = document.createElement('div');
+    card.className = 'shop-card glass-panel perk-card p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 h-full justify-between';
+    card.dataset.cost = String(cost);
+    let priceDisplay = `<div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div>`;
+    if (hasPerk('bargain') && cost !== baseCost) {
+        priceDisplay = `<div class="flex flex-col items-end leading-none"><div class="text-[10px] text-slate-500 line-through decoration-slate-500">${baseCost}</div><div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div></div>`;
+    }
+    let btnLabel = currentLang === 'ja' ? '購入' : 'BUY';
+    let btnColorClass = '';
+    if (purchased) {
+        btnLabel = currentLang === 'ja' ? '完売' : 'SOLD OUT';
+        btnColorClass = 'text-rose-500';
+    } else if (ownedTool) {
+        btnLabel = currentLang === 'ja' ? '所持済' : 'OWNED';
+    } else if (isAtMax) {
+        btnLabel = currentLang === 'ja' ? '最大数' : 'MAX';
+        btnColorClass = 'text-rose-500';
+    }
+    card.innerHTML = `
+        <div class="flex items-start justify-between gap-1 sm:gap-2">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div class="relative w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl glass-panel flex items-center justify-center text-xl sm:text-3xl shrink-0 border border-white/10 icon-box">
+                    ${icon}${badgeHtml}
+                </div>
+                <div class="text-sm sm:text-lg font-black text-white leading-tight break-words">${name}</div>
+            </div>
+            <div class="text-right shrink-0">${priceDisplay}</div>
+        </div>
+        <div class="flex-1">
+            <p class="text-xs sm:text-base text-slate-300 leading-snug break-words italic">${desc}</p>
+        </div>
+        <button class="shop-btn w-full py-2 sm:py-3 rounded-lg sm:rounded-xl font-black text-sm sm:text-lg uppercase tracking-widest border border-white/10 ${btnColorClass} ${disabled ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white/10'}">
+            ${btnLabel}
+        </button>`;
+    const btn = card.querySelector('.shop-btn');
+    btn.disabled = disabled;
+    btn.onclick = () => {
+        if (btn.disabled) return;
+        gameState.essence -= cost;
+        offer.purchased = true;
+        if (offer.kind === 'instant') {
+             const result = itemDef.effect(gameState);
+             showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'emerald');
+             if(result.isMystery) {
+                 refreshRerollUI();
+                 updateShopButtons(); 
+                 const shopContainer = document.getElementById('shop-cards');
+                 if (shopContainer && gameState.currentShopOffers) {
+                     shopContainer.innerHTML = '';
+                     gameState.currentShopOffers.forEach(o => shopContainer.appendChild(buildShopCard(o)));
+                 }
+                 renderHUD();
+                 return;
+             }
+        } else {
+            if (itemDef.type === 'tool') {
+                gameState.inventory[rawId] = 1;
+            } else {
+                gameState.inventory[rawId] = (gameState.inventory[rawId] || 0) + 1;
+            }
+            showToast(currentLang === 'ja' ? "購入しました" : "Purchased", 'emerald');
+        }
+        saveGame();
+        refreshRerollUI();
+        renderHUD();
+        openPerkScreen(false);
+    };
+    return card; 
 }
 function generateShareText(){
     const perkList = Object.entries(gameState.perks || {})
@@ -2195,23 +2093,24 @@ function openPerkScreen(isDeath){
     ui('perk-title').textContent = isDeath ? t('gameOver') : t('victory');
     ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : t('victorySub');
     ui('perk-essence').textContent = `✨ Essence: ${gameState.essence}`;
-    if (!gameState.pendingPerkId) {
-        gameState.pendingPerkId = null;
-    }
     refreshRerollUI();
-    gameState.pendingPerkId = null;
     perkCards.innerHTML = ''; 
     shopCards.innerHTML = '';
-        if(isDeath){
+    if(isDeath){
         perkCards.innerHTML = `<div class="flex flex-col gap-4 h-full"><div class="text-sm font-bold text-rose-400 uppercase tracking-widest border-b border-white/10 pb-2">${currentLang==='ja'?'探索記録':'Exploration Log'}</div><div class="grid grid-cols-2 gap-4"><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">FLOOR</div><div class="text-4xl font-black text-white">${gameState.floor}</div></div><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">ESSENCE</div><div class="text-4xl font-black text-sky-300">${gameState.essence}</div></div></div><div class="mt-auto"><div class="text-[10px] text-slate-500 mb-2 uppercase tracking-widest">Result String</div><textarea id="share-text-area" class="w-full h-24 bg-black/50 border border-white/10 rounded p-2 text-[10px] text-slate-400 font-mono resize-none" readonly>${generateShareText()}</textarea></div></div>`;
         const perkList = Object.entries(gameState.perks).map(([id, lv]) => `<div class="flex justify-between items-center py-2 border-b border-white/5"><span class="text-sm font-bold text-slate-200">${currentLang==='ja'?PERKS[id].name.ja:PERKS[id].name.en}</span><span class="text-xs font-bold text-sky-400">Lv.${lv}</span></div>`).join('');
         shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"; shopCards.className = "flex flex-col gap-4 h-full";
         shopCards.innerHTML = `<div class="flex-1 overflow-y-auto min-h-[120px]"><div class="text-sm font-bold text-sky-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-2">${currentLang==='ja'?'獲得したスキル':'Acquired Skills'}</div>${perkList || `<div class="text-slate-500 text-xs italic py-4">${currentLang==='ja'?'スキルなし':'No mutations'}</div>`}</div><div class="grid grid-cols-2 gap-3 mt-4 shrink-0"><button onclick="copyResult()" class="py-4 bg-indigo-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-indigo-500 shadow-lg shadow-indigo-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'結果をコピー':'Copy Result'}</button><button onclick="startNewRun()" class="py-4 bg-rose-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-rose-500 shadow-lg shadow-rose-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'リトライ':'Try Again'}</button></div>`;
-        continueBtn.style.display = 'none'; return;
+        continueBtn.style.display = 'none'; 
+        return;
     }
-        continueBtn.style.display = 'block'; 
+    continueBtn.style.display = 'block'; 
     continueBtn.textContent = t('continue');
-    continueBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    if (gameState.pendingPerkId) {
+        continueBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+        continueBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
     continueBtn.onclick = () => { 
         if(!gameState.pendingPerkId) {
             showToast(currentLang==='ja'?'スキルを選択してください':'Select a Mutation!', 'rose');
@@ -2221,11 +2120,17 @@ function openPerkScreen(isDeath){
         perkScreen.classList.add('hidden'); 
         nextFloor(); 
     };
-        shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"; shopCards.className = "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3";
-    if (!gameState.currentPerkChoices) gameState.currentPerkChoices = rollPerkChoices();
+    shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"; shopCards.className = "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3";
+    if (!gameState.currentPerkChoices) {
+        gameState.currentPerkChoices = rollPerkChoices();
+        gameState.pendingPerkId = null; 
+        continueBtn.classList.add('opacity-50', 'cursor-not-allowed'); 
+    }
     if (!gameState.currentShopOffers) gameState.currentShopOffers = generateShopOffers();
-    gameState.currentPerkChoices.forEach(p => perkCards.appendChild(buildPerkCard(p))); refreshRerollUI();
-    gameState.currentShopOffers.forEach(item => shopCards.appendChild(buildShopCard(item))); updateShopButtons();
+    gameState.currentPerkChoices.forEach(p => perkCards.appendChild(buildPerkCard(p))); 
+    refreshRerollUI();
+    gameState.currentShopOffers.forEach(item => shopCards.appendChild(buildShopCard(item))); 
+    updateShopButtons();
     saveGame();
 }
 function buildPerkCard(perk){
@@ -2259,6 +2164,12 @@ function buildPerkCard(perk){
             ${getPerkDesc(perk.id, next)}
         </div>
     `;
+    if (gameState.pendingPerkId === perk.id) {
+        card.classList.add('selected-perk');
+        card.style.opacity = '1';
+    } else if (gameState.pendingPerkId) {
+        card.style.opacity = '0.4';
+    }
     card.onclick = () => { 
         gameState.pendingPerkId = perk.id;
         Array.from(perkCards.children).forEach(c => { 
@@ -2346,7 +2257,6 @@ function nextFloor(isFirst=false){
         else if (gameState.floor >= 4) gameState.capacity = 5; 
         else gameState.capacity = 4;
         gameState.completedFlags = [];
-        // スカベンジャーの判定
         if (hasPerk('scavenger') && Math.random() < (0.10 + getPerkLevel('scavenger') * 0.05)) {
             const k = getValidRandomConsumable();
             if (k) {
@@ -2354,7 +2264,6 @@ function nextFloor(isFirst=false){
                 rewards.push({ key: k, source: 'scavenger' });
             }
         }
-        // 物質変換 (Transmutation) の判定
         if (hasPerk('transmutation')) {
             for (let i = 0; i < getPerkLevel('transmutation'); i++) {
                 const k = getValidRandomConsumable();
@@ -2364,7 +2273,6 @@ function nextFloor(isFirst=false){
                 }
             }
         }
-        // クーポン (Coupon) の判定
         if(hasPerk('coupon')) gameState.rerollCoupons += getPerkLevel('coupon');
     }
     const baseMaxHp = 3; 
@@ -2410,7 +2318,6 @@ function nextFloor(isFirst=false){
         showFloorStartSequence(rewards);
     }, 600);
 }
-// 所持上限(3個)に達していないランダムな消費アイテムを返す
 function getValidRandomConsumable() {
     const keys = Object.keys(ITEMS).filter(x => ITEMS[x].type === 'consumable');
     const available = keys.filter(k => (gameState.inventory[k] || 0) < 3);
@@ -2829,15 +2736,10 @@ ui('reroll-btn').onclick = () => {
     } else {
         return;
     }
-    
-    // スキルの選択状態（pendingPerkId）はそのままにする
     gameState.currentShopOffers = null; 
-    
-    // 全体を初期化せず、ショップカードの再生成とUI更新だけを行う
     shopCards.innerHTML = '';
     gameState.currentShopOffers = generateShopOffers();
     gameState.currentShopOffers.forEach(item => shopCards.appendChild(buildShopCard(item)));
-    
     updateShopButtons();
     refreshRerollUI();
     saveGame();
