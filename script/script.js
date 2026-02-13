@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.4.13";
+const GAME_VERSION = "0.4.14";
 const IS_DEBUG = true;
 
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -729,7 +729,7 @@ function updateTubeLayout(){
     document.documentElement.style.setProperty('--segment-height', `${segHeight}px`);
     document.documentElement.style.setProperty('--tube-height', `${tubeHeight}px`);
 }
-const CLONE_PADDING = 10; 
+const CLONE_PADDING = 30; 
 function renderBoard(resetScroll = false){
     const slider = document.getElementById('board-scroll-area');
     const currentScrollPos = slider ? slider.scrollLeft : 0;
@@ -2195,6 +2195,9 @@ function openPerkScreen(isDeath){
     ui('perk-title').textContent = isDeath ? t('gameOver') : t('victory');
     ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : t('victorySub');
     ui('perk-essence').textContent = `✨ Essence: ${gameState.essence}`;
+    if (!gameState.pendingPerkId) {
+        gameState.pendingPerkId = null;
+    }
     refreshRerollUI();
     gameState.pendingPerkId = null;
     perkCards.innerHTML = ''; 
@@ -2750,27 +2753,19 @@ function initInfiniteScroll() {
 function checkInfiniteScrollLoop() {
     if(!gameState.tubes.length) return;
     const slider = document.getElementById('board-scroll-area');
-    const tubesContainer = document.getElementById('tubes-container');
-    const tubeEl = tubesContainer.querySelector('.tube');
-    if(!tubeEl) return;
-    const style = window.getComputedStyle(tubeEl);
-    const marginLeft = parseFloat(style.marginLeft) || 0;
-    const marginRight = parseFloat(style.marginRight) || 0;
-    const containerStyle = window.getComputedStyle(tubesContainer);
-    const gap = parseFloat(containerStyle.gap) || 0;
-    const rawItemWidth = tubeEl.offsetWidth + marginLeft + marginRight + gap;
-    const scale = getBoardScale();
-    const scaledItemWidth = rawItemWidth * scale;
-    const totalTubes = gameState.tubes.length;
-    const scaledContentWidth = scaledItemWidth * totalTubes;
-    const scaledCloneWidth = scaledItemWidth * CLONE_PADDING;
     const currentScroll = slider.scrollLeft;
-    const currentCenterPos = currentScroll + (slider.clientWidth / 2);
-    if (currentCenterPos > scaledCloneWidth + scaledContentWidth) {
-        slider.scrollLeft -= scaledContentWidth;
+    const scrollWidth = slider.scrollWidth;
+    const clientWidth = slider.clientWidth;
+    const maxScroll = scrollWidth - clientWidth;
+    const totalItems = gameState.tubeCount + (CLONE_PADDING * 2);
+    const singleTubeWidth = scrollWidth / totalItems;
+    const contentWidth = singleTubeWidth * gameState.tubeCount;
+    const buffer = singleTubeWidth * 1.5;
+    if (currentScroll >= maxScroll - buffer) {
+        slider.scrollLeft = currentScroll - contentWidth;
     } 
-    else if (currentCenterPos < scaledCloneWidth) {
-        slider.scrollLeft += scaledContentWidth;
+    else if (currentScroll <= buffer) {
+        slider.scrollLeft = currentScroll + contentWidth;
     }
 }
 document.addEventListener('mousedown', (e) => {
@@ -2834,8 +2829,17 @@ ui('reroll-btn').onclick = () => {
     } else {
         return;
     }
-    gameState.currentShopOffers = null;
-    openPerkScreen(false);
+    
+    // スキルの選択状態（pendingPerkId）はそのままにする
+    gameState.currentShopOffers = null; 
+    
+    // 全体を初期化せず、ショップカードの再生成とUI更新だけを行う
+    shopCards.innerHTML = '';
+    gameState.currentShopOffers = generateShopOffers();
+    gameState.currentShopOffers.forEach(item => shopCards.appendChild(buildShopCard(item)));
+    
+    updateShopButtons();
+    refreshRerollUI();
     saveGame();
 };
 ui('start-run-btn').onclick = startNewRun;
