@@ -444,7 +444,7 @@ const ITEM_REGISTRY = {
                if (!gs.inventory[gift]) gs.inventory[gift] = 0;
                gs.inventory[gift]++;
                const item = ITEM_REGISTRY[gift];
-               return { success: true, msg: {ja:`${item.name.ja} を獲得`, en:`${item.name.en} Obtained`}, color: 'yellow', isMystery: true };
+               return { success: true, msg: {ja:`${item.name.ja} を獲得`, en:`${item.name.en} Obtained`}, color: 'yellow' };
            }
            gs.essence += 8;
            return { success: false, msg: {ja:'所持数上限: ✨+8', en:'Max Capacity: ✨+8'}, color: 'rose' };
