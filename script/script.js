@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.4.17";
+const GAME_VERSION = "0.4.18";
 
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -1516,7 +1516,10 @@ function showCompletionEvent(colorKey){
             };
             eventChoices.appendChild(card);
         });
-        eventScreen.classList.remove('hidden'); eventScreen.classList.add('flex');
+        gameState.bonusFocusIdx = null;
+        eventScreen.classList.remove('hidden'); 
+        eventScreen.classList.add('flex');
+        setTimeout(updateEventSelectionUI, 10); 
     });
 }
 function buildEventChoices(colorKey){
@@ -2677,17 +2680,25 @@ function checkInfiniteScrollLoop() {
     }
 }
 document.addEventListener('mousedown', (e) => {
+    const isTube = e.target.closest('.tube');
     const isSkillBtn = e.target.closest('.skill-btn');
-    const isHUDControl = e.target.closest('button[id^="btn-"]'); 
-    if (!isSkillBtn && !isHUDControl && gameState.pendingSkill !== null) {
-        gameState.pendingSkill = null;
-        hideGlobalTooltip();
-        renderSkills();
-    }
-    if (isHelpActive) {
-        if (!e.target.closest('#btn-help')) {
-            closeHelpGuide();
+    const isHUDControl = e.target.closest('button[id^="btn-"]');
+    if (!isTube && !isSkillBtn && !isHUDControl) {
+        if (gameState.focusIdx !== null) {
+            gameState.focusIdx = null;
+            renderBoard();
         }
+        if (gameState.pendingSkill !== null) {
+            gameState.pendingSkill = null;
+            hideGlobalTooltip();
+            renderSkills();
+        }
+        if (gameState.extractorHeldColor) {
+            cancelInteraction();
+        }
+    }
+    if (isHelpActive && !e.target.closest('#btn-help')) {
+        closeHelpGuide();
     }
 });
 window.addEventListener('resize', () => {
@@ -2754,12 +2765,49 @@ document.addEventListener('click', (e) => {
     }
 });
 window.onkeydown = (e) => {
-    if(!perkScreen.classList.contains('hidden') || !eventScreen.classList.contains('hidden') || !helpScreen.classList.contains('hidden') || !mutationsScreen.classList.contains('hidden')) return;
+    if(!perkScreen.classList.contains('hidden') || !helpScreen.classList.contains('hidden') || !mutationsScreen.classList.contains('hidden')) return;
+    if (['ArrowLeft', 'ArrowRight', 'Enter', ' '].includes(e.key)) {
+            e.preventDefault();
+        }
+    if (!eventScreen.classList.contains('hidden')) {
+        const choices = eventChoices.querySelectorAll('.perk-card');
+        if (choices.length < 2) return;
+
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            if (gameState.bonusFocusIdx === null) {
+                gameState.bonusFocusIdx = (e.key === 'ArrowLeft') ? 0 : 1;
+            } else {
+                gameState.bonusFocusIdx = 1 - gameState.bonusFocusIdx;
+            }
+            updateEventSelectionUI();
+        }
+        else if (e.key === 'Enter' || e.key === ' ') {
+            if (gameState.bonusFocusIdx !== null) {
+                choices[gameState.bonusFocusIdx].click();
+                gameState.bonusFocusIdx = null;
+            }
+        }
+        return; 
+    }
     if (e.key === 'ArrowLeft') moveFocus(-1); 
     if (e.key === 'ArrowRight') moveFocus(1);
-    if ((e.key === 'Enter' || e.key === ' ') && gameState.focusIdx !== null) handleTubeClick(gameState.focusIdx);
+    if ((e.key === 'Enter' || e.key === ' ') && gameState.focusIdx !== null) {
+        handleTubeClick(gameState.focusIdx);
+    }
     if (e.key === 'Backspace' || e.key === 'z') tryUndo();
 };
+function updateEventSelectionUI() {
+    const choices = eventChoices.querySelectorAll('.perk-card');
+    choices.forEach((card, idx) => {
+        if (idx === gameState.bonusFocusIdx) {
+            card.classList.add('ring-4', 'ring-sky-400', 'bg-white/10');
+            card.style.transform = 'scale(1.02)';
+        } else {
+            card.classList.remove('ring-4', 'ring-sky-400', 'bg-white/10');
+            card.style.transform = 'scale(1)';
+        }
+    });
+}
 function initGameSettings() {
     const savedLang = localStorage.getItem('abyss_alchemy_lang');
     setLang(savedLang === 'en' || savedLang === 'ja' ? savedLang : 'ja');
