@@ -595,3 +595,26 @@ body {
 .rarity-border-rare:hover:not(.selected-perk) { border-color: rgba(59, 130, 246, 0.5); }
 .rarity-border-epic:hover:not(.selected-perk) { border-color: rgba(168, 85, 247, 0.5); }
 .selected-perk { transform: scale(1.02); z-index: 10; }
+.animate-pulse.text-purple-500 {
+    display: inline-block;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, glitch-low 0.3s infinite;
+}
+
+@keyframes glitch-low {
+    0% { transform: translate(0); }
+    20% { transform: translate(-0.5px, 0.5px); }
+    40% { transform: translate(-0.5px, -0.5px); }
+    60% { transform: translate(0.5px, 0.5px); }
+    80% { transform: translate(0.5px, -0.5px); }
+    100% { transform: translate(0); }
+}
+.abyss-glitch {
+    display: inline-block;
+    text-shadow: 0 0 5px #000, 0 0 20px #a855f7;
+    animation: abyss-pulse 5s infinite alternate;
+}
+
+@keyframes abyss-pulse {
+    from { opacity: 0.8; transform: scale(1); filter: brightness(1); }
+    to { opacity: 1; transform: scale(1.05); filter: brightness(2); }
+}

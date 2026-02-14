@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.4.18";
+const GAME_VERSION = "0.5.00";
 
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -2130,6 +2130,7 @@ function openPerkScreen(isDeath){
         gameState.pendingPerkId = null; 
         continueBtn.classList.add('opacity-50', 'cursor-not-allowed'); 
     }
+    updateShopPriceUI();
     if (!gameState.currentShopOffers) gameState.currentShopOffers = generateShopOffers();
     gameState.currentPerkChoices.forEach(p => perkCards.appendChild(buildPerkCard(p))); 
     refreshRerollUI();
@@ -2186,9 +2187,61 @@ function buildPerkCard(perk){
     };
     return card;
 }
-function getDiscountedCost(base) { 
-    if(hasPerk('bargain')) return Math.floor(base * (1 - (15+getPerkLevel('bargain')*5)/100)); 
-    return base; 
+function getPriceMultiplier() {
+    const f = gameState.floor;
+    if (f < 6) return 1.0;
+    if (f < 11) return 1.2;
+    if (f < 21) return 1.5;
+    let multiplier = 2.0 * Math.pow(1.1, f - 21);
+    if (f >= 31) {
+        const abyssExponent = f - 29;
+        const abyssMult = Math.pow(2, abyssExponent);
+        multiplier *= abyssMult;
+    }
+    return parseFloat(multiplier.toFixed(2));
+}
+function getDiscountedCost(base) {
+    const multiplier = getPriceMultiplier();
+    let cost = base * multiplier;
+    if (hasPerk('bargain')) {
+        const discount = (15 + getPerkLevel('bargain') * 5) / 100;
+        cost = cost * (1 - discount);
+    }
+    return Math.max(1, Math.floor(cost));
+}
+function updateShopPriceUI() {
+    const multiplier = getPriceMultiplier();
+    const f = gameState.floor;
+    const multEl = document.getElementById('price-multiplier');
+    const labelEl = document.getElementById('shop-interference-label');
+    
+    if (multEl && labelEl) {
+        multEl.textContent = `x${multiplier}`;
+        const colorClasses = ['text-sky-400', 'text-yellow-500', 'text-rose-500', 'text-purple-500', 'text-white', 'animate-pulse', 'abyss-glitch'];
+        labelEl.classList.remove(...colorClasses);
+        multEl.classList.remove(...colorClasses);
+        if (f >= 31) {
+            labelEl.classList.add('text-white', 'abyss-glitch');
+            multEl.classList.add('text-white', 'abyss-glitch');
+            labelEl.textContent = "ABYSS";
+        } else if (f >= 21) {
+            labelEl.classList.add('text-purple-500', 'animate-pulse');
+            multEl.classList.add('text-purple-500', 'animate-pulse');
+            labelEl.textContent = "SINGULARITY";
+        } else if (multiplier >= 1.5) {
+            labelEl.classList.add('text-rose-500');
+            multEl.classList.add('text-rose-500');
+            labelEl.textContent = "CRITICAL";
+        } else if (multiplier >= 1.2) {
+            labelEl.classList.add('text-yellow-500');
+            multEl.classList.add('text-yellow-500');
+            labelEl.textContent = "UNSTABLE";
+        } else {
+            labelEl.classList.add('text-sky-400');
+            multEl.classList.add('text-sky-400');
+            labelEl.textContent = "NORMAL";
+        }
+    }
 }
 function updateShopButtons() {
     document.querySelectorAll('.shop-card').forEach(card => {
@@ -2223,7 +2276,9 @@ function startNewRun() {
     gameState.isExecutionDebug = effectiveDebug;
     startScreen.classList.add('hidden');
     let initialCapacity = 4;
-    if (startFloor >= 8) initialCapacity = 6;
+    // if (startFloor >= 8) initialCapacity = 6;
+    if (startFloor >= 12) initialCapacity = 8;
+    else if (startFloor >= 8) initialCapacity = 6;
     else if (startFloor >= 4) initialCapacity = 5;
     Object.assign(gameState, {
         floor: startFloor,
@@ -2257,7 +2312,9 @@ function nextFloor(isFirst=false){
     const rewards = [];
     if(!isFirst) {
         gameState.floor++; 
-        if (gameState.floor >= 8) gameState.capacity = 6; 
+        // if (gameState.floor >= 8) gameState.capacity = 6; 
+        if (gameState.floor >= 12) gameState.capacity = 8;
+        else if (gameState.floor >= 8) gameState.capacity = 6; 
         else if (gameState.floor >= 4) gameState.capacity = 5; 
         else gameState.capacity = 4;
         gameState.completedFlags = [];
@@ -2397,6 +2454,7 @@ function tryUndo(){
     saveGame();
 }
 function renderHUD(){
+    updateFloorDisplayEffect();
     setText('ui-floor', `${t('floor')} ${gameState.floor}`); 
     setText('ui-essence', `✨ ${gameState.essence}`); 
     const hpPct = (gameState.hp / gameState.maxHp) * 100;
@@ -2490,6 +2548,40 @@ function renderHUD(){
         undoBtn.style.pointerEvents = canUndo ? 'auto' : 'none';
     } 
     renderSkills();
+}
+function updateFloorDisplayEffect() {
+    const f = gameState.floor;
+    const desktopFloor = ui('ui-floor');
+    const mobileFloor = ui('ui-floor-mobile');
+    
+    const targets = [desktopFloor, mobileFloor];
+    const effects = ['text-sky-400', 'text-yellow-500', 'text-rose-500', 'text-purple-500', 'text-white', 'animate-pulse', 'abyss-glitch', 'border-white/10', 'border-rose-500/50', 'border-purple-500/50', 'border-white'];
+
+    targets.forEach(el => {
+        if (!el) return;
+        el.classList.remove(...effects);
+
+        if (f >= 31) {
+            el.classList.add('text-white', 'abyss-glitch');
+            if (el.id === 'ui-floor-mobile') el.classList.add('border-white');
+        } else if (f >= 21) {
+            el.classList.add('text-purple-500', 'animate-pulse');
+            if (el.id === 'ui-floor-mobile') el.classList.add('border-purple-500/50');
+        } else if (f >= 11) {
+            el.classList.add('text-rose-500');
+            if (el.id === 'ui-floor-mobile') el.classList.add('border-rose-500/50');
+        } else if (f >= 6) {
+            el.classList.add('text-yellow-500');
+        } else {
+            el.classList.add('text-sky-400');
+            if (el.id === 'ui-floor-mobile') el.classList.add('border-white/10');
+        }
+        if (el.id === 'ui-floor') {
+            el.textContent = `${t('floor')} ${f}`;
+        } else {
+            el.textContent = `${f}F`;
+        }
+    });
 }
 function moveFocus(dx){ if(!gameState.tubes.length) return; gameState.focusIdx = gameState.focusIdx === null ? 0 : (gameState.focusIdx + dx + gameState.tubeCount) % gameState.tubeCount; renderBoard(); }
 function updateStartScreenButtons(){ continueRunBtn.classList.toggle('hidden', !hasSaveData()); }
