@@ -1289,7 +1289,12 @@ async function handleCompletion(tubeIdx, colorKey) {
                 const msg = currentLang === 'ja' ? `${item.icon} ${itemName} を獲得` : `${item.icon} ${itemName} Obtained`;
                 showFloatText(tubeIdx, msg, '#f472b6');
                 showToast(msg, 'pink');
-            }
+            }else {
+                const reward = 5;
+                gameState.essence += reward;
+                const msg = currentLang === 'ja' ? `所持数上限: ✨+${reward}` : `Max Inventory: ✨+${reward}`;
+                showToast(msg, 'slate');
+        }
         }
     }
     if(hasPerk('heavy_mastery') && gameState.capacity >= 5){
@@ -1582,7 +1587,10 @@ function buildEventChoices(colorKey){
                     if(k) {
                         gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
                         const name = isJa ? ITEMS[k].name.ja : ITEMS[k].name.en;
-                        toast(isJa ? `${name} を精製した` : `Transmuted ${name}`, "yellow");
+                        toast(isJa ? `${ITEMS[k].icon} ${name} を精製した` : `Transmuted ${name}`, "yellow");
+                    } else {
+                        gameState.essence += 5;
+                        toast(isJa ? "所持数上限: ✨+5" : "Max Inventory: ✨+5", "slate");
                     }
                 }
             }
@@ -1657,15 +1665,10 @@ function buildEventChoices(colorKey){
                             const item = ITEMS[k];
                             const itemName = isJa ? item.name.ja : item.name.en;
                             const msg = isJa ? `${item.icon} ${itemName} を獲得` : `${item.icon} ${itemName} Obtained`;
-                            setTimeout(() => {
-                                toast(msg, "purple");
-                            }, i * 400); 
+                            setTimeout(() => toast(msg, "purple"), i * 400);
                         } else {
-                            const msg = isJa ? "インベントリ満タン：✨+5" : "Inventory Full: ✨+5";
                             gameState.essence += 5;
-                            setTimeout(() => {
-                                toast(msg, "slate");
-                            }, i * 400);
+                            setTimeout(() => toast(isJa ? "所持数上限: ✨+5" : "Max Inventory: ✨+5", "slate"), i * 400);
                         }
                     }
                 }
