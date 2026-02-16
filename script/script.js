@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.5.00";
+const GAME_VERSION = "0.5.01";
 
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -1092,6 +1092,7 @@ async function finalizeItemAction(idx, colorHint) {
     if (checkLevelClear()) { onLevelClear(); }
 }
 async function handleTubeClick(idx) {
+    hideGlobalTooltip();
     if (gameState.busy) return;
     if (gameState.targetMode) {
         await applyItemToTube(idx);
