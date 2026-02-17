@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.5.01";
+const GAME_VERSION = "0.5.02";
 
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -633,9 +633,9 @@ function generateGoals(){
 function checkPrimaryGoal(){
     const counts = getBoardCounts();
     if (gameState.primaryGoal.type === 'completeAll') { 
-                const flat = gameState.tubes.flat();
+        const flat = gameState.tubes.flat();
         const colorsOnBoard = new Set(flat.filter(c => c !== 'K')).size;
-                        return countCompletedTubes(counts) >= colorsOnBoard;
+        return countCompletedTubes(counts) >= colorsOnBoard;
     }
     if (gameState.primaryGoal.type === 'completeN') {
         return countCompletedTubes(counts) >= gameState.primaryGoal.n;
@@ -693,14 +693,19 @@ function secondarySucceeded(){
     if (gameState.secondaryGoal.type === 'combo') return gameState.secondaryProgress >= gameState.secondaryGoal.need;
     return false;
 }
-function isDeadlocked(){
-    for(let i=0; i<gameState.tubes.length; i++){
-        if(gameState.tubes[i].length === 0) continue; 
-        for(let j=0; j<gameState.tubes.length; j++){
-            if(i===j) continue;
+function isDeadlocked() {
+    for (let i = 0; i < gameState.tubes.length; i++) {
+        if (gameState.tubes[i].length === 0) continue;
+        for (let j = 0; j < gameState.tubes.length; j++) {
+            if (i === j) continue;
             const check = canPour(i, j);
-            if(check.ok) return false; 
+            if (check.ok) return false;
         }
+    }
+    const allSegments = gameState.tubes.flat();
+    const blackCount = allSegments.filter(c => c === 'K').length;
+    if (blackCount === 1) {
+        return true; 
     }
     return true; 
 }
@@ -783,6 +788,8 @@ function renderBoard(resetScroll = false){
     const slider = document.getElementById('board-scroll-area');
     const currentScrollPos = slider ? slider.scrollLeft : 0;
     const deadlocked = isDeadlocked();
+    const allSegments = gameState.tubes.flat();
+    const totalBlackCount = allSegments.filter(c => c === 'K').length;
     if (alertBanner) {
         if (deadlocked) {
             alertBanner.textContent = currentLang === 'ja' ? '1つも動かせない...' : 'NO MOVES LEFT';
@@ -844,9 +851,10 @@ function renderBoard(resetScroll = false){
         tube.dataset.idx = String(i);
         tube.dataset.renderKey = item.key;
         const setClass = (cls, on) => on ? tube.classList.add(cls) : tube.classList.remove(cls);
+        const isIsolatedBlack = (totalBlackCount === 1 && segments.length === 1 && segments[0] === 'K');
         setClass('selected', i === gameState.selectedIdx);
         setClass('tube-focused', gameState.focusIdx !== null && i === gameState.focusIdx);
-        setClass('deadlock-glow', deadlocked);
+        setClass('deadlock-glow', deadlocked || isIsolatedBlack);
         const isCompletedNow = (segments.length > 0 && segments[0] !== 'K' && isCompleteTube(segments, counts));
         if (isCompletedNow) {
             if (gameState.completedFlags[i]) {
@@ -1144,7 +1152,7 @@ async function tryPour(fromIdx, toIdx) {
         const counts = getBoardCounts();
         if (isCompleteTube(to, counts)) {
             await handleCompletion(toIdx, to[0]);
-        } else if (gameState.secondaryGoal?.type === 'combo') {
+        } else if (gameState.secondaryGoal?.type === 'combo' && !secondarySucceeded()) {
             gameState.secondaryProgress = 0;
         }
         saveGame();
@@ -2535,7 +2543,15 @@ function renderHUD(){
             pBar.classList.remove('bg-rose-600'); 
         } 
     }
-    setText('ui-pressure-sub', `${curP} / ${maxP}`);
+    const pSubEl = ui('ui-pressure-sub');
+    if (pSubEl) {
+        let displayText = `${curP} / ${maxP}`;
+        if (gameState.momentumTurns > 0) {
+            pSubEl.innerHTML = `${displayText} <span class="text-orange-400 font-black ml-1" style="text-shadow: -1px -1px 0 #410, 1px -1px 0 #410, -1px 1px 0 #410, 1px 1px 0 #410;">(${gameState.momentumTurns})</span>`;
+        } else {
+            pSubEl.textContent = displayText;
+        }
+    }
     let undoCost = '✨5';
     if (gameState.refluxUses > 0) {
         undoCost = `FREE x${gameState.refluxUses}`;

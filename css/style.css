@@ -109,8 +109,13 @@ body {
     box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
 }
 .deadlock-glow {
-    box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.5) !important;
+    box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.5) !important;
     border-color: rgba(244, 63, 94, 0.8) !important;
+    animation: pulse-deadlock 1.5s infinite alternate;
+}
+@keyframes pulse-deadlock {
+    from { filter: brightness(1) saturate(1); }
+    to { filter: brightness(0.8) saturate(1.5); border-color: #ff0000; }
 }
 .water-segment {
     width: 100%;
