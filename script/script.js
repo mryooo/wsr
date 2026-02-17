@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.5.03";
+const GAME_VERSION = "0.5.04";
 
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -2547,8 +2547,12 @@ function renderHUD(){
     const pSubEl = ui('ui-pressure-sub');
     if (pSubEl) {
         let displayText = `${curP} / ${maxP}`;
-        if (gameState.momentumTurns > 0) {
-            pSubEl.innerHTML = `${displayText} <span class="text-orange-400 font-black ml-1" style="text-shadow: -1px -1px 0 #410, 1px -1px 0 #410, -1px 1px 0 #410, 1px 1px 0 #410;">(${gameState.momentumTurns})</span>`;
+        
+        const steadyHandLv = getPerkLevel('steady_hand');
+        const steadyHandTurns = Math.max(0, (steadyHandLv * 3) - gameState.turnCount);
+        const totalImmuneTurns = gameState.momentumTurns + steadyHandTurns;
+        if (totalImmuneTurns > 0) {
+            pSubEl.innerHTML = `${displayText} <span class="text-sky-400 font-black ml-1" style="text-shadow: -1px -1px 0 #024, 1px -1px 0 #024, -1px 1px 0 #024, 1px 1px 0 #024;">(${totalImmuneTurns})</span>`;
         } else {
             pSubEl.textContent = displayText;
         }
