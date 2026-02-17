@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.5.02";
+const GAME_VERSION = "0.5.03";
 
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -1361,6 +1361,7 @@ function corruptRandomSegment() {
         const candidates = gameState.tubes
             .map((t, i) => ({ idx: i, length: t.length }))
             .filter(t => {
+                if (gameState.completedFlags[t.idx]) return false;
                 if (t.length >= gameState.capacity) return false;
                 const top = gameState.tubes[t.idx].length > 0 ? gameState.tubes[t.idx][gameState.tubes[t.idx].length - 1] : null;
                 return top !== 'K';
@@ -2474,7 +2475,7 @@ function renderHUD(){
     const hpMobileBar = ui('ui-hp-mobile-bar');
     if(hpMobileBar) hpMobileBar.style.width = `${clamp(hpPct, 0, 100)}%`;
     setText('ui-hp-mobile-text', hpStr);
-    setText('ui-floor-mobile', `${gameState.floor}F`); 
+    setText('ui-floor-mobile', `B${gameState.floor}F`); 
     setText('ui-essence-mobile', `✨${gameState.essence}`); 
         const totalLevels = Object.values(gameState.perks).reduce((a,b)=>a+b, 0); 
     setText('ui-turn', `${t('turn')} ${gameState.turnCount}`); 
