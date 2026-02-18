@@ -428,9 +428,6 @@ body {
     background: rgba(56, 189, 248, 0.3);
     border-radius: 10px;
 }
-#dev-tests {
-    display: none;
-}
 .stat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));

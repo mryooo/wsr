@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.5.04";
+const GAME_VERSION = "0.5.05";
 
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
@@ -557,7 +557,6 @@ const helpScreen = ui('help-screen');
 const mutationsScreen = ui('mutations-screen');
 const eventScreen = ui('event-screen');
 const eventChoices = ui('event-choices');
-const devTests = ui('dev-tests');
 const alertBanner = ui('alert-banner');
 const undoBtn = ui('btn-undo');
 const continueRunBtn = ui('continue-run-btn');
@@ -2107,17 +2106,25 @@ function openPerkScreen(isDeath){
     ui('perk-title').textContent = isDeath ? t('gameOver') : t('victory');
     ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : t('victorySub');
     ui('perk-essence').textContent = `✨ Essence: ${gameState.essence}`;
-    refreshRerollUI();
     perkCards.innerHTML = ''; 
     shopCards.innerHTML = '';
-    if(isDeath){
-        perkCards.innerHTML = `<div class="flex flex-col gap-4 h-full"><div class="text-sm font-bold text-rose-400 uppercase tracking-widest border-b border-white/10 pb-2">${currentLang==='ja'?'探索記録':'Exploration Log'}</div><div class="grid grid-cols-2 gap-4"><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">FLOOR</div><div class="text-4xl font-black text-white">${gameState.floor}</div></div><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">ESSENCE</div><div class="text-4xl font-black text-sky-300">${gameState.essence}</div></div></div><div class="mt-auto"><div class="text-[10px] text-slate-500 mb-2 uppercase tracking-widest">Result String</div><textarea id="share-text-area" class="w-full h-24 bg-black/50 border border-white/10 rounded p-2 text-[10px] text-slate-400 font-mono resize-none" readonly>${generateShareText()}</textarea></div></div>`;
+
+    const perkLabel = perkCards.previousElementSibling;
+    const shopHeader = shopCards.previousElementSibling;
+
+    if (isDeath) {
+        if (perkLabel) perkLabel.classList.add('hidden');
+        if (shopHeader) shopHeader.classList.add('hidden');
+        perkCards.innerHTML = `<div class="flex flex-col gap-4 h-full"><div class="text-xl font-bold text-rose-400 uppercase tracking-widest border-b border-white/10 pb-2">${currentLang==='ja'?'探索記録':'Exploration Log'}</div><div class="grid grid-cols-2 gap-4"><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">FLOOR</div><div class="text-4xl font-black text-white">${gameState.floor}</div></div><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">ESSENCE</div><div class="text-4xl font-black text-sky-300">${gameState.essence}</div></div></div><div class="mt-auto"><div class="text-[10px] text-slate-500 mb-2 uppercase tracking-widest">Result String</div><textarea id="share-text-area" class="w-full h-24 bg-black/50 border border-white/10 rounded p-2 text-[10px] text-slate-400 font-mono resize-none" readonly>${generateShareText()}</textarea></div></div>`;
         const perkList = Object.entries(gameState.perks).map(([id, lv]) => `<div class="flex justify-between items-center py-2 border-b border-white/5"><span class="text-sm font-bold text-slate-200">${currentLang==='ja'?PERKS[id].name.ja:PERKS[id].name.en}</span><span class="text-xs font-bold text-sky-400">Lv.${lv}</span></div>`).join('');
-        shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"; shopCards.className = "flex flex-col gap-4 h-full";
-        shopCards.innerHTML = `<div class="flex-1 overflow-y-auto min-h-[120px]"><div class="text-sm font-bold text-sky-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-2">${currentLang==='ja'?'獲得したスキル':'Acquired Skills'}</div>${perkList || `<div class="text-slate-500 text-xs italic py-4">${currentLang==='ja'?'スキルなし':'No mutations'}</div>`}</div><div class="grid grid-cols-2 gap-3 mt-4 shrink-0"><button onclick="copyResult()" class="py-4 bg-indigo-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-indigo-500 shadow-lg shadow-indigo-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'結果をコピー':'Copy Result'}</button><button onclick="startNewRun()" class="py-4 bg-rose-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-rose-500 shadow-lg shadow-rose-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'リトライ':'Try Again'}</button></div>`;
+        shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto";
+        shopCards.className = "flex flex-col gap-4 h-full";
+        shopCards.innerHTML = `<div class="flex-1 overflow-y-auto min-h-[120px]"><div class="text-xl font-bold text-sky-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-2">${currentLang==='ja'?'獲得したスキル':'Acquired Skills'}</div>${perkList || `<div class="text-slate-500 text-xs italic py-4">${currentLang==='ja'?'スキルなし':'No mutations'}</div>`}</div><div class="grid grid-cols-2 gap-3 mt-4 shrink-0"><button onclick="copyResult()" class="py-4 bg-indigo-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-indigo-500 shadow-lg shadow-indigo-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'結果をコピー':'Copy Result'}</button><button onclick="startNewRun()" class="py-4 bg-rose-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-rose-500 shadow-lg shadow-rose-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'リトライ':'Try Again'}</button></div>`;
         continueBtn.style.display = 'none'; 
         return;
     }
+    if (perkLabel) perkLabel.classList.remove('hidden');
+    if (shopHeader) shopHeader.classList.remove('hidden');
     continueBtn.style.display = 'block'; 
     continueBtn.textContent = t('continue');
     if (gameState.pendingPerkId) {
@@ -2134,7 +2141,8 @@ function openPerkScreen(isDeath){
         perkScreen.classList.add('hidden'); 
         nextFloor(); 
     };
-    shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"; shopCards.className = "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3";
+    shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"; 
+    shopCards.className = "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3";
     if (!gameState.currentPerkChoices) {
         gameState.currentPerkChoices = rollPerkChoices();
         gameState.pendingPerkId = null; 
