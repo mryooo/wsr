@@ -1,5 +1,4 @@
-const GAME_VERSION = "0.5.05";
-
+const GAME_VERSION = "0.5.06";
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
 function addPressure(amount) {
@@ -1135,8 +1134,12 @@ async function tryPour(fromIdx, toIdx) {
     gameState.busy = true;
     try {
         pushHistory();
-        let pressureImmune = (hasPerk('steady_hand') && gameState.turnCount < getPerkLevel('steady_hand') * 3) || gameState.momentumTurns > 0;
-        if (gameState.momentumTurns > 0) { gameState.momentumTurns--; pressureImmune = true; }
+        const steadyHandActive = (hasPerk('steady_hand') && gameState.turnCount < getPerkLevel('steady_hand') * 3);
+        const momentumActive = (gameState.momentumTurns > 0);
+        let pressureImmune = steadyHandActive || momentumActive;
+        if (!steadyHandActive && momentumActive) {
+            gameState.momentumTurns--;
+        }
         let isOverloaded = false;
         if (!pressureImmune) {
             isOverloaded = addPressure(check.moveCount);
@@ -1310,17 +1313,16 @@ async function handleCompletion(tubeIdx, colorKey) {
         gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
         showToast("Heavy Mastery! Pressure Down", 'indigo');
     }
-    if(hasPerk('momentum')) {
-        gameState.momentumTurns = getPerkLevel('momentum'); 
-        showToast("Momentum! Pressure Stop", 'violet');
+if(hasPerk('momentum')) {
+        const lv = getPerkLevel('momentum'); 
+        gameState.momentumTurns += lv;
+        showToast(`Momentum! +${lv} Turns`, 'violet');
     }
     checkSecondaryGoalOnComplete(); 
     renderHUD();
     renderBoard();
     saveGame(); 
     await showCompletionEvent(colorKey);
-    renderHUD(); 
-    renderBoard();
     if (checkLevelClear()) onLevelClear();
 }
 function removeOneObsidian() {
@@ -2108,10 +2110,8 @@ function openPerkScreen(isDeath){
     ui('perk-essence').textContent = `✨ Essence: ${gameState.essence}`;
     perkCards.innerHTML = ''; 
     shopCards.innerHTML = '';
-
     const perkLabel = perkCards.previousElementSibling;
     const shopHeader = shopCards.previousElementSibling;
-
     if (isDeath) {
         if (perkLabel) perkLabel.classList.add('hidden');
         if (shopHeader) shopHeader.classList.add('hidden');
@@ -2232,7 +2232,6 @@ function updateShopPriceUI() {
     const f = gameState.floor;
     const multEl = document.getElementById('price-multiplier');
     const labelEl = document.getElementById('shop-interference-label');
-    
     if (multEl && labelEl) {
         multEl.textContent = `x${multiplier}`;
         const colorClasses = ['text-sky-400', 'text-yellow-500', 'text-rose-500', 'text-purple-500', 'text-white', 'animate-pulse', 'abyss-glitch'];
@@ -2294,7 +2293,6 @@ function startNewRun() {
     gameState.isExecutionDebug = effectiveDebug;
     startScreen.classList.add('hidden');
     let initialCapacity = 4;
-    // if (startFloor >= 8) initialCapacity = 6;
     if (startFloor >= 12) initialCapacity = 8;
     else if (startFloor >= 8) initialCapacity = 6;
     else if (startFloor >= 4) initialCapacity = 5;
@@ -2330,7 +2328,6 @@ function nextFloor(isFirst=false){
     const rewards = [];
     if(!isFirst) {
         gameState.floor++; 
-        // if (gameState.floor >= 8) gameState.capacity = 6; 
         if (gameState.floor >= 12) gameState.capacity = 8;
         else if (gameState.floor >= 8) gameState.capacity = 6; 
         else if (gameState.floor >= 4) gameState.capacity = 5; 
@@ -2555,7 +2552,6 @@ function renderHUD(){
     const pSubEl = ui('ui-pressure-sub');
     if (pSubEl) {
         let displayText = `${curP} / ${maxP}`;
-        
         const steadyHandLv = getPerkLevel('steady_hand');
         const steadyHandTurns = Math.max(0, (steadyHandLv * 3) - gameState.turnCount);
         const totalImmuneTurns = gameState.momentumTurns + steadyHandTurns;
@@ -2583,14 +2579,11 @@ function updateFloorDisplayEffect() {
     const f = gameState.floor;
     const desktopFloor = ui('ui-floor');
     const mobileFloor = ui('ui-floor-mobile');
-    
     const targets = [desktopFloor, mobileFloor];
     const effects = ['text-sky-400', 'text-yellow-500', 'text-rose-500', 'text-purple-500', 'text-white', 'animate-pulse', 'abyss-glitch', 'border-white/10', 'border-rose-500/50', 'border-purple-500/50', 'border-white'];
-
     targets.forEach(el => {
         if (!el) return;
         el.classList.remove(...effects);
-
         if (f >= 31) {
             el.classList.add('text-white', 'abyss-glitch');
             if (el.id === 'ui-floor-mobile') el.classList.add('border-white');
@@ -2894,7 +2887,6 @@ window.onkeydown = (e) => {
     if (!eventScreen.classList.contains('hidden')) {
         const choices = eventChoices.querySelectorAll('.perk-card');
         if (choices.length < 2) return;
-
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
             if (gameState.bonusFocusIdx === null) {
                 gameState.bonusFocusIdx = (e.key === 'ArrowLeft') ? 0 : 1;
