@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.5.06";
+const GAME_VERSION = "0.5.07";
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
 function addPressure(amount) {
@@ -883,7 +883,7 @@ function renderBoard(resetScroll = false){
         if (water.dataset.lastState !== currentStateStr) {
             water.innerHTML = '';
             let displaySegments = [...segments];
-            if (gameState.extractorHeldColor && i === gameState.extractorSourceIdx) {
+            if (gameState.extractorHeldColor !== null && i === gameState.extractorSourceIdx) {
                 const isBottom = (gameState.targetMode === 'quantum_pipette' || (gameState.pipetteMode && !gameState.targetMode));
                 if (isBottom) {
                     displaySegments.unshift(gameState.extractorHeldColor + "_ghost");
@@ -1037,6 +1037,25 @@ function useItem(key) {
         renderBoard();  
     }
 }
+function cancelInteraction() {
+    if (gameState.extractorHeldColor !== null && gameState.extractorSourceIdx !== null) {
+        const sourceTube = gameState.tubes[gameState.extractorSourceIdx];
+        if (gameState.targetMode === 'quantum_pipette') {
+            sourceTube.unshift(gameState.extractorHeldColor);
+        } else {
+            sourceTube.push(gameState.extractorHeldColor);
+        }
+        const msg = currentLang === 'ja' ? '操作をキャンセルしました' : 'Action Cancelled';
+        showToast(msg, 'slate');
+    }
+    gameState.extractorHeldColor = null;
+    gameState.extractorSourceIdx = null;
+    gameState.targetMode = null;
+    gameState.pipetteMode = false;
+    preExtractionState = null;
+    renderBoard();
+    renderSkills();
+}
 async function applyItemToTube(idx) {
     const key = gameState.targetMode;
     const item = ITEM_REGISTRY[key];
@@ -1049,6 +1068,7 @@ async function applyItemToTube(idx) {
     if (item.behaviorType === 'two_step') {
         if (!gameState.extractorHeldColor) {
             if (tube.length === 0) { showFloatText(idx, "Empty!", "#ef4444"); return; }
+            preExtractionState = deepCopy(gameState.tubes);
             gameState.extractorHeldColor = item.extractLogic(tube);
             gameState.extractorSourceIdx = idx;
             showFloatText(idx, "Extracted!", "#22c55e");
@@ -1058,12 +1078,14 @@ async function applyItemToTube(idx) {
         } else {
             if (tubeFree(tube) <= 0) { showFloatText(idx, "Full!", "#ef4444"); return; }
             pushHistory();
+            gameState.history[gameState.history.length - 1].tubes = preExtractionState;
             item.placeLogic(tube, gameState.extractorHeldColor);
             const placedColor = gameState.extractorHeldColor;
             gameState.extractorHeldColor = null; gameState.extractorSourceIdx = null;
             consumeItem(key, item);
             showFloatText(idx, "Placed!", "#22c55e");
             await finalizeItemAction(idx, placedColor);
+            preExtractionState = null;
             return;
         }
     }
@@ -1199,7 +1221,9 @@ function pushHistory(){
         capacity: gameState.capacity,
         momentumTurns: gameState.momentumTurns, 
         refluxUses: gameState.refluxUses,
-        completedFlags: [...gameState.completedFlags] 
+        completedFlags: [...gameState.completedFlags],
+        extractorHeldColor: gameState.extractorHeldColor,
+        extractorSourceIdx: gameState.extractorSourceIdx
     });
     if (gameState.history.length > 50) gameState.history.shift();
 }
@@ -2454,6 +2478,8 @@ function tryUndo(){
         targetMode: null, 
         pendingSkill: null, 
         extractorHeldColor: null, 
+        extractorSourceIdx: null,
+        pipetteMode: false,
         selectedIdx: null
     });
     if(isFree){ 
@@ -2463,6 +2489,9 @@ function tryUndo(){
     } else { 
         gameState.essence -= 5; 
     }
+    document.querySelectorAll('.water-container').forEach(el => {
+        delete el.dataset.lastState;
+    });
     updateTubeLayout(); 
     renderHUD(); 
     renderBoard(); 
