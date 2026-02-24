@@ -183,12 +183,6 @@ body {
     transition: all .2s;
 }
 .lang-btn.active{ opacity: 1; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.35); }
-.perk-card {
-    transition: all 0.25s ease;
-    border: 1px solid rgba(255,255,255,0.06);
-    position: relative;
-    overflow: hidden;
-}
 .perk-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
@@ -590,13 +584,26 @@ body {
 .animate-shake {
     animation: animate-shake 0.4s ease-in-out;
 }
-.rarity-border-common.selected-perk { border: 2px solid var(--rarity-common); background: rgba(148, 163, 184, 0.15); box-shadow: 0 0 15px rgba(148, 163, 184, 0.3); }
-.rarity-border-rare.selected-perk { border: 2px solid var(--rarity-rare); background: rgba(59, 130, 246, 0.15); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
-.rarity-border-epic.selected-perk { border: 2px solid var(--rarity-epic); background: rgba(168, 85, 247, 0.15); box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
+.rarity-border-common.selected-perk { 
+    border-color: var(--rarity-common); 
+    box-shadow: inset 0 0 0 1px var(--rarity-common), 0 0 15px rgba(148, 163, 184, 0.3); 
+}
+.rarity-border-rare.selected-perk { 
+    border-color: var(--rarity-rare); 
+    box-shadow: inset 0 0 0 1px var(--rarity-rare), 0 0 15px rgba(59, 130, 246, 0.3); 
+}
+.rarity-border-epic.selected-perk { 
+    border-color: var(--rarity-epic); 
+    box-shadow: inset 0 0 0 1px var(--rarity-epic), 0 0 15px rgba(168, 85, 247, 0.3); 
+}
 .rarity-border-common:hover:not(.selected-perk) { border-color: rgba(148, 163, 184, 0.5); }
 .rarity-border-rare:hover:not(.selected-perk) { border-color: rgba(59, 130, 246, 0.5); }
 .rarity-border-epic:hover:not(.selected-perk) { border-color: rgba(168, 85, 247, 0.5); }
-.selected-perk { transform: scale(1.02); z-index: 10; }
+.selected-perk { 
+    transform: scale(1.02); 
+    z-index: 10; 
+    backface-visibility: hidden; /* GPUレンダリングを安定させる */
+}
 .animate-pulse.text-purple-500 {
     display: inline-block;
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, glitch-low 0.3s infinite;
@@ -615,8 +622,36 @@ body {
     text-shadow: 0 0 5px #000, 0 0 20px #a855f7;
     animation: abyss-pulse 5s infinite alternate;
 }
-
 @keyframes abyss-pulse {
     from { opacity: 0.8; transform: scale(1); filter: brightness(1); }
     to { opacity: 1; transform: scale(1.05); filter: brightness(2); }
+}
+@media (max-width: 380px) {
+    #perk-screen .p-4 {
+        padding: 0.75rem !important;
+    }
+    #shop-cards {
+        gap: 0.5rem !important;
+    }
+    .shop-card {
+        padding: 0.5rem !important;
+    }
+    .icon-box {
+        width: 2rem !important;
+        height: 2rem !important;
+        font-size: 1rem !important;
+    }
+}
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+#perk-screen .flex-1.flex-col {
+    min-height: 200px; 
+}
+@media (max-width: 380px) {
+    .shop-card .text-white { font-size: 10px !important; }
+    .shop-card .text-slate-400 { font-size: 8px !important; }
 }

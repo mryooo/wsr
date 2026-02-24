@@ -176,23 +176,25 @@
                     <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-white/5 bg-slate-900/20">
                         <div class="text-sm font-bold mb-3 text-sky-300 uppercase tracking-widest flex items-center gap-2">
                             <span class="text-[16px]" id="ui-mutations-label">🧬 スキル</span>
-                            <span class="text-[10px] text-slate-500 font-normal normal-case">Pick One (Updates every level)</span>
+                            <span class="text-[10px] text-slate-500 font-normal normal-case">Pick One</span>
                         </div>
-                        <div class="grid gap-3" id="perk-cards">
-                        </div>
+                        <div class="grid gap-3" id="perk-cards"></div>
                     </div>
-                    <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
-                        <div class="flex justify-between items-center mb-3">
-                            <div class="text-[16px] font-bold uppercase tracking-widest flex items-center gap-2">
-                                <span class="text-yellow-500">◈ Shop</span>
-                                <div id="shop-interference-label" class="">NORMAL</div>
-                                <span id="price-multiplier" class="">x1.0</span>
-                                <span class="text-slate-500 font-normal">Cost</span>
+
+                    <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-slate-900/40">
+                        <div class="flex flex-col gap-2 mb-3">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-yellow-500 font-bold tracking-widest text-lg">◈ SHOP</span>
+                                    <div id="shop-interference-label" class="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">NORMAL</div>
+                                </div>
+                                <button id="reroll-btn" class="px-3 py-1.5 glass-panel border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all"></button>
                             </div>
-                            <button id="reroll-btn" class="px-3 py-1 glass-panel border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all hidden"></button>
+                            <div class="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-tighter">
+                                <span>Interference:</span> <span id="price-multiplier" class="font-bold">x1.0</span>
+                            </div>
                         </div>
-                        <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3" id="shop-cards">
-                        </div>
+                        <div class="grid grid-cols-2 gap-3" id="shop-cards"></div>
                     </div>
                 </div>
                 <div class="p-4 border-t border-white/5 bg-slate-900/40 shrink-0 flex justify-center z-10">
