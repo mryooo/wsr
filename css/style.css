@@ -424,8 +424,13 @@ body {
 }
 .stat-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px;
+}
+@media (min-width: 768px) {
+    .stat-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+    }
 }
 .stat-item {
     padding: 8px;
@@ -434,6 +439,45 @@ body {
     border: 1px solid rgba(255,255,255,0.05);
     display: flex;
     flex-direction: column;
+}
+.stat-item div:first-child {
+    font-size: 9px !important;
+    margin-bottom: 2px;
+}
+.stat-item div:last-child {
+    font-size: 16px !important;
+}
+/* 3. モーダルヘッダーの調整 */
+#mutations-screen .text-3xl {
+    font-size: 1.5rem !important; /* タイトルサイズを縮小 */
+    line-height: 1.2;
+}
+
+/* 4. 所持アイテム（Inventory）のカード調整 */
+#mutations-items-container {
+    grid-template-columns: 1fr !important; /* スマホでは1列にして横幅を確保 */
+    gap: 8px;
+}
+
+@media (min-width: 480px) {
+    #mutations-items-container {
+        grid-template-columns: repeat(2, 1fr) !important; /* 少し広ければ2列 */
+    }
+}
+#mutations-items-container .glass-panel {
+    flex-direction: row !important;
+    align-items: center;
+    padding: 12px !important;
+}
+#mutations-items-container .text-sm.font-black {
+    font-size: 13px !important;
+    white-space: nowrap;
+}
+#mutations-screen .glass-panel.max-w-3xl {
+    height: 90vh;
+}
+#mutations-screen .overflow-y-auto {
+    padding-right: 4px;
 }
 .tube-cap {
     position: absolute;

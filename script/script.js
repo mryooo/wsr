@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.5.09";
+const GAME_VERSION = "0.5.10";
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
 function addPressure(amount) {
@@ -185,7 +185,7 @@ const translations = {
             "・やり直し：右下のUNDOボタンを使用します（消費：5エッセンス）",
             "・アイテム：アイコンを1回タップで選択(確認)、2回目で使用/モード移行します。",
         ].join("\n"),
-        helpClose: "閉じる",
+        helpClose: "Close",
         settings: "設定",
         continue: "次へ進む",
         shopTitle: "ショップ",
@@ -961,7 +961,7 @@ function renderSkills(){
             const desc = currentLang === 'ja' ? def.desc.ja : def.desc.en;
             let badgeHtml = '';
             if (def.type !== 'tool' && count > 0) {
-                badgeHtml = `<span class="absolute -top-1 -right-1 bg-sky-500 text-[10px] font-bold px-1.5 rounded-full text-white pointer-events-none z-20 shadow-sm">${count}</span>`;
+                badgeHtml = `<span class="badge-count absolute -top-2 -right-2 bg-sky-500 text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full text-white pointer-events-none shadow-sm z-10 leading-none">${count}</span>`;
             }
             btn.innerHTML = `${def.icon}${badgeHtml}`;
             if (key === 'pipette' && gameState.pipetteMode) btn.classList.add('active');
@@ -1957,7 +1957,7 @@ function buildShopCard(offer) {
             <div class="sm:text-sm font-black text-white leading-tight line-clamp-2">${name}</div>
         </div>
         <div class="flex-1">
-            <p class="sm:text-sm font-black text-white leading-tight line-clamp-2">${desc}</p>
+            <p class="sm:text-sm text-white leading-tight line-clamp-2">${desc}</p>
         </div>
         <button class="shop-btn w-full py-1.5 mt-1 rounded-lg font-black text-[10px] sm:text-sm uppercase tracking-widest border border-white/10 ${btnColorClass} ${disabled ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white/10'}">
             ${btnLabel}
@@ -2029,14 +2029,14 @@ function openMutationsScreen() {
         const wrapper = document.createElement('div');
         wrapper.innerHTML = `
             <div class="mt-6">
-                <div class="text-slate-500 text-xs italic py-3" id="ui-inventory-label">Inventory</div>
+                <div class="text-sky-500 text-xs py-3" id="ui-inventory-label">Inventory</div>
                 <div id="mutations-items-container" class="grid grid-cols-2 gap-3"></div>
             </div>
         `;
         parent.appendChild(wrapper);
         itemsContainer = ui('mutations-items-container');
         const lbl = ui('ui-inventory-label');
-        if (lbl) lbl.textContent = currentLang === 'ja' ? '所持アイテム' : 'Inventory';
+        if (lbl) lbl.textContent = currentLang === 'ja' ? 'Inventory' : 'Inventory';
     }
     if (!sum || !list) return;
     const totalLevels = Object.values(gameState.perks).reduce((a, b) => a + (b || 0), 0);
@@ -2068,7 +2068,7 @@ function openMutationsScreen() {
         'purification': 'K'
     };
     if (entries.length === 0) {
-        list.innerHTML = `<div class="text-slate-500 text-xs italic py-3">${currentLang === 'ja' ? 'ボーナスなし' : 'No active bonuses'}</div>`;
+        list.innerHTML = `<div class="text-slate-500 text-xs py-3">${currentLang === 'ja' ? 'ボーナスなし' : 'No active bonuses'}</div>`;
     } else {
         entries
             .sort((a, b) => b[1] - a[1])
@@ -2094,7 +2094,7 @@ function openMutationsScreen() {
     itemsContainer.innerHTML = '';
     const inventoryKeys = Object.keys(gameState.inventory).filter(k => gameState.inventory[k] > 0);
     if (inventoryKeys.length === 0) {
-        itemsContainer.innerHTML = `<div class="text-slate-500 text-xs italic py-3 col-span-2">${currentLang === 'ja' ? 'アイテムなし' : 'No items'}</div>`;
+        itemsContainer.innerHTML = `<div class="text-slate-500 text-xs py-3 col-span-2">${currentLang === 'ja' ? 'アイテムなし' : 'No items'}</div>`;
     } else {
         inventoryKeys.forEach(key => {
             const count = gameState.inventory[key];
@@ -2109,17 +2109,17 @@ function openMutationsScreen() {
                     <div class="flex items-center gap-2 min-w-0">
                         <div class="relative w-10 h-10 rounded-lg glass-panel flex items-center justify-center text-xl border border-white/10 shrink-0">
                             ${item.icon}
+                            <span class="badge-count absolute -top-2 -right-2 bg-sky-500 text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full text-white pointer-events-none shadow-sm z-10 leading-none">${count}</span>
                         </div>
                         <div class="text-sm font-black text-white leading-tight break-words">
                             ${name}
                         </div>
                     </div>
                     <div class="text-right shrink-0">
-                        <span class="bg-sky-500 text-[10px] font-bold px-2 py-0.5 rounded-full text-white">x${count}</span>
                     </div>
                 </div>
                 <div class="flex-1">
-                    <p class="text-[10px] text-slate-400 leading-snug break-words italic">
+                    <p class="text-[10px] text-slate-400 leading-snug break-words">
                         ${desc}
                     </p>
                 </div>
@@ -2145,7 +2145,7 @@ function openPerkScreen(isDeath){
         const perkList = Object.entries(gameState.perks).map(([id, lv]) => `<div class="flex justify-between items-center py-2 border-b border-white/5"><span class="text-sm font-bold text-slate-200">${currentLang==='ja'?PERKS[id].name.ja:PERKS[id].name.en}</span><span class="text-xs font-bold text-sky-400">Lv.${lv}</span></div>`).join('');
         shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto";
         shopCards.className = "flex flex-col gap-4 h-full";
-        shopCards.innerHTML = `<div class="flex-1 overflow-y-auto min-h-[120px]"><div class="text-xl font-bold text-sky-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-2">${currentLang==='ja'?'獲得したスキル':'Acquired Skills'}</div>${perkList || `<div class="text-slate-500 text-xs italic py-4">${currentLang==='ja'?'スキルなし':'No mutations'}</div>`}</div><div class="grid grid-cols-2 gap-3 mt-4 shrink-0"><button onclick="copyResult()" class="py-4 bg-indigo-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-indigo-500 shadow-lg shadow-indigo-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'結果をコピー':'Copy Result'}</button><button onclick="startNewRun()" class="py-4 bg-rose-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-rose-500 shadow-lg shadow-rose-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'リトライ':'Try Again'}</button></div>`;
+        shopCards.innerHTML = `<div class="flex-1 overflow-y-auto min-h-[120px]"><div class="text-xl font-bold text-sky-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-2">${currentLang==='ja'?'獲得したスキル':'Acquired Skills'}</div>${perkList || `<div class="text-slate-500 text-xs py-4">${currentLang==='ja'?'スキルなし':'No mutations'}</div>`}</div><div class="grid grid-cols-2 gap-3 mt-4 shrink-0"><button onclick="copyResult()" class="py-4 bg-indigo-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-indigo-500 shadow-lg shadow-indigo-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'結果をコピー':'Copy Result'}</button><button onclick="startNewRun()" class="py-4 bg-rose-600 rounded-xl font-black text-white uppercase tracking-widest hover:bg-rose-500 shadow-lg shadow-rose-900/40 transform transition hover:-translate-y-1">${currentLang==='ja'?'リトライ':'Try Again'}</button></div>`;
         continueBtn.style.display = 'none'; 
         return;
     }
