@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.5.08";
+const GAME_VERSION = "0.5.09";
 const IS_DEBUG = true;
 function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
 function addPressure(amount) {
