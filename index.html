@@ -298,6 +298,16 @@
             </div>
         </div>
     </div>
-    <script src="./script/script.js"></script>
+    <!-- 読み込み順に依存関係あり: utils → config → i18n → dom → state → logic → render → actions → screens → main -->
+    <script src="./script/utils.js"></script>
+    <script src="./script/config.js"></script>
+    <script src="./script/i18n.js"></script>
+    <script src="./script/dom.js"></script>
+    <script src="./script/state.js"></script>
+    <script src="./script/logic.js"></script>
+    <script src="./script/render.js"></script>
+    <script src="./script/actions.js"></script>
+    <script src="./script/screens.js"></script>
+    <script src="./script/main.js"></script>
 </body>
 </html>
