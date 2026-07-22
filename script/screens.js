@@ -54,6 +54,41 @@ function initPalette() {
         setPalette('default');
     }
 }
+function openBossIntro() {
+    const bs = gameState.bossState;
+    if (!bs || !bs.pendingIntro || !bossIntroScreen) return;
+    gameState.busy = true;
+    const def = getBossDefinition();
+    setText('boss-intro-title', currentLang === 'ja' ? def.ja : def.en);
+    setText('boss-intro-desc', currentLang === 'ja'
+        ? `核を3回破壊すると撃破。\nアイテムを使えば核が即座に露出し、次の攻撃を2手遅らせます。\n温存する場合は、色を2本完成させて装甲を解析してください。`
+        : `Destroy the core 3 times.\nUsing an item immediately exposes the core and delays the next attack by 2 moves.\nWithout items, complete 2 colors to analyze the armor.`);
+    setText('boss-supply-label', currentLang === 'ja' ? '今回限りの支給品を1つ選択' : 'CHOOSE ONE TEMPORARY SUPPLY');
+    setText('boss-supply-note', currentLang === 'ja' ? '未使用の支給品はボス撃破後に失われます。' : 'Unused supplies expire after the boss is defeated.');
+    bossSupplyChoices.innerHTML = '';
+    bs.supplyChoices.forEach(key => {
+        const item = ITEM_REGISTRY[key];
+        if (!item) return;
+        const card = document.createElement('button');
+        card.className = 'boss-supply-card glass-panel border border-white/10 p-4 text-left';
+        const name = currentLang === 'ja' ? item.name.ja : item.name.en;
+        const desc = currentLang === 'ja' ? item.desc.ja : item.desc.en;
+        card.innerHTML = `<div class="text-3xl mb-2">${item.icon}</div><div class="font-black text-white">${name}</div><div class="text-[11px] text-slate-400 mt-2 leading-relaxed">${desc}</div>`;
+        card.onclick = () => {
+            if (!bs.pendingIntro) return;
+            grantTemporaryBossItem(key);
+            bs.pendingIntro = false;
+            gameState.busy = false;
+            bossIntroScreen.classList.replace('flex', 'hidden');
+            renderHUD();
+            renderBoard(true);
+            saveGame();
+            showToast(currentLang === 'ja' ? `${item.icon} ${name} を一時支給` : `${item.icon} Temporary ${name} supplied`, 'yellow');
+        };
+        bossSupplyChoices.appendChild(card);
+    });
+    bossIntroScreen.classList.replace('hidden', 'flex');
+}
 function showCompletionEvent(colorKey){
     return new Promise((resolve) => {
         const name = colorName(colorKey);
@@ -596,8 +631,9 @@ function openMutationsScreen() {
 }
 function openPerkScreen(isDeath){
     perkScreen.classList.remove('hidden');
-    ui('perk-title').textContent = isDeath ? t('gameOver') : t('victory');
-    ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : t('victorySub');
+    const bossVictory = !isDeath && !!gameState.bossState?.defeated;
+    ui('perk-title').textContent = isDeath ? t('gameOver') : (bossVictory ? (currentLang === 'ja' ? 'ボス撃破' : 'BOSS PURGED') : t('victory'));
+    ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : (bossVictory ? (currentLang === 'ja' ? '深淵の戦利品を選択' : 'Choose an abyssal reward') : t('victorySub'));
     ui('perk-essence').textContent = `✨ Essence: ${gameState.essence}`;
     perkCards.innerHTML = ''; 
     shopCards.innerHTML = '';
@@ -635,7 +671,7 @@ function openPerkScreen(isDeath){
     shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"; 
     shopCards.className = "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3";
     if (!gameState.currentPerkChoices) {
-        gameState.currentPerkChoices = rollPerkChoices();
+        gameState.currentPerkChoices = rollPerkChoices(bossVictory ? 4 : 3);
         gameState.pendingPerkId = null; 
         continueBtn.classList.add('opacity-50', 'cursor-not-allowed'); 
     }
@@ -765,7 +801,8 @@ const helpGuides = {
     ]
 };
 let isHelpActive = false;
-function closeHelpGuide() {
+function closeHelpGuide(event = null) {
+    if (event?.target?.closest?.('#btn-help')) return;
     const overlay = ui('help-overlay');
     if (!overlay || overlay.style.display === 'none') return;
     overlay.style.display = 'none';
@@ -774,6 +811,11 @@ function closeHelpGuide() {
         setTimeout(() => b.remove(), 200);
     });
     isHelpActive = false;
+    const helpBtn = ui('btn-help');
+    if (helpBtn) {
+        helpBtn.classList.remove('help-active');
+        helpBtn.setAttribute('aria-expanded', 'false');
+    }
     window.removeEventListener('mousedown', closeHelpGuide);
     window.removeEventListener('touchstart', closeHelpGuide);
 }
@@ -782,7 +824,27 @@ function showTutorialBubbles() {
     isHelpActive = true;
     const overlay = ui('help-overlay');
     overlay.style.display = 'block';
-    const guides = currentLang === 'ja' ? helpGuides.ja : helpGuides.en;
+    const helpBtn = ui('btn-help');
+    if (helpBtn) {
+        helpBtn.classList.add('help-active');
+        helpBtn.setAttribute('aria-expanded', 'true');
+    }
+    const guides = (currentLang === 'ja' ? helpGuides.ja : helpGuides.en).map(guide => ({...guide}));
+    if (isBossArena()) {
+        const centerGuide = guides.find(guide => guide.isCenter);
+        if (centerGuide) {
+            centerGuide.text = currentLang === 'ja'
+                ? '【ボスエリア】\n核を3回破壊すると撃破！\nアイテム使用で核が露出し、攻撃を2手遅らせます。\n温存時は色を2本完成させると核が露出します。'
+                : '【BOSS AREA】\nDestroy the core 3 times!\nItems expose the core and delay attacks by 2 moves.\nWithout items, complete 2 colors to expose it.';
+        }
+        guides.splice(3, 0, {
+            id: 'boss-arena-header',
+            text: currentLang === 'ja'
+                ? 'ボスHP、現在フェーズ、次の攻撃と残り手数。'
+                : 'Boss HP, current phase, next attack and countdown.',
+            align: 'left'
+        });
+    }
     guides.forEach((guide) => {
         const bubble = document.createElement('div');
         bubble.className = 'help-bubble';

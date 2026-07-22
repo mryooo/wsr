@@ -1,5 +1,5 @@
 // config.js — 定数定義(バージョン、色、パレット、Perk、アイテム、ショップ、バランス係数)
-const GAME_VERSION = "0.6.00";
+const GAME_VERSION = "0.7.01";
 const IS_DEBUG = true;
 
 // ===== バランス定数 =====
@@ -10,6 +10,23 @@ const FLOOR_CLEAR_BONUS_CAP = 10;  // 階層ボーナスの上限
 const SUBGOAL_REWARD = 4;          // サブ目標達成報酬
 const UNDO_COST = 5;               // Undoのエッセンスコスト
 const INVENTORY_LIMIT = 3;         // 同一アイテムの所持上限
+
+// ===== ボス階層 =====
+const BOSS_INTERVAL = 10;
+const BOSS_MAX_HP = 3;
+const BOSS_BASE_ACTION_INTERVAL = 6;
+const BOSS_CLEAR_REWARD = 10;
+const BOSS_ITEM_VARIETY_REWARD = 2;
+const BOSS_SUPPLY_POOL = [
+    'void_salt', 'sedative', 'layer_swap', 'vaporizer',
+    'transfer', 'vacuum', 'inverter', 'summon_vial'
+];
+const BOSS_NAMES = [
+    { en: 'Abyss Crucible', ja: '深淵炉' },
+    { en: 'Gravity Vat', ja: '重力槽' },
+    { en: 'Void Observer', ja: '虚無観測者' },
+    { en: 'Alchemy Aberration', ja: '錬金暴走体' }
+];
 
 const COLOR_POOL = [
     { key: 'R', name:{en:'Crimson', ja:'紅'}, hex:'#dc2626' }, 

@@ -6,17 +6,24 @@ function onLevelClear(){
     const baseReward = FLOOR_CLEAR_BASE_REWARD;
     const floorBonus = Math.min(FLOOR_CLEAR_BONUS_CAP, gameState.floor - 1);
     const subGoalBonus = secondarySucceeded() ? SUBGOAL_REWARD : 0;
-    const totalGained = baseReward + floorBonus + subGoalBonus;
+    const bossBonus = gameState.bossState?.defeated
+        ? BOSS_CLEAR_REWARD + (gameState.bossState.usedItemTypes.length * BOSS_ITEM_VARIETY_REWARD)
+        : 0;
+    const totalGained = baseReward + floorBonus + subGoalBonus + bossBonus;
     gameState.essence += totalGained;
     renderHUD(); 
     renderBoard();
     const msg = currentLang === 'ja' 
         ? `階層クリア! ✨+${totalGained} (基本:${baseReward}${floorBonus > 0 ? ` 階層:+${floorBonus}` : ''}${subGoalBonus > 0 ? ` サブ:+${subGoalBonus}` : ''})`
-        : `Floor Cleared! ✨+${totalGained} (Base:${baseReward}${floorBonus > 0 ? ` Floor:+${floorBonus}` : ''}${subGoalBonus > 0 ? ` SubGoal:+${subGoalBonus}` : ''})`;
-    showToast(msg, subGoalBonus > 0 ? 'emerald' : 'sky');
+        : `Floor Cleared! ✨+${totalGained} (Base:${baseReward}${floorBonus > 0 ? ` Floor:+${floorBonus}` : ''}${subGoalBonus > 0 ? ` SubGoal:+${subGoalBonus}` : ''}${bossBonus > 0 ? ` Boss:+${bossBonus}` : ''})`;
+    const localizedMsg = currentLang === 'ja' && bossBonus > 0
+        ? `ボス撃破! ✨+${totalGained} (ボス報酬:+${bossBonus})`
+        : msg;
+    showToast(localizedMsg, bossBonus > 0 ? 'rose' : (subGoalBonus > 0 ? 'emerald' : 'sky'));
     saveGame();
     setTimeout(() => {
         gameState.busy = false;
+        if (gameState.bossState?.defeated) clearTemporaryBossItems();
         openPerkScreen(false);
     }, 1500);
 }
@@ -46,7 +53,8 @@ function useItem(key) {
     if (item.behaviorType === 'instant') {
         const result = item.effect(gameState);
         if (result.success) {
-            if (item.type !== 'tool' && item.cost > 0) gameState.inventory[key]--;
+            if (item.type !== 'tool') consumeInventoryUnit(key);
+            registerBossItemUse(key);
             showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'emerald');
             if (result.requiresRender) {
                 updateTubeLayout();
@@ -148,10 +156,48 @@ async function applyItemToTube(idx) {
 }
 function consumeItem(key, item) {
     if (item.type === 'tool') return;
-    if (hasPerk('recycler') && Math.random() < getPerkLevel('recycler') * 0.1) { showToast("Recycled!", 'purple'); return; }
-    gameState.inventory[key]--;
+    const recycled = hasPerk('recycler') && Math.random() < getPerkLevel('recycler') * 0.1;
+    if (recycled) showToast("Recycled!", 'purple');
+    else consumeInventoryUnit(key);
     gameState.targetMode = null; gameState.pendingSkill = null;
     if (key === 'pipette') gameState.pipetteMode = false;
+    registerBossItemUse(key);
+}
+function consumeInventoryUnit(key) {
+    gameState.inventory[key] = Math.max(0, (gameState.inventory[key] || 0) - 1);
+    if ((gameState.temporaryInventory[key] || 0) > 0) {
+        gameState.temporaryInventory[key]--;
+        if (gameState.temporaryInventory[key] <= 0) delete gameState.temporaryInventory[key];
+    }
+}
+function grantTemporaryBossItem(key) {
+    gameState.inventory[key] = (gameState.inventory[key] || 0) + 1;
+    gameState.temporaryInventory[key] = (gameState.temporaryInventory[key] || 0) + 1;
+}
+function clearTemporaryBossItems() {
+    Object.entries(gameState.temporaryInventory || {}).forEach(([key, count]) => {
+        gameState.inventory[key] = Math.max(0, (gameState.inventory[key] || 0) - count);
+        if (gameState.inventory[key] <= 0) delete gameState.inventory[key];
+    });
+    gameState.temporaryInventory = {};
+    renderSkills();
+}
+function registerBossItemUse(key) {
+    if (!isBossActive()) return;
+    const bs = gameState.bossState;
+    bs.itemsUsed++;
+    if (!bs.usedItemTypes.includes(key)) bs.usedItemTypes.push(key);
+    bs.actionCountdown = Math.min(bs.actionInterval + 2, bs.actionCountdown + 2);
+    if (!bs.coreOpen) {
+        bs.coreOpen = true;
+        bs.armorProgress = 0;
+    }
+    if (bs.sealTurns > 0) {
+        bs.sealTurns = 0;
+        bs.sealedTubeIdx = null;
+    }
+    showToast(currentLang === 'ja' ? '道具共鳴！ 核が露出した' : 'Tool Resonance! Core Exposed', 'yellow');
+    renderBossHUD();
 }
 async function finalizeItemAction(idx, colorHint) {
     gameState.busy = false; renderHUD(); renderBoard(); saveGame();
@@ -178,6 +224,10 @@ async function handleTubeClick(idx) {
         return;
     }
     if (gameState.selectedIdx === null) {
+        if (isBossActive() && gameState.bossState.sealTurns > 0 && gameState.bossState.sealedTubeIdx === idx) {
+            showFloatText(idx, currentLang === 'ja' ? '封印中' : 'SEALED', '#c084fc');
+            return;
+        }
         if (content.length === 0 || isCompleteTube(content)) return;
         gameState.selectedIdx = idx;
         renderBoard();
@@ -219,6 +269,7 @@ async function tryPour(fromIdx, toIdx) {
         } else if (gameState.secondaryGoal?.type === 'combo' && !secondarySucceeded()) {
             gameState.secondaryProgress = 0;
         }
+        if (isBossActive()) await advanceBossTurn();
         saveGame();
     } catch (e) {
         console.error("Pour logic error:", e);
@@ -352,8 +403,89 @@ if(hasPerk('momentum')) {
     renderHUD();
     renderBoard();
     saveGame(); 
+    if (isBossActive()) {
+        await handleBossColorCompletion(tubeIdx, colorKey);
+        return;
+    }
     await showCompletionEvent(colorKey);
     if (checkLevelClear()) onLevelClear();
+}
+async function handleBossColorCompletion(tubeIdx, colorKey) {
+    const bs = gameState.bossState;
+    if (!bs || bs.defeated) return;
+    if (bs.coreOpen) {
+        bs.hp = Math.max(0, bs.hp - 1);
+        bs.coreOpen = false;
+        bs.armorProgress = 0;
+        bs.phase = Math.min(bs.maxHp, (bs.maxHp - bs.hp) + 1);
+        bs.phaseAttackCount = 0;
+        bs.actionCountdown = Math.min(bs.actionInterval + 1, bs.actionCountdown + 1);
+        showFloatTextAtCenter(currentLang === 'ja' ? `核へ命中！ 残り${bs.hp}` : `CORE HIT! ${bs.hp} LEFT`, '#fbbf24');
+        if (bs.hp <= 0) {
+            bs.defeated = true;
+            bs.sealedTubeIdx = null;
+            bs.sealTurns = 0;
+            showToast(currentLang === 'ja' ? '深淵の主を撃破した！' : 'Abyssal Boss Defeated!', 'rose');
+        } else {
+            showToast(currentLang === 'ja' ? `フェーズ${bs.phase}へ移行` : `Entering Phase ${bs.phase}`, 'rose');
+        }
+    } else {
+        bs.armorProgress++;
+        if (bs.armorProgress >= 2) {
+            bs.armorProgress = 0;
+            bs.coreOpen = true;
+            showFloatTextAtCenter(currentLang === 'ja' ? '装甲解析完了：核が露出' : 'ARMOR ANALYZED: CORE OPEN', '#38bdf8');
+        } else {
+            showFloatText(tubeIdx, currentLang === 'ja' ? '装甲に阻まれた' : 'BLOCKED', '#94a3b8');
+        }
+    }
+    renderHUD();
+    renderBoard();
+    saveGame();
+}
+async function advanceBossTurn() {
+    const bs = gameState.bossState;
+    if (!bs || bs.defeated) return;
+    if (bs.sealTurns > 0) {
+        bs.sealTurns--;
+        if (bs.sealTurns <= 0) {
+            bs.sealedTubeIdx = null;
+            showToast(currentLang === 'ja' ? 'チューブの封印が解けた' : 'Tube Seal Released', 'purple');
+        }
+    }
+    bs.actionCountdown--;
+    if (bs.actionCountdown > 0) {
+        renderBossHUD();
+        return;
+    }
+    bs.attackCount++;
+    bs.phaseAttackCount = (bs.phaseAttackCount || 0) + 1;
+    if (bs.phase === 1) {
+        showToast(currentLang === 'ja' ? 'ボス攻撃：黒インク注入' : 'Boss Attack: Obsidian Injection', 'rose');
+        await corruptRandomSegment();
+    } else if (bs.phase === 2) {
+        const candidates = gameState.tubes
+            .map((tube, idx) => ({tube, idx}))
+            .filter(x => x.tube.length > 0 && !gameState.completedFlags[x.idx]);
+        if (candidates.length > 0) {
+            const target = pick(candidates);
+            bs.sealedTubeIdx = target.idx;
+            bs.sealTurns = 2;
+            showFloatText(target.idx, currentLang === 'ja' ? '2ターン封印' : 'SEALED 2T', '#c084fc');
+            showToast(currentLang === 'ja' ? 'ボス攻撃：チューブ封印' : 'Boss Attack: Tube Seal', 'purple');
+        } else {
+            await corruptRandomSegment();
+        }
+    } else if (bs.phaseAttackCount % 2 === 1) {
+        showToast(currentLang === 'ja' ? 'ボス攻撃：圧力波 +4' : 'Boss Attack: Pressure Wave +4', 'rose');
+        if (addPressure(4)) await applyPressureDamage(false);
+    } else {
+        showToast(currentLang === 'ja' ? 'ボス攻撃：黒インク注入' : 'Boss Attack: Obsidian Injection', 'rose');
+        await corruptRandomSegment();
+    }
+    bs.actionCountdown = bs.actionInterval;
+    renderHUD();
+    renderBoard();
 }
 async function applyPressureDamage(visualOnly = false) {
     if (!visualOnly) {
@@ -449,14 +581,38 @@ function startNewRun() {
         refluxUses: 0, // perksは同時にリセットされるため必ず0から開始
         momentumTurns: 0,
         rerollCoupons: 0,
-        completedFlags: []
+        completedFlags: [],
+        bossState: null,
+        temporaryInventory: {},
+        turnCount: 0,
+        selectedIdx: null,
+        focusIdx: null,
+        busy: false,
+        primaryGoal: null,
+        secondaryGoal: null,
+        secondaryProgress: 0,
+        currentPerkChoices: null,
+        currentShopOffers: null,
+        pendingPerkId: null,
+        targetMode: null,
+        pipetteMode: false,
+        pendingSkill: null,
+        extractorHeldColor: null,
+        extractorSourceIdx: null
     });
+    if (isBossFloor(startFloor)) {
+        gameState.bossState = createBossState(startFloor);
+        gameState.busy = true;
+    }
     perkScreen.classList.add('hidden');
     generateBoard();
     generateGoals();
     renderHUD();
     renderBoard(true);
     saveGame();
+    if (isBossActive() && gameState.bossState.pendingIntro) {
+        setTimeout(openBossIntro, 300);
+    }
     if (effectiveDebug) {
         showToast(`Debug Start: Floor ${startFloor}`, 'rose');
     } else {
@@ -489,6 +645,7 @@ function nextFloor(isFirst=false){
         }
         if(hasPerk('coupon')) gameState.rerollCoupons += getPerkLevel('coupon');
     }
+    clearTemporaryBossItems();
     const baseMaxHp = 3; 
     let bonusHp = 0;
     if(hasPerk('deep_adapt') && gameState.capacity > 4){ 
@@ -502,6 +659,7 @@ function nextFloor(isFirst=false){
     gameState.hp = Math.min(gameState.hp, gameState.maxHp);
     const defaultPressureMax = PRESSURE_MAX_BASE;
     const nextPressure = isFirst ? 0 : gameState.pressure;
+    const enteringBoss = isBossFloor(gameState.floor);
     Object.assign(gameState, { 
         turnCount:0, 
         pressure: nextPressure, 
@@ -512,13 +670,15 @@ function nextFloor(isFirst=false){
         currentPerkChoices:null, 
         currentShopOffers:null, 
         selectedIdx:null, 
-        busy:false, 
+        busy:enteringBoss,
         targetMode:null, 
         pipetteMode:false, 
         pendingSkill:null, 
         extractorHeldColor:null,
         history: [],
-        completedFlags: [] 
+        completedFlags: [],
+        bossState: enteringBoss ? createBossState(gameState.floor) : null,
+        temporaryInventory: {}
     });
     if(hasPerk('overflow')) {
         gameState.pressureMax = defaultPressureMax + (getPerkLevel('overflow') * 4);
@@ -530,6 +690,7 @@ function nextFloor(isFirst=false){
     saveGame();
     setTimeout(() => {
         showFloorStartSequence(rewards);
+        if (enteringBoss) openBossIntro();
     }, 600);
 }
 function showFloorStartSequence(rewards) {
@@ -588,6 +749,8 @@ function tryUndo(){
         pendingSkill: null, 
         extractorHeldColor: null, 
         extractorSourceIdx: null,
+        bossState: prev.bossState ? deepCopy(prev.bossState) : gameState.bossState,
+        temporaryInventory: prev.temporaryInventory ? {...prev.temporaryInventory} : {...gameState.temporaryInventory},
         pipetteMode: false,
         selectedIdx: null
     });

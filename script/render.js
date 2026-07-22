@@ -1,5 +1,20 @@
 // render.js — 描画(盤面、HUD、スキル欄、アニメーション、無限スクロール)
 const CLONE_PADDING = 30; 
+function normalizeWaterSegmentStyles(water) {
+    if (!water) return;
+    water.querySelectorAll('.water-segment').forEach(seg => {
+        seg.style.removeProperty('height');
+        seg.style.removeProperty('border-top');
+        seg.style.removeProperty('border-top-width');
+        seg.style.removeProperty('border-top-style');
+        seg.style.removeProperty('border-top-color');
+        if (seg.classList.contains('ghost-segment')) {
+            seg.style.opacity = '0.5';
+        } else {
+            seg.style.removeProperty('opacity');
+        }
+    });
+}
 function renderBoard(resetScroll = false){
     const slider = document.getElementById('board-scroll-area');
     const currentScrollPos = slider ? slider.scrollLeft : 0;
@@ -18,15 +33,23 @@ function renderBoard(resetScroll = false){
     const totalTubes = gameState.tubes.length;
     if (totalTubes === 0) return;
     const renderList = [];
-    for(let i = 0; i < CLONE_PADDING; i++) {
-        let idx = (totalTubes - CLONE_PADDING + i) % totalTubes;
-        if (idx < 0) idx += totalTubes;
-        renderList.push({ idx: idx, isClone: true, key: `clone-pre-${i}` });
-    }
-    for(let i = 0; i < totalTubes; i++) renderList.push({ idx: i, isClone: false, key: `real-${i}` });
-    for(let i = 0; i < CLONE_PADDING; i++) {
-        const idx = i % totalTubes; 
-        renderList.push({ idx: idx, isClone: true, key: `clone-post-${i}` });
+    const bossMode = isBossArena();
+    boardArea.classList.toggle('boss-mode', bossMode);
+    slider.classList.toggle('boss-scroll', bossMode);
+    tubesContainer.classList.toggle('boss-layout', bossMode);
+    if (bossMode) {
+        for(let i = 0; i < totalTubes; i++) renderList.push({ idx: i, isClone: false, key: `boss-${i}` });
+    } else {
+        for(let i = 0; i < CLONE_PADDING; i++) {
+            let idx = (totalTubes - CLONE_PADDING + i) % totalTubes;
+            if (idx < 0) idx += totalTubes;
+            renderList.push({ idx: idx, isClone: true, key: `clone-pre-${i}` });
+        }
+        for(let i = 0; i < totalTubes; i++) renderList.push({ idx: i, isClone: false, key: `real-${i}` });
+        for(let i = 0; i < CLONE_PADDING; i++) {
+            const idx = i % totalTubes;
+            renderList.push({ idx: idx, isClone: true, key: `clone-post-${i}` });
+        }
     }
     const existingTubes = Array.from(tubesContainer.children);
     const existingMap = new Map();
@@ -71,6 +94,8 @@ function renderBoard(resetScroll = false){
         setClass('selected', i === gameState.selectedIdx);
         setClass('tube-focused', gameState.focusIdx !== null && i === gameState.focusIdx);
         setClass('deadlock-glow', deadlocked || isIsolatedBlack);
+        const isBossSealed = bossMode && gameState.bossState.sealTurns > 0 && gameState.bossState.sealedTubeIdx === i;
+        setClass('boss-sealed', isBossSealed);
         const isCompletedNow = (segments.length > 0 && segments[0] !== 'K' && isCompleteTube(segments, counts));
         if (isCompletedNow) {
             if (gameState.completedFlags[i]) {
@@ -115,7 +140,10 @@ function renderBoard(resetScroll = false){
                 const c = colorMeta(actualKey)?.hex || '#64748b';
                 const seg = document.createElement('div');
                 seg.className = 'water-segment';
-                if (isGhost) seg.style.opacity = '0.5';
+                if (isGhost) {
+                    seg.classList.add('ghost-segment');
+                    seg.style.opacity = '0.5';
+                }
                 seg.style.backgroundColor = c;
                 if (actualKey === 'K') {
                     seg.classList.add('void-ink');
@@ -124,6 +152,10 @@ function renderBoard(resetScroll = false){
             });
             water.dataset.lastState = currentStateStr;
         }
+        // Animation can return a tube to the same serialized state (for example,
+        // pouring Black and receiving Black corruption immediately afterward).
+        // In that case the keyed DOM is reused, so always clear transient styles.
+        normalizeWaterSegmentStyles(water);
     });
     while (tubesContainer.children.length > renderList.length) {
         tubesContainer.lastChild.remove();
@@ -138,6 +170,7 @@ function renderBoard(resetScroll = false){
         }, 100);
     }
     renderSkills();
+    renderBossHUD();
     requestAnimationFrame(() => {
         adjustBoardScale();
         if (resetScroll) {
@@ -177,6 +210,9 @@ function renderSkills(){
             let badgeHtml = '';
             if (def.type !== 'tool' && count > 0) {
                 badgeHtml = `<span class="badge-count absolute -top-2 -right-2 bg-sky-500 text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full text-white pointer-events-none shadow-sm z-10 leading-none">${count}</span>`;
+            }
+            if ((gameState.temporaryInventory[key] || 0) > 0) {
+                badgeHtml += `<span class="boss-item-badge">BOSS</span>`;
             }
             btn.innerHTML = `${def.icon}${badgeHtml}`;
             if (key === 'pipette' && gameState.pipetteMode) btn.classList.add('active');
@@ -293,7 +329,9 @@ function animatePour(fromIdx, toIdx, colorKey, count){
             fromEls.forEach(fromEl => {
                 fromEl.style.transform = ''; 
                 fromEl.style.zIndex = ''; 
+                normalizeWaterSegmentStyles(fromEl.querySelector('.water-container'));
             });
+            toEls.forEach(toEl => normalizeWaterSegmentStyles(toEl.querySelector('.water-container')));
             resolve(); 
         }, 400); 
     });
@@ -332,6 +370,11 @@ function renderHUD(){
                 const icon = `<span style="color:${meta.hex}; text-shadow:0 0 12px ${meta.hex}; margin-right:4px;">■</span>`;
                 goalContent = `${icon}${goalContent}`;
             }
+        } else if (type === 'boss') {
+            const bs = gameState.bossState;
+            goalContent = currentLang === 'ja'
+                ? `ボスの核を破壊する (${bs?.hp ?? 0}/${bs?.maxHp ?? BOSS_MAX_HP})`
+                : `Destroy the boss core (${bs?.hp ?? 0}/${bs?.maxHp ?? BOSS_MAX_HP})`;
         }
         goalEl.innerHTML = `<span class="text-slate-400 font-bold mr-1">${label}</span>${goalContent}`;
     } else {
@@ -396,7 +439,7 @@ function renderHUD(){
         undoCost = `FREE x${gameState.refluxUses}`;
     }
     if(undoBtn){ 
-        undoBtn.innerHTML=`<span>↺</span> UNDO (${undoCost})`;
+        undoBtn.innerHTML = `<span>↺</span><span class="undo-label">UNDO</span><span class="undo-cost">(${undoCost})</span>`;
         const canUndo = gameState.history.length > 0;
         undoBtn.disabled = !canUndo;
         undoBtn.style.opacity = canUndo ? '1' : '0.3';
@@ -404,6 +447,34 @@ function renderHUD(){
         undoBtn.style.pointerEvents = canUndo ? 'auto' : 'none';
     } 
     renderSkills();
+    renderBossHUD();
+}
+function renderBossHUD(){
+    const active = isBossArena();
+    if (bossArenaHeader) bossArenaHeader.classList.toggle('hidden', !active);
+    if (bossCoreVisual) bossCoreVisual.classList.toggle('hidden', !active);
+    if (!active) return;
+    const bs = gameState.bossState;
+    const def = getBossDefinition();
+    setText('boss-name', currentLang === 'ja' ? def.ja : def.en);
+    setText('boss-phase', `PHASE ${bs.phase} / ${bs.maxHp}`);
+    setText('boss-hp', `${'◆ '.repeat(bs.hp)}${'◇ '.repeat(Math.max(0, bs.maxHp - bs.hp))}`.trim());
+    let intent;
+    if (bs.defeated) intent = currentLang === 'ja' ? '撃破完了' : 'DEFEATED';
+    else if (bs.phase === 1) intent = currentLang === 'ja' ? '黒インク注入' : 'Obsidian Injection';
+    else if (bs.phase === 2) intent = currentLang === 'ja' ? 'チューブ封印' : 'Tube Seal';
+    else intent = (bs.phaseAttackCount || 0) % 2 === 0
+        ? (currentLang === 'ja' ? '圧力波' : 'Pressure Wave')
+        : (currentLang === 'ja' ? '黒インク注入' : 'Obsidian Injection');
+    setText('boss-intent', intent);
+    setText('boss-countdown', bs.defeated ? '—' : (currentLang === 'ja' ? `${bs.actionCountdown}手後` : `IN ${bs.actionCountdown} MOVES`));
+    bossCoreVisual.classList.toggle('core-open', bs.coreOpen);
+    bossCoreVisual.classList.toggle('phase-2', bs.phase === 2);
+    bossCoreVisual.classList.toggle('phase-3', bs.phase === 3);
+    bossCoreVisual.textContent = bs.coreOpen ? '◎' : '◉';
+    bossCoreVisual.title = bs.coreOpen
+        ? (currentLang === 'ja' ? '核が露出している' : 'Core Exposed')
+        : (currentLang === 'ja' ? `装甲解析 ${bs.armorProgress}/2` : `Armor Analysis ${bs.armorProgress}/2`);
 }
 function updateFloorDisplayEffect() {
     const f = gameState.floor;
@@ -451,6 +522,10 @@ function getBoardScale() {
 function initInfiniteScroll() {
     const slider = document.getElementById('board-scroll-area');
     const tubesContainer = document.getElementById('tubes-container');
+    if (isBossArena()) {
+        slider.scrollLeft = 0;
+        return;
+    }
     const tubeEl = tubesContainer.querySelector('.tube');
     if(!tubeEl) return;
     const style = window.getComputedStyle(tubeEl);
@@ -469,6 +544,7 @@ function initInfiniteScroll() {
     slider.scrollLeft = Math.round(initialScrollPos);
 }
 function checkInfiniteScrollLoop() {
+    if (isBossArena()) return;
     if(!gameState.tubes.length) return;
     const slider = document.getElementById('board-scroll-area');
     const currentScroll = slider.scrollLeft;

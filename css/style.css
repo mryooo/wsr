@@ -231,6 +231,28 @@ body {
     box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
     background: rgba(56, 189, 248, 0.2);
 }
+.boss-item-badge {
+    position: absolute;
+    left: 2px;
+    bottom: -5px;
+    z-index: 12;
+    height: 12px;
+    padding: 0 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(253, 224, 71, .65);
+    border-radius: 4px;
+    background: rgba(234, 179, 8, .96);
+    color: #0f172a;
+    font-size: 6px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: .05em;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
+}
 @keyframes pulse-btn {
     0% { box-shadow: 0 0 5px currentColor; }
     50% { box-shadow: 0 0 15px currentColor; }
@@ -258,10 +280,154 @@ body {
 }
 #game-container {
     height: 100dvh;
-    padding-bottom: calc(var(--safe-area-bottom) + 0.5rem);
+    padding: 6px 8px calc(var(--safe-area-bottom) + 6px);
 }
 #bottom-hud {
     margin-bottom: var(--safe-area-bottom);
+}
+#top-hud {
+    min-height: 44px;
+    padding: 4px 7px;
+    margin-bottom: 4px;
+    border-radius: 12px;
+    position: relative;
+    z-index: 160;
+}
+#title-accordion > summary {
+    list-style: none;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 9px;
+}
+#title-accordion > summary::-webkit-details-marker { display: none; }
+#title-accordion .accordion-chevron { transition: transform .2s ease; }
+#title-accordion[open] .accordion-chevron { transform: rotate(180deg); }
+#title-accordion-panel {
+    position: absolute;
+    top: calc(100% + 7px);
+    left: 0;
+    width: 240px;
+    padding: 14px;
+    border-color: rgba(56, 189, 248, .3);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, .7);
+    animation: title-panel-in .18s ease-out;
+}
+@keyframes title-panel-in {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+#status-bar {
+    min-height: 42px;
+    margin-bottom: 3px;
+    position: relative;
+    z-index: 150;
+}
+#goal-panel { padding: 4px 10px; border-radius: 11px; }
+#ui-goal { font-size: 12px; line-height: 1.25; }
+#ui-goal-sub { font-size: 10px; line-height: 1.25; }
+#pressure-panel {
+    width: 245px;
+    padding: 4px 10px;
+    border-radius: 11px;
+}
+#board-area { margin-top: 0 !important; margin-bottom: 0 !important; }
+#skills-container {
+    height: 66px;
+    min-height: 66px;
+    max-height: 66px;
+    margin: 2px 0;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+    -webkit-mask-image: none;
+    mask-image: none;
+    position: relative;
+    isolation: isolate;
+    z-index: 40;
+    cursor: grab;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+#skills-container:active { cursor: grabbing; }
+#skills-container::-webkit-scrollbar { display: none; width: 0; height: 0; }
+#bottom-hud {
+    padding: 5px 7px;
+    border-radius: 12px;
+}
+.compact-status-row {
+    min-height: 34px;
+    display: grid;
+    grid-template-columns: auto auto minmax(82px, 112px) auto 1fr;
+    align-items: center;
+    gap: 7px;
+}
+.compact-stat {
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 9px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.04);
+    font-size: 11px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+#ui-floor.floor-stat {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+.essence-stat { color: #7dd3fc; }
+.compact-hp {
+    height: 28px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid rgba(244,63,94,.75);
+    background: rgba(15,23,42,.9);
+}
+.compact-hp-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    height: 100%;
+    background: #e11d48;
+    transition: width .3s ease;
+}
+#ui-hp-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    font-size: 11px;
+    font-weight: 900;
+    text-shadow: 0 1px 3px #000;
+}
+.compact-undo {
+    justify-self: end;
+    height: 30px;
+    min-width: 122px;
+    padding: 0 11px;
+    border-radius: 8px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: #cbd5e1;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .08em;
 }
 /* style.css に追加または修正 */
 #ui-pressure-sub {
@@ -393,34 +559,135 @@ body {
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     transform-origin: left center;
 }
-#skills-container {
+#board-area.boss-mode {
+    border: 1px solid rgba(244, 63, 94, 0.25);
+    border-radius: 20px;
+    background:
+        radial-gradient(circle at 50% 55%, rgba(168, 85, 247, 0.18), transparent 22%),
+        linear-gradient(180deg, rgba(69, 10, 10, 0.18), rgba(2, 6, 23, 0.75));
+    box-shadow: inset 0 0 50px rgba(127, 29, 29, 0.25), 0 0 25px rgba(244, 63, 94, 0.08);
+}
+#board-scroll-area.boss-scroll {
+    overflow: hidden;
+    mask-image: none;
+    -webkit-mask-image: none;
+    justify-content: center;
+    cursor: default;
+}
+#tubes-container.boss-layout {
+    width: max-content;
+    max-width: 94vw;
+    height: 100%;
+    min-height: 0;
+    flex-wrap: nowrap;
+    align-content: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 72px 8px 8px;
+    transform-origin: center center;
+}
+#boss-arena-header {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(700px, calc(100% - 20px));
+    min-height: 58px;
+    z-index: 70;
+    display: grid;
+    grid-template-columns: 1fr auto auto 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.94);
+    box-shadow: 0 0 20px rgba(244, 63, 94, 0.15);
+    pointer-events: none;
+}
+#boss-arena-header.hidden, #boss-core-visual.hidden { display: none; }
+.boss-name { font-weight: 900; color: #fda4af; font-size: 15px; }
+.boss-sub { color: #64748b; font-size: 9px; font-weight: 900; letter-spacing: .2em; }
+.boss-hp { color: #fb7185; font-size: 20px; letter-spacing: .2em; text-shadow: 0 0 12px #e11d48; white-space: nowrap; }
+.boss-intent-wrap { text-align: right; }
+.boss-intent { color: #f8fafc; font-size: 11px; font-weight: 900; }
+.boss-countdown { color: #fbbf24; font-size: 10px; font-weight: 900; }
+#boss-core-visual {
+    position: relative;
+    z-index: 2;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 0.75rem;
-    overflow-x: auto; 
-    padding: 0.5rem 1rem; 
-    -webkit-mask-image: none;
-    mask-image: none;
-    position: relative;
-    z-index: 30;
-    cursor: grab;
-    scrollbar-width: auto; 
+    justify-content: center;
+    border-radius: 50%;
+    color: #7f1d1d;
+    font-size: 27px;
+    background: rgba(2, 6, 23, 0.92);
+    box-shadow: 0 0 18px rgba(225, 29, 72, 0.4), inset 0 0 12px rgba(127, 29, 29, 0.8);
+    animation: boss-core-pulse 1.7s ease-in-out infinite alternate;
+    pointer-events: none;
 }
-#skills-container:active {
-    cursor: grabbing;
+#boss-core-visual.core-open { color: #fbbf24; box-shadow: 0 0 24px rgba(251, 191, 36, 0.85), inset 0 0 12px rgba(251, 191, 36, 0.45); }
+#boss-core-visual.phase-2 { filter: hue-rotate(45deg); }
+#boss-core-visual.phase-3 { animation-duration: .55s; filter: brightness(1.5); }
+@keyframes boss-core-pulse { from { transform: scale(.94); } to { transform: scale(1.06); } }
+.tube.boss-sealed {
+    filter: grayscale(.85) brightness(.55);
+    border-color: #a855f7 !important;
+    box-shadow: 0 0 0 4px rgba(168, 85, 247, .3), inset 0 0 25px rgba(0, 0, 0, .9) !important;
 }
-#skills-container::-webkit-scrollbar {
-    display: block;
-    height: 6px;
+.tube.boss-sealed::after {
+    content: 'LOCK';
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 80;
+    color: #e9d5ff;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    background: rgba(88, 28, 135, .9);
+    border: 1px solid #c084fc;
+    padding: 3px 5px;
+    border-radius: 5px;
 }
-#skills-container::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-}
-#skills-container::-webkit-scrollbar-thumb {
-    background: rgba(56, 189, 248, 0.3);
-    border-radius: 10px;
+.boss-intro-panel { box-shadow: 0 0 80px rgba(190, 24, 93, .2); }
+.boss-supply-card { transition: transform .2s, border-color .2s, background .2s; }
+.boss-supply-card:hover { transform: translateY(-4px); border-color: rgba(251, 191, 36, .7); background: rgba(120, 53, 15, .18); }
+@media (max-width: 640px) {
+    #game-container { padding: 4px 5px calc(var(--safe-area-bottom) + 4px); }
+    #top-hud { min-height: 42px; padding: 3px 5px; margin-bottom: 3px; }
+    #status-bar { min-height: 46px; gap: 4px; margin-bottom: 2px; }
+    #goal-panel { padding: 4px 7px; }
+    #ui-goal { font-size: 11px; }
+    #ui-goal-sub { font-size: 9px; }
+    #pressure-panel { width: 126px; padding: 5px 7px; }
+    #ui-pressure-label { display: none; }
+    #skills-container { padding: 9px 8px; margin: 1px 0; }
+    #bottom-hud { padding: 4px 5px; }
+    .compact-status-row { grid-template-columns: auto auto minmax(58px, 1fr) auto auto; gap: 3px; }
+    .compact-stat { height: 25px; padding: 0 6px; font-size: 9px; }
+    .compact-hp { height: 25px; }
+    #ui-hp-text { font-size: 9px; }
+    .turn-stat { padding: 0 5px; }
+    .compact-undo { min-width: 52px; height: 27px; padding: 0 6px; font-size: 9px; gap: 2px; }
+    .compact-undo .undo-label { display: none; }
+    #tubes-container.boss-layout {
+        display: grid;
+        grid-template-columns: repeat(5, max-content);
+        grid-template-rows: repeat(2, max-content);
+        place-content: center;
+        height: max-content;
+        align-self: center;
+        gap: 5px 8px;
+        padding: 88px 4px 5px;
+    }
+    #boss-core-visual { width: 32px; height: 32px; font-size: 21px; }
+    #boss-arena-header { grid-template-columns: 1fr auto auto; min-height: 54px; }
+    .boss-intent-wrap { grid-column: 1 / -1; display: flex; justify-content: space-between; }
+    .boss-hp { font-size: 16px; }
 }
 .stat-grid {
     display: grid;
@@ -599,7 +866,13 @@ body {
     border-color: transparent transparent transparent rgba(56, 189, 248, 0.3);
 }
 #help-overlay {
-    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.25); z-index: 9000; display: none;
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.25); z-index: 9000; display: none; pointer-events: none;
+}
+#btn-help.help-active {
+    color: #7dd3fc;
+    border-color: rgba(56, 189, 248, 0.75);
+    background: rgba(14, 116, 144, 0.25);
+    box-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
 }
 .help-bubble.center-fixed {
     top: 50% !important;

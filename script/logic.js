@@ -9,6 +9,50 @@ function addPressure(amount) {
 }
 function getPerkLevel(id){ return gameState.perks[id] || 0; }
 function hasPerk(id){ return (gameState.perks[id] || 0) > 0; }
+function isBossFloor(floor = gameState.floor){
+    return floor > 0 && floor % BOSS_INTERVAL === 0;
+}
+function isBossActive(){
+    return isBossFloor() && !!gameState.bossState && !gameState.bossState.defeated;
+}
+function isBossArena(){
+    return isBossFloor() && !!gameState.bossState;
+}
+function getBossRank(floor = gameState.floor){
+    return Math.max(1, Math.floor(floor / BOSS_INTERVAL));
+}
+function getBossDefinition(floor = gameState.floor){
+    const rank = getBossRank(floor);
+    return BOSS_NAMES[(rank - 1) % BOSS_NAMES.length];
+}
+function getBossActionInterval(floor = gameState.floor){
+    return clamp(BOSS_BASE_ACTION_INTERVAL - getBossRank(floor), 3, 5);
+}
+function getBossSupplyChoices(floor = gameState.floor){
+    const offset = (getBossRank(floor) - 1) % BOSS_SUPPLY_POOL.length;
+    return Array.from({length: 3}, (_, i) => BOSS_SUPPLY_POOL[(offset + i) % BOSS_SUPPLY_POOL.length]);
+}
+function createBossState(floor = gameState.floor){
+    const interval = getBossActionInterval(floor);
+    return {
+        hp: BOSS_MAX_HP,
+        maxHp: BOSS_MAX_HP,
+        phase: 1,
+        coreOpen: false,
+        armorProgress: 0,
+        actionCountdown: interval,
+        actionInterval: interval,
+        attackCount: 0,
+        phaseAttackCount: 0,
+        sealedTubeIdx: null,
+        sealTurns: 0,
+        itemsUsed: 0,
+        usedItemTypes: [],
+        supplyChoices: getBossSupplyChoices(floor),
+        pendingIntro: true,
+        defeated: false
+    };
+}
 function getPerkDesc(id, level=1){
     const def = PERKS[id];
     let txt = currentLang==='ja' ? def.desc.ja : def.desc.en;
@@ -51,6 +95,13 @@ function isCompleteTube(t, counts = null) {
 function colorMeta(key){ return COLOR_POOL.find(c => c.key===key); }
 function colorName(key){ const m=colorMeta(key); return currentLang==='ja' ? m.name.ja : m.name.en; }
 function generateGoals(){
+    if (isBossActive()) {
+        gameState.primaryGoal = { type: 'boss' };
+        gameState.secondaryGoal = null;
+        gameState.secondaryProgress = 0;
+        renderHUD();
+        return;
+    }
     const flat = gameState.tubes.flat();
     const presentColors = new Set(flat);
     presentColors.delete('K'); 
@@ -77,6 +128,9 @@ function generateGoals(){
     renderHUD();
 }
 function checkPrimaryGoal(){
+    if (gameState.primaryGoal?.type === 'boss') {
+        return !!gameState.bossState?.defeated;
+    }
     const counts = getBoardCounts();
     if (gameState.primaryGoal.type === 'completeAll') { 
         const flat = gameState.tubes.flat();
@@ -92,6 +146,9 @@ function checkPrimaryGoal(){
     return false;
 }
 function checkLevelClear(){
+    if (isBossFloor() && gameState.bossState) {
+        return !!gameState.bossState.defeated;
+    }
     const counts = getBoardCounts();
     if (checkPrimaryGoal()) return true;
     const allClean = gameState.tubes.every(t => t.length === 0 || (isCompleteTube(t, counts) && t[0] !== 'K'));
@@ -206,6 +263,9 @@ function updateTubeLayout(){
 }
 function canPour(fromIdx, toIdx){
     if (fromIdx === toIdx) return {ok:false};
+    if (isBossActive() && gameState.bossState.sealTurns > 0 && gameState.bossState.sealedTubeIdx === fromIdx) {
+        return {ok:false, reason:'sealed'};
+    }
     const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
     if (!from.length || tubeFree(to) <= 0) return {ok:false};
     const top = tubeTop(from), toTop = tubeTop(to);

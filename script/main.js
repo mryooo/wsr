@@ -30,6 +30,13 @@ function initSkillScroll() {
         const walk = (x - startX) * 2; 
         sc.scrollLeft = scrollLeft - walk;
     });
+    sc.addEventListener('wheel', (e) => {
+        if (sc.scrollWidth <= sc.clientWidth) return;
+        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        if (!delta) return;
+        e.preventDefault();
+        sc.scrollLeft += delta;
+    }, { passive: false });
 }
 initSkillScroll();
 const btnPalette = ui('btn-palette');
@@ -111,6 +118,14 @@ ui('help-close').onclick = (e) => {
     e.stopPropagation();
     ui('help-screen').classList.replace('flex', 'hidden');
 };
+const btnHelp = ui('btn-help');
+if (btnHelp) {
+    btnHelp.onclick = (e) => {
+        e.stopPropagation();
+        if (isHelpActive) closeHelpGuide();
+        else showTutorialBubbles();
+    };
+}
 ui('btn-mutations').onclick = (e) => {
     e.stopPropagation();
     openMutationsScreen();
@@ -163,7 +178,11 @@ document.addEventListener('click', (e) => {
     }
 });
 window.onkeydown = (e) => {
-    if(!perkScreen.classList.contains('hidden') || !helpScreen.classList.contains('hidden') || !mutationsScreen.classList.contains('hidden')) return;
+    if (isHelpActive) {
+        if (e.key === 'Escape') closeHelpGuide();
+        return;
+    }
+    if(!perkScreen.classList.contains('hidden') || !helpScreen.classList.contains('hidden') || !mutationsScreen.classList.contains('hidden') || !bossIntroScreen.classList.contains('hidden')) return;
     if (['ArrowLeft', 'ArrowRight', 'Enter', ' '].includes(e.key)) {
             e.preventDefault();
         }

@@ -22,6 +22,15 @@ function loadGame() {
             gameState.pendingSkill = null;
             gameState.extractorHeldColor = null;
             if (!gameState.completedFlags) gameState.completedFlags = [];
+            if (!gameState.temporaryInventory) gameState.temporaryInventory = {};
+            if (typeof gameState.bossState === 'undefined') gameState.bossState = null;
+            if (gameState.floor % BOSS_INTERVAL === 0) {
+                gameState.bossState = Object.assign(createBossState(gameState.floor), gameState.bossState || {});
+            } else {
+                gameState.bossState = null;
+                gameState.temporaryInventory = {};
+            }
+            if (gameState.bossState?.pendingIntro) gameState.busy = true;
             updateTubeLayout();
             startScreen.classList.add('hidden');
             renderHUD();
@@ -30,6 +39,9 @@ function loadGame() {
                 openPerkScreen(false);
             } else {
                 perkScreen.classList.add('hidden');
+            }
+            if (gameState.bossState?.pendingIntro) {
+                setTimeout(openBossIntro, 100);
             }
             showToast(currentLang==='ja'?'再開しました':'Game Loaded', 'emerald');
             return true;
@@ -78,6 +90,8 @@ const gameState = {
     pendingPerkId: null,
     completedFlags: [],
     isExecutionDebug: false,
+    bossState: null,
+    temporaryInventory: {},
 };
 function pushHistory(){
     gameState.history.push({
@@ -95,7 +109,9 @@ function pushHistory(){
         refluxUses: gameState.refluxUses,
         completedFlags: [...gameState.completedFlags],
         extractorHeldColor: gameState.extractorHeldColor,
-        extractorSourceIdx: gameState.extractorSourceIdx
+        extractorSourceIdx: gameState.extractorSourceIdx,
+        bossState: gameState.bossState ? deepCopy(gameState.bossState) : null,
+        temporaryInventory: {...gameState.temporaryInventory}
     });
     if (gameState.history.length > 50) gameState.history.shift();
 }

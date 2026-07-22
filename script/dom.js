@@ -16,3 +16,7 @@ const eventChoices = ui('event-choices');
 const alertBanner = ui('alert-banner');
 const undoBtn = ui('btn-undo');
 const continueRunBtn = ui('continue-run-btn');
+const bossArenaHeader = ui('boss-arena-header');
+const bossCoreVisual = ui('boss-core-visual');
+const bossIntroScreen = ui('boss-intro-screen');
+const bossSupplyChoices = ui('boss-supply-choices');
