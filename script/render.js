@@ -35,6 +35,7 @@ function renderBoard(resetScroll = false){
     const renderList = [];
     const bossMode = isBossArena();
     boardArea.classList.toggle('boss-mode', bossMode);
+    boardArea.classList.toggle('anomaly-mode', !!gameState.anomaly);
     slider.classList.toggle('boss-scroll', bossMode);
     tubesContainer.classList.toggle('boss-layout', bossMode);
     if (bossMode) {
@@ -96,6 +97,12 @@ function renderBoard(resetScroll = false){
         setClass('deadlock-glow', deadlocked || isIsolatedBlack);
         const isBossSealed = bossMode && gameState.bossState.sealTurns > 0 && gameState.bossState.sealedTubeIdx === i;
         setClass('boss-sealed', isBossSealed);
+        const isBossTargeted = bossMode && gameState.bossState.telegraphTubeIdx === i;
+        setClass('boss-targeted', isBossTargeted);
+        const isAnomalySealed = !!gameState.anomaly && gameState.anomaly.sealTurns > 0 && gameState.anomaly.sealedTubeIdx === i;
+        setClass('anomaly-sealed', isAnomalySealed);
+        const isAnomalyTargeted = !!gameState.anomaly && gameState.anomaly.targetTubeIdx === i;
+        setClass('anomaly-targeted', isAnomalyTargeted);
         const isCompletedNow = (segments.length > 0 && segments[0] !== 'K' && isCompleteTube(segments, counts));
         if (isCompletedNow) {
             if (gameState.completedFlags[i]) {
@@ -277,12 +284,72 @@ function tubeCenterEl(idx) {
     });
     return closest;
 }
+function createPourTrail(fromEl, toEl, color) {
+    if (!vfxLayer || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const from = fromEl.getBoundingClientRect();
+    const to = toEl.getBoundingClientRect();
+    const x1 = from.left + from.width / 2;
+    const y1 = from.top + Math.min(55, from.height * 0.2);
+    const x2 = to.left + to.width / 2;
+    const y2 = to.top + Math.min(45, to.height * 0.18);
+    const distance = Math.hypot(x2 - x1, y2 - y1);
+    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+    const trail = document.createElement('div');
+    trail.className = 'pour-trail';
+    trail.style.left = `${x1}px`;
+    trail.style.top = `${y1}px`;
+    trail.style.width = `${distance}px`;
+    trail.style.setProperty('--trail-color', color);
+    trail.style.transform = `rotate(${angle}deg)`;
+    vfxLayer.appendChild(trail);
+    setTimeout(() => trail.remove(), 520);
+}
+function spawnVfxParticles(x, y, color, count = 8, className = 'liquid-particle') {
+    if (!vfxLayer || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const safeCount = Math.min(18, count);
+    for (let i = 0; i < safeCount; i++) {
+        const particle = document.createElement('i');
+        particle.className = className;
+        const angle = (Math.PI * 2 * i / safeCount) + (Math.random() * 0.35);
+        const distance = 22 + Math.random() * 38;
+        particle.style.left = `${x}px`;
+        particle.style.top = `${y}px`;
+        particle.style.setProperty('--particle-color', color);
+        particle.style.setProperty('--particle-x', `${Math.cos(angle) * distance}px`);
+        particle.style.setProperty('--particle-y', `${Math.sin(angle) * distance}px`);
+        vfxLayer.appendChild(particle);
+        setTimeout(() => particle.remove(), 850);
+    }
+}
+function triggerTubeCompletionVfx(tubeIdx, color) {
+    const target = tubeCenterEl(tubeIdx);
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    spawnVfxParticles(rect.left + rect.width / 2, rect.top + rect.height * 0.35, color, 12, 'liquid-particle completion-particle');
+}
+function triggerTubeCorruptionVfx(tubeIdx) {
+    const target = tubeCenterEl(tubeIdx);
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    spawnVfxParticles(rect.left + rect.width / 2, rect.top + rect.height * 0.25, '#1f273a', 14, 'liquid-particle ink-particle');
+}
+function triggerAbyssVfx(type = 'pulse', color = '#a855f7') {
+    if (!vfxLayer) return;
+    const wave = document.createElement('div');
+    wave.className = `abyss-shockwave abyss-shockwave-${type}`;
+    wave.style.setProperty('--wave-color', color);
+    vfxLayer.appendChild(wave);
+    const rect = boardArea?.getBoundingClientRect();
+    if (rect) spawnVfxParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, color, type === 'boss' ? 18 : 10, 'liquid-particle abyss-particle');
+    setTimeout(() => wave.remove(), 1100);
+}
 function animatePour(fromIdx, toIdx, colorKey, count){
     return new Promise((resolve) => {
         const primaryFrom = tubeCenterEl(fromIdx);
         const primaryTo = tubeCenterEl(toIdx);
         if (!primaryFrom || !primaryTo){ resolve(); return; }
         const isRight = primaryTo.getBoundingClientRect().left > primaryFrom.getBoundingClientRect().left;
+        createPourTrail(primaryFrom, primaryTo, colorMeta(colorKey)?.hex || '#38bdf8');
         const fromEls = document.querySelectorAll(`.tube[data-idx="${fromIdx}"]`);
         const toEls = document.querySelectorAll(`.tube[data-idx="${toIdx}"]`);
         fromEls.forEach(fromEl => {
@@ -335,6 +402,51 @@ function animatePour(fromIdx, toIdx, colorKey, count){
             resolve(); 
         }, 400); 
     });
+}
+function renderAbyssSystems() {
+    const attention = clamp(gameState.abyssAttention || 0, 0, ABYSS_ATTENTION_MAX);
+    setText('attention-label', currentLang === 'ja' ? '深淵注目度' : 'ABYSS ATTENTION');
+    setText('attention-value', `${attention}%`);
+    const fill = ui('attention-fill');
+    if (fill) fill.style.width = `${attention}%`;
+    const anomalyChip = ui('anomaly-chip');
+    const activeAnomaly = getAnomalyDefinition();
+    const pendingAnomaly = getAnomalyDefinition(gameState.pendingAnomalyId);
+    if (anomalyChip) {
+        anomalyChip.classList.toggle('hidden', !activeAnomaly && !pendingAnomaly);
+        if (activeAnomaly) {
+            anomalyChip.style.setProperty('--system-color', activeAnomaly.color);
+            setText('anomaly-name', currentLang === 'ja' ? activeAnomaly.name.ja : activeAnomaly.name.en);
+            const sealText = gameState.anomaly?.sealTurns > 0
+                ? (currentLang === 'ja' ? `封鎖 ${gameState.anomaly.sealTurns}` : `SEAL ${gameState.anomaly.sealTurns}`)
+                : `${Math.max(0, gameState.anomaly?.countdown || 0)}`;
+            setText('anomaly-countdown', sealText);
+        } else if (pendingAnomaly) {
+            anomalyChip.style.setProperty('--system-color', pendingAnomaly.color);
+            setText('anomaly-name', currentLang === 'ja' ? `次回：${pendingAnomaly.name.ja}` : `NEXT: ${pendingAnomaly.name.en}`);
+            setText('anomaly-countdown', '!');
+        }
+    }
+    const contractChip = ui('contract-chip');
+    const contract = getCurrentContract();
+    if (contractChip) {
+        const hasContract = !!gameState.routeContract && gameState.floor <= gameState.routeContract.endFloor;
+        contractChip.classList.toggle('hidden', !hasContract);
+        contractChip.style.setProperty('--system-color', contract.color);
+        setText('contract-name', currentLang === 'ja' ? contract.name.ja : contract.name.en);
+    }
+    const container = ui('game-container');
+    if (container) {
+        const systemClasses = [
+            ...Object.keys(ANOMALY_DEFINITIONS).map(id => `anomaly-${id}`),
+            ...Object.keys(CONTRACT_DEFINITIONS).map(id => `contract-${id}`),
+            ...BOSS_NAMES.map(def => `boss-theme-${def.id}`)
+        ];
+        container.classList.remove(...systemClasses);
+        if (activeAnomaly) container.classList.add(`anomaly-${activeAnomaly.id}`);
+        if (gameState.routeContract) container.classList.add(`contract-${contract.id}`);
+        if (isBossArena()) container.classList.add(`boss-theme-${getBossDefinition().id}`);
+    }
 }
 function renderHUD(){
     updateFloorDisplayEffect();
@@ -446,8 +558,20 @@ function renderHUD(){
         undoBtn.style.cursor = canUndo ? 'pointer' : 'not-allowed';
         undoBtn.style.pointerEvents = canUndo ? 'auto' : 'none';
     } 
+    renderAbyssSystems();
     renderSkills();
     renderBossHUD();
+}
+function getBossIntentText(bs) {
+    const ja = currentLang === 'ja';
+    if (bs.defeated) return ja ? '撃破完了' : 'DEFEATED';
+    const intents = {
+        crucible: [ja ? '黒インク燃焼' : 'Ink Combustion', ja ? '高圧噴出' : 'Pressure Vent', ja ? '炉心暴走' : 'Core Eruption'],
+        gravity_vat: [ja ? '重力封鎖' : 'Gravity Seal', ja ? '内容反転' : 'Vial Inversion', ja ? '重力連鎖' : 'Gravity Chain'],
+        observer: [ja ? '反復観測' : 'Pattern Watch', ja ? '観測汚染' : 'Observed Corruption', ja ? '観測収束' : 'Observation Collapse'],
+        aberration: [ja ? '黒インク注入' : 'Obsidian Injection', ja ? '液面変異' : 'Surface Mutation', ja ? '錬金暴走' : 'Alchemy Rampage']
+    };
+    return (intents[bs.bossId] || intents.crucible)[clamp(bs.phase - 1, 0, 2)];
 }
 function renderBossHUD(){
     const active = isBossArena();
@@ -456,17 +580,12 @@ function renderBossHUD(){
     if (!active) return;
     const bs = gameState.bossState;
     const def = getBossDefinition();
+    bossArenaHeader.dataset.boss = bs.bossId || def.id;
+    bossArenaHeader.style.setProperty('--boss-color', def.color || '#fb7185');
     setText('boss-name', currentLang === 'ja' ? def.ja : def.en);
     setText('boss-phase', `PHASE ${bs.phase} / ${bs.maxHp}`);
     setText('boss-hp', `${'◆ '.repeat(bs.hp)}${'◇ '.repeat(Math.max(0, bs.maxHp - bs.hp))}`.trim());
-    let intent;
-    if (bs.defeated) intent = currentLang === 'ja' ? '撃破完了' : 'DEFEATED';
-    else if (bs.phase === 1) intent = currentLang === 'ja' ? '黒インク注入' : 'Obsidian Injection';
-    else if (bs.phase === 2) intent = currentLang === 'ja' ? 'チューブ封印' : 'Tube Seal';
-    else intent = (bs.phaseAttackCount || 0) % 2 === 0
-        ? (currentLang === 'ja' ? '圧力波' : 'Pressure Wave')
-        : (currentLang === 'ja' ? '黒インク注入' : 'Obsidian Injection');
-    setText('boss-intent', intent);
+    setText('boss-intent', getBossIntentText(bs));
     setText('boss-countdown', bs.defeated ? '—' : (currentLang === 'ja' ? `${bs.actionCountdown}手後` : `IN ${bs.actionCountdown} MOVES`));
     bossCoreVisual.classList.toggle('core-open', bs.coreOpen);
     bossCoreVisual.classList.toggle('phase-2', bs.phase === 2);

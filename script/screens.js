@@ -61,8 +61,8 @@ function openBossIntro() {
     const def = getBossDefinition();
     setText('boss-intro-title', currentLang === 'ja' ? def.ja : def.en);
     setText('boss-intro-desc', currentLang === 'ja'
-        ? `核を3回破壊すると撃破。\nアイテムを使えば核が即座に露出し、次の攻撃を2手遅らせます。\n温存する場合は、色を2本完成させて装甲を解析してください。`
-        : `Destroy the core 3 times.\nUsing an item immediately exposes the core and delays the next attack by 2 moves.\nWithout items, complete 2 colors to analyze the armor.`);
+        ? `${def.desc.ja}\n\n核を3回破壊すると撃破。\nアイテムを使えば核が即座に露出し、次の攻撃を2手遅らせます。\n温存する場合は、色を2本完成させて装甲を解析してください。`
+        : `${def.desc.en}\n\nDestroy the core 3 times.\nUsing an item immediately exposes the core and delays the next attack by 2 moves.\nWithout items, complete 2 colors to analyze the armor.`);
     setText('boss-supply-label', currentLang === 'ja' ? '今回限りの支給品を1つ選択' : 'CHOOSE ONE TEMPORARY SUPPLY');
     setText('boss-supply-note', currentLang === 'ja' ? '未使用の支給品はボス撃破後に失われます。' : 'Unused supplies expire after the boss is defeated.');
     bossSupplyChoices.innerHTML = '';
@@ -88,6 +88,77 @@ function openBossIntro() {
         bossSupplyChoices.appendChild(card);
     });
     bossIntroScreen.classList.replace('hidden', 'flex');
+}
+let contractContinuation = null;
+function openContractScreen(nextFloorNumber, onComplete) {
+    if (!contractScreen || !contractChoices) {
+        onComplete();
+        return;
+    }
+    contractContinuation = onComplete;
+    setText('contract-title', currentLang === 'ja' ? `第${nextFloorNumber}階層からの契約` : `Contract from Floor ${nextFloorNumber}`);
+    setText('contract-desc', currentLang === 'ja'
+        ? '次の5階層に適用する危険度を選択してください。高危険度ほど報酬と深淵注目度が増加します。'
+        : 'Choose the risk for the next five floors. Higher risk increases rewards and Abyss Attention.');
+    contractChoices.innerHTML = '';
+    Object.values(CONTRACT_DEFINITIONS).forEach(def => {
+        const card = document.createElement('button');
+        card.className = `contract-card contract-card-${def.id} glass-panel p-4 text-left border`;
+        card.style.setProperty('--contract-color', def.color);
+        const reward = Math.round(def.rewardMultiplier * 100);
+        card.innerHTML = `
+            <div class="contract-risk">${def.id === 'safe' ? 'I' : def.id === 'volatile' ? 'II' : 'III'}</div>
+            <div class="text-xl font-black text-white">${currentLang === 'ja' ? def.name.ja : def.name.en}</div>
+            <div class="text-[11px] text-slate-300 mt-2 leading-relaxed">${currentLang === 'ja' ? def.desc.ja : def.desc.en}</div>
+            <div class="text-[10px] font-black mt-4" style="color:${def.color}">${currentLang === 'ja' ? `報酬 ${reward}%` : `REWARD ${reward}%`}</div>`;
+        card.onclick = () => {
+            gameState.routeContract = {id: def.id, startFloor: nextFloorNumber, endFloor: nextFloorNumber + 4};
+            gameState.contractHistory = [...(gameState.contractHistory || []), {id: def.id, startFloor: nextFloorNumber}].slice(-12);
+            contractScreen.classList.replace('flex', 'hidden');
+            showToast(currentLang === 'ja' ? `${def.name.ja}を締結` : `${def.name.en} signed`, def.id === 'forbidden' ? 'rose' : def.id === 'volatile' ? 'yellow' : 'sky');
+            if (typeof triggerAbyssVfx === 'function') triggerAbyssVfx('contract', def.color);
+            saveGame();
+            const continuation = contractContinuation;
+            contractContinuation = null;
+            if (continuation) continuation();
+        };
+        contractChoices.appendChild(card);
+    });
+    contractScreen.classList.replace('hidden', 'flex');
+}
+function openOverdriveScreen(perk) {
+    if (!overdriveScreen || !overdriveChoices) return;
+    const name = currentLang === 'ja' ? perk.name.ja : perk.name.en;
+    setText('overdrive-title', currentLang === 'ja' ? `${name}：限界進化` : `${name}: OVERDRIVE`);
+    setText('overdrive-desc', currentLang === 'ja'
+        ? '通常強化を超える代わりに副作用が発生します。選択はこの探索中固定されます。'
+        : 'Go beyond normal upgrades at a cost. This choice is permanent for the run.');
+    overdriveChoices.innerHTML = '';
+    Object.values(OVERDRIVE_MODES).forEach(mode => {
+        const card = document.createElement('button');
+        card.className = `overdrive-card overdrive-${mode.id} glass-panel p-5 text-left border`;
+        card.style.setProperty('--overdrive-color', mode.color);
+        card.innerHTML = `
+            <div class="text-[10px] uppercase tracking-[0.3em] font-black" style="color:${mode.color}">${mode.id === 'surge' ? 'POWER / COST' : 'GUARD / COST'}</div>
+            <div class="text-2xl font-black text-white mt-2">${currentLang === 'ja' ? mode.name.ja : mode.name.en}</div>
+            <div class="text-xs text-slate-300 mt-3 leading-relaxed">${currentLang === 'ja' ? mode.desc.ja : mode.desc.en}</div>`;
+        card.onclick = () => {
+            gameState.pendingPerkId = perk.id;
+            gameState.pendingOverdriveMode = mode.id;
+            overdriveScreen.classList.replace('flex', 'hidden');
+            Array.from(perkCards.children).forEach(node => {
+                const selected = node.dataset.perkId === perk.id;
+                node.classList.toggle('selected-perk', selected);
+                node.style.opacity = selected ? '1' : '0.4';
+            });
+            continueBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            showToast(currentLang === 'ja' ? `${mode.name.ja}を予約` : `${mode.name.en} selected`, mode.id === 'surge' ? 'pink' : 'cyan');
+        };
+        overdriveChoices.appendChild(card);
+    });
+    const cancel = ui('overdrive-cancel');
+    if (cancel) cancel.onclick = () => overdriveScreen.classList.replace('flex', 'hidden');
+    overdriveScreen.classList.replace('hidden', 'flex');
 }
 function showCompletionEvent(colorKey){
     return new Promise((resolve) => {
@@ -552,6 +623,9 @@ function openMutationsScreen() {
         { k: 'ACTIVE BONUSES', v: String(totalLevels) },
         { k: 'SHOP DISCOUNT', v: `${discount}%` },
         { k: 'REROLL COUPON', v: String(gameState.rerollCoupons || 0) },
+        { k: currentLang === 'ja' ? '深淵注目度' : 'ABYSS ATTENTION', v: `${gameState.abyssAttention || 0}%` },
+        { k: currentLang === 'ja' ? '異常突破' : 'ANOMALIES CLEARED', v: String(gameState.anomaliesCleared || 0) },
+        { k: currentLang === 'ja' ? '現在の契約' : 'ACTIVE CONTRACT', v: currentLang === 'ja' ? getCurrentContract().name.ja : getCurrentContract().name.en },
     ];
     stats.forEach(s => {
         const d = document.createElement('div');
@@ -581,12 +655,16 @@ function openMutationsScreen() {
                 }
                 const row = document.createElement('div');
                 row.className = 'glass-panel p-3 border border-white/10';
+                const overdriveMode = gameState.overdrives?.[id];
+                const overdriveLabel = overdriveMode
+                    ? `<span class="overdrive-active-badge overdrive-active-${overdriveMode}">${currentLang === 'ja' ? OVERDRIVE_MODES[overdriveMode].name.ja : OVERDRIVE_MODES[overdriveMode].name.en}</span>`
+                    : '';
                 row.innerHTML = `
                 <div class="flex items-center justify-between">
-                    <div class="text-sm font-black text-white">${colorIcon}${currentLang === 'ja' ? PERKS[id].name.ja : PERKS[id].name.en}</div>
-                    <div class="text-xs font-black text-sky-300">Lv.${lv}</div>
+                    <div class="text-sm font-black text-white">${colorIcon}${currentLang === 'ja' ? PERKS[id].name.ja : PERKS[id].name.en} ${overdriveLabel}</div>
+                    <div class="text-xs font-black text-sky-300">Lv.${lv}${overdriveMode === 'surge' ? ' (+2)' : ''}</div>
                 </div>
-                <div class="text-[10px] text-slate-400 mt-1 leading-relaxed">${getPerkDesc(id, lv)}</div>
+                <div class="text-[10px] text-slate-400 mt-1 leading-relaxed">${getPerkDesc(id, getPerkLevel(id))}</div>
                 `;
                 list.appendChild(row);
             });
@@ -666,13 +744,20 @@ function openPerkScreen(isDeath){
         }
         acquirePerk(gameState.pendingPerkId);
         perkScreen.classList.add('hidden'); 
-        nextFloor(); 
+        const nextFloorNumber = gameState.floor + 1;
+        if (shouldOfferRouteContract(nextFloorNumber)) {
+            openContractScreen(nextFloorNumber, () => nextFloor());
+        } else {
+            nextFloor();
+        }
     };
     shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"; 
     shopCards.className = "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3";
     if (!gameState.currentPerkChoices) {
-        gameState.currentPerkChoices = rollPerkChoices(bossVictory ? 4 : 3);
+        const contractBonusChoice = getCurrentContract().id === 'forbidden' ? 1 : 0;
+        gameState.currentPerkChoices = rollPerkChoices((bossVictory ? 4 : 3) + contractBonusChoice);
         gameState.pendingPerkId = null; 
+        gameState.pendingOverdriveMode = null;
         continueBtn.classList.add('opacity-50', 'cursor-not-allowed'); 
     }
     updateShopPriceUI();
@@ -684,8 +769,12 @@ function openPerkScreen(isDeath){
     saveGame();
 }
 function buildPerkCard(perk){
-    const card = document.createElement('div'), owned = getPerkLevel(perk.id), next = owned + 1;
+    const card = document.createElement('div'), owned = getRawPerkLevel(perk.id), next = owned + 1;
+    const activeOverdrive = gameState.overdrives?.[perk.id] || null;
+    const overdriveReady = owned >= OVERDRIVE_UNLOCK_LEVEL && !activeOverdrive;
+    const previewLevel = next + (activeOverdrive === 'surge' ? 2 : 0);
     card.className = `perk-card glass-panel p-2 sm:p-4 cursor-pointer rarity-${perk.rarity} rarity-border-${perk.rarity} relative transition-all`;
+    card.dataset.perkId = perk.id;
     const perkColorMap = {
         'crimson_resonance': 'R', 'azure_cycle': 'B', 'amber_greed': 'Y',
         'ivory_sanctuary': 'W', 'emerald_vitality': 'G', 'amethyst_surge': 'P',
@@ -700,18 +789,21 @@ function buildPerkCard(perk){
             colorIcon = `<span style="color:${colorMeta.hex}; text-shadow:0 0 8px ${colorMeta.hex}; margin-right:4px; font-size:1.2em;">■</span>`;
         }
     }
+    const stateBadge = overdriveReady
+        ? '<span class="overdrive-ready-badge">OVERDRIVE</span>'
+        : activeOverdrive
+            ? `<span class="overdrive-active-badge overdrive-active-${activeOverdrive}">${currentLang === 'ja' ? OVERDRIVE_MODES[activeOverdrive].name.ja : OVERDRIVE_MODES[activeOverdrive].name.en}</span>`
+            : `<span class="shrink-0 text-[10px] sm:text-xs ${owned>0?'text-emerald-400':'text-sky-400'} font-bold uppercase tracking-tighter">${owned>0?'UPGRADE':'NEW'}</span>`;
     card.innerHTML = `
         <div class="flex justify-between items-center mb-2 gap-2">
             <div class="text-lg sm:text-xl font-black text-white leading-tight truncate">
                 ${colorIcon}${currentLang==='ja'?perk.name.ja:perk.name.en} 
                 <span class="text-xs sm:text-sm text-slate-500 ml-1 font-medium">Lv.${owned}→${next}</span>
             </div>
-            <span class="shrink-0 text-[10px] sm:text-xs ${owned>0?'text-emerald-400':'text-sky-400'} font-bold uppercase tracking-tighter">
-                ${owned>0?'UPGRADE':'NEW'}
-            </span>
+            ${stateBadge}
         </div>
         <div class="text-sm sm:text-base text-slate-300 leading-relaxed">
-            ${getPerkDesc(perk.id, next)}
+            ${getPerkDesc(perk.id, previewLevel)}
         </div>
     `;
     if (gameState.pendingPerkId === perk.id) {
@@ -721,6 +813,11 @@ function buildPerkCard(perk){
         card.style.opacity = '0.4';
     }
     card.onclick = () => { 
+        if (overdriveReady) {
+            openOverdriveScreen(perk);
+            return;
+        }
+        gameState.pendingOverdriveMode = null;
         gameState.pendingPerkId = perk.id;
         Array.from(perkCards.children).forEach(c => { 
             c.classList.remove('selected-perk');
@@ -782,6 +879,7 @@ function updateShopButtons() {
 }
 const helpGuides = {
     ja: [
+        { id: 'attention-chip', text: '深淵注目度。安定した攻略ほど上昇し、100%で次の通常階層に異常が発生します。', align: 'left' },
         { desktopId: 'ui-hp-bar', mobileId: 'ui-hp-mobile-bar', text: '生命力' },
         { desktopId: 'ui-essence', mobileId: 'ui-essence-mobile', text: 'エッセンス（通貨）' },
         { id: 'status-bar', text: '現在の目標です。達成で階層クリア。', align: 'left' },
@@ -791,6 +889,7 @@ const helpGuides = {
         { id: 'btn-undo', text: 'エッセンスを消費して1手戻します。', position: 'left' }
     ],
     en: [
+        { id: 'attention-chip', text: 'Abyss Attention. Clean play fills it; at 100%, the next normal floor becomes an Anomaly.', align: 'left' },
         { desktopId: 'ui-hp-bar', mobileId: 'ui-hp-mobile-bar', text: 'Vitality.' },
         { desktopId: 'ui-essence', mobileId: 'ui-essence-mobile', text: 'Essence(Money)' },
         { id: 'status-bar', text: 'Current objectives.', align: 'left' },

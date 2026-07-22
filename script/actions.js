@@ -3,13 +3,16 @@ let preExtractionState = null; // two_stepアイテムの抽出前スナップ�
 function onLevelClear(){
     if (gameState.busy) return;
     gameState.busy = true;
+    const systemResult = resolveFloorSystems();
     const baseReward = FLOOR_CLEAR_BASE_REWARD;
     const floorBonus = Math.min(FLOOR_CLEAR_BONUS_CAP, gameState.floor - 1);
     const subGoalBonus = secondarySucceeded() ? SUBGOAL_REWARD : 0;
     const bossBonus = gameState.bossState?.defeated
         ? BOSS_CLEAR_REWARD + (gameState.bossState.usedItemTypes.length * BOSS_ITEM_VARIETY_REWARD)
         : 0;
-    const totalGained = baseReward + floorBonus + subGoalBonus + bossBonus;
+    const contractMultiplier = getContractRewardMultiplier();
+    const standardReward = baseReward + floorBonus + subGoalBonus + bossBonus;
+    const totalGained = Math.round(standardReward * contractMultiplier) + systemResult.anomalyReward;
     gameState.essence += totalGained;
     renderHUD(); 
     renderBoard();
@@ -20,6 +23,14 @@ function onLevelClear(){
         ? `ボス撃破! ✨+${totalGained} (ボス報酬:+${bossBonus})`
         : msg;
     showToast(localizedMsg, bossBonus > 0 ? 'rose' : (subGoalBonus > 0 ? 'emerald' : 'sky'));
+    if (systemResult.anomalyReward > 0) {
+        showToast(currentLang === 'ja' ? `異常階層を安定化 ✨+${systemResult.anomalyReward}` : `Anomaly stabilized ✨+${systemResult.anomalyReward}`, 'purple');
+    }
+    if (systemResult.scheduledAnomaly) {
+        const def = getAnomalyDefinition(systemResult.scheduledAnomaly);
+        showToast(currentLang === 'ja' ? `深淵脈動を検知：${def.name.ja}` : `Abyssal Pulse detected: ${def.name.en}`, 'rose');
+        if (typeof triggerAbyssVfx === 'function') triggerAbyssVfx('warning', def.color);
+    }
     saveGame();
     setTimeout(() => {
         gameState.busy = false;
@@ -183,6 +194,18 @@ function clearTemporaryBossItems() {
     renderSkills();
 }
 function registerBossItemUse(key) {
+    gameState.floorItemsUsed = (gameState.floorItemsUsed || 0) + 1;
+    if (gameState.anomaly) {
+        gameState.anomaly.countdown = Math.min((getAnomalyDefinition()?.interval || 5) + 2, gameState.anomaly.countdown + 2);
+        if (gameState.anomaly.sealTurns > 0) {
+            gameState.anomaly.sealTurns = 0;
+            gameState.anomaly.sealedTubeIdx = null;
+        }
+        showToast(currentLang === 'ja' ? '道具で異常反応を遅延' : 'Item delayed the anomaly', 'yellow');
+        if (typeof triggerAbyssVfx === 'function') triggerAbyssVfx('item', '#fbbf24');
+        renderAbyssSystems();
+        renderBoard();
+    }
     if (!isBossActive()) return;
     const bs = gameState.bossState;
     bs.itemsUsed++;
@@ -196,6 +219,7 @@ function registerBossItemUse(key) {
         bs.sealTurns = 0;
         bs.sealedTubeIdx = null;
     }
+    bs.telegraphTubeIdx = null;
     showToast(currentLang === 'ja' ? '道具共鳴！ 核が露出した' : 'Tool Resonance! Core Exposed', 'yellow');
     renderBossHUD();
 }
@@ -252,9 +276,16 @@ async function tryPour(fromIdx, toIdx) {
         if (!steadyHandActive && momentumActive) {
             gameState.momentumTurns--;
         }
+        const nextTurn = gameState.turnCount + 1;
         let isOverloaded = false;
         if (!pressureImmune) {
-            isOverloaded = addPressure(PRESSURE_PER_POUR);
+            const movePressure = PRESSURE_PER_POUR + getContractPressureForMove(nextTurn);
+            isOverloaded = addPressure(movePressure);
+        }
+        const strainPressure = getOverdriveStrainPressure(nextTurn);
+        if (strainPressure > 0) {
+            isOverloaded = addPressure(strainPressure) || isOverloaded;
+            showFloatText(fromIdx, currentLang === 'ja' ? `暴走負荷 +${strainPressure}` : `STRAIN +${strainPressure}`, '#f472b6');
         }
         gameState.turnCount += 1;
         await animatePour(fromIdx, toIdx, check.color, check.moveCount);
@@ -269,7 +300,12 @@ async function tryPour(fromIdx, toIdx) {
         } else if (gameState.secondaryGoal?.type === 'combo' && !secondarySucceeded()) {
             gameState.secondaryProgress = 0;
         }
-        if (isBossActive()) await advanceBossTurn();
+        if (isBossActive()) {
+            recordBossMovePattern(fromIdx);
+            await advanceBossTurn();
+        } else if (gameState.anomaly) {
+            await advanceAnomalyTurn();
+        }
         saveGame();
     } catch (e) {
         console.error("Pour logic error:", e);
@@ -316,6 +352,18 @@ async function handleCompletion(tubeIdx, colorKey) {
         if (checkLevelClear()) onLevelClear(); 
         return; 
     }
+    if (gameState.anomaly?.targetTubeIdx === tubeIdx) {
+        const def = getAnomalyDefinition();
+        gameState.anomaly.avoidedCount = (gameState.anomaly.avoidedCount || 0) + 1;
+        gameState.anomaly.countdown = def?.interval || 5;
+        gameState.anomaly.targetTubeIdx = chooseHazardTube(tubeIdx);
+        showFloatText(tubeIdx, currentLang === 'ja' ? '予兆回避' : 'OMEN AVERTED', '#22d3ee');
+    }
+    if (gameState.anomaly?.id === 'unstable_reaction') {
+        gameState.essence += 2;
+        showFloatText(tubeIdx, currentLang === 'ja' ? '反応報酬 ✨+2' : 'REACTION ✨+2', '#fbbf24');
+    }
+    if (typeof triggerTubeCompletionVfx === 'function') triggerTubeCompletionVfx(tubeIdx, colorMeta(colorKey)?.hex || '#38bdf8');
     if (hasPerk('catalyst') && gameState.catalystAvailable) {
         const lv = getPerkLevel('catalyst'); 
         gameState.pressure = Math.max(0, gameState.pressure - (4 + lv));
@@ -420,6 +468,7 @@ async function handleBossColorCompletion(tubeIdx, colorKey) {
         bs.phase = Math.min(bs.maxHp, (bs.maxHp - bs.hp) + 1);
         bs.phaseAttackCount = 0;
         bs.actionCountdown = Math.min(bs.actionInterval + 1, bs.actionCountdown + 1);
+        bs.telegraphTubeIdx = null;
         showFloatTextAtCenter(currentLang === 'ja' ? `核へ命中！ 残り${bs.hp}` : `CORE HIT! ${bs.hp} LEFT`, '#fbbf24');
         if (bs.hp <= 0) {
             bs.defeated = true;
@@ -443,6 +492,167 @@ async function handleBossColorCompletion(tubeIdx, colorKey) {
     renderBoard();
     saveGame();
 }
+function recordBossMovePattern(fromIdx) {
+    const bs = gameState.bossState;
+    if (!bs || bs.bossId !== 'observer') return;
+    if (gameState.lastBossSourceIdx === fromIdx) gameState.repeatedBossSourceCount++;
+    else gameState.repeatedBossSourceCount = 1;
+    gameState.lastBossSourceIdx = fromIdx;
+    bs.observedTubeIdx = fromIdx;
+    bs.observationStacks = gameState.repeatedBossSourceCount;
+    if (bs.observationStacks >= 3) {
+        bs.actionCountdown = Math.max(1, bs.actionCountdown - 1);
+        showFloatText(fromIdx, currentLang === 'ja' ? `観測 ${bs.observationStacks}` : `OBSERVED x${bs.observationStacks}`, '#67e8f9');
+    }
+}
+function resetAnomalyCycle() {
+    const anomaly = gameState.anomaly;
+    const def = getAnomalyDefinition();
+    if (!anomaly || !def) return;
+    anomaly.countdown = def.interval;
+    anomaly.targetTubeIdx = anomaly.id === 'pressure_tide' || anomaly.id === 'unstable_reaction'
+        ? null
+        : chooseHazardTube(anomaly.targetTubeIdx);
+}
+async function advanceAnomalyTurn() {
+    const anomaly = gameState.anomaly;
+    if (!anomaly) return;
+    if (anomaly.sealTurns > 0) {
+        anomaly.sealTurns--;
+        if (anomaly.sealTurns <= 0) {
+            anomaly.sealedTubeIdx = null;
+            showToast(currentLang === 'ja' ? '異常封鎖が解除された' : 'Anomaly seal released', 'cyan');
+        }
+    }
+    anomaly.countdown--;
+    if (anomaly.countdown > 0) {
+        renderAbyssSystems();
+        renderBoard();
+        return;
+    }
+    const def = getAnomalyDefinition();
+    anomaly.effectCount = (anomaly.effectCount || 0) + 1;
+    if (consumeOverdriveGuard('anomaly')) {
+        resetAnomalyCycle();
+        renderHUD();
+        renderBoard();
+        return;
+    }
+    if (typeof triggerAbyssVfx === 'function') triggerAbyssVfx('anomaly', def?.color || '#a855f7');
+    if (anomaly.id === 'pressure_tide') {
+        showToast(currentLang === 'ja' ? '異常発生：圧力津波 +6' : 'Anomaly: Pressure Tide +6', 'rose');
+        if (addPressure(6)) await applyPressureDamage(false);
+    } else if (anomaly.id === 'void_omen') {
+        showToast(currentLang === 'ja' ? '異常発生：黒潮注入' : 'Anomaly: Void Injection', 'purple');
+        await corruptPreferredSegment(anomaly.targetTubeIdx);
+    } else if (anomaly.id === 'sealed_resonance') {
+        const targetIdx = anomaly.targetTubeIdx ?? chooseHazardTube();
+        if (targetIdx !== null) {
+            anomaly.sealedTubeIdx = targetIdx;
+            anomaly.sealTurns = 2;
+            showFloatText(targetIdx, currentLang === 'ja' ? '異常封鎖 2手' : 'SEALED 2T', '#67e8f9');
+        }
+    } else if (anomaly.id === 'unstable_reaction') {
+        showToast(currentLang === 'ja' ? '異常反応：プレッシャー +3' : 'Unstable Reaction: Pressure +3', 'yellow');
+        if (addPressure(3)) await applyPressureDamage(false);
+    }
+    resetAnomalyCycle();
+    renderHUD();
+    renderBoard();
+}
+function setBossSeal(targetIdx, turns = 2) {
+    const bs = gameState.bossState;
+    if (!bs || targetIdx === null) return false;
+    bs.sealedTubeIdx = targetIdx;
+    bs.sealTurns = turns;
+    showFloatText(targetIdx, currentLang === 'ja' ? `${turns}手封印` : `SEALED ${turns}T`, '#c084fc');
+    return true;
+}
+function transformTubeSafely(targetIdx, mode = 'reverse') {
+    if (targetIdx === null || !gameState.tubes[targetIdx] || gameState.tubes[targetIdx].length < 2) return false;
+    const before = [...gameState.tubes[targetIdx]];
+    if (mode === 'cycle') gameState.tubes[targetIdx].push(gameState.tubes[targetIdx].shift());
+    else gameState.tubes[targetIdx].reverse();
+    if (isDeadlocked()) {
+        gameState.tubes[targetIdx] = before;
+        return false;
+    }
+    showFloatText(targetIdx, currentLang === 'ja' ? '重力反転' : 'GRAVITY FLIP', '#c084fc');
+    return true;
+}
+function swapRandomSurfacesSafely() {
+    const candidates = gameState.tubes
+        .map((tube, idx) => ({tube, idx}))
+        .filter(({tube, idx}) => tube.length > 0 && !gameState.completedFlags[idx]);
+    if (candidates.length < 2) return false;
+    const first = pick(candidates);
+    const remaining = candidates.filter(x => x.idx !== first.idx);
+    const second = pick(remaining);
+    const a = first.tube[first.tube.length - 1];
+    const b = second.tube[second.tube.length - 1];
+    first.tube[first.tube.length - 1] = b;
+    second.tube[second.tube.length - 1] = a;
+    if (isDeadlocked()) {
+        first.tube[first.tube.length - 1] = a;
+        second.tube[second.tube.length - 1] = b;
+        return false;
+    }
+    showFloatText(first.idx, currentLang === 'ja' ? '液面変異' : 'SURFACE SHIFT', '#f472b6');
+    showFloatText(second.idx, currentLang === 'ja' ? '液面変異' : 'SURFACE SHIFT', '#f472b6');
+    return true;
+}
+function ensureBossTelegraph() {
+    const bs = gameState.bossState;
+    if (!bs || bs.telegraphTubeIdx !== null) return;
+    if (bs.bossId === 'observer' && bs.observedTubeIdx !== null) bs.telegraphTubeIdx = bs.observedTubeIdx;
+    else bs.telegraphTubeIdx = chooseHazardTube();
+}
+async function addBossPressure(amount) {
+    showToast(currentLang === 'ja' ? `ボス攻撃：圧力 +${amount}` : `Boss Attack: Pressure +${amount}`, 'rose');
+    if (addPressure(amount)) await applyPressureDamage(false);
+}
+async function executeBossAttack() {
+    const bs = gameState.bossState;
+    if (!bs || bs.defeated) return;
+    ensureBossTelegraph();
+    if (consumeOverdriveGuard('boss')) return;
+    if (typeof triggerAbyssVfx === 'function') triggerAbyssVfx('boss', getBossDefinition().color);
+    const target = bs.telegraphTubeIdx;
+    if (bs.bossId === 'crucible') {
+        if (bs.phase === 1) await corruptPreferredSegment(target);
+        else if (bs.phase === 2) await addBossPressure(5);
+        else {
+            await addBossPressure(3);
+            await corruptPreferredSegment(target);
+        }
+    } else if (bs.bossId === 'gravity_vat') {
+        if (bs.phase === 1) setBossSeal(target, 2);
+        else if (bs.phase === 2) {
+            if (!transformTubeSafely(target, 'reverse')) setBossSeal(target, 2);
+        } else {
+            if (!transformTubeSafely(target, 'cycle')) setBossSeal(target, 2);
+            else setBossSeal(chooseHazardTube(target), 1);
+        }
+    } else if (bs.bossId === 'observer') {
+        const stacks = Math.max(1, bs.observationStacks || 1);
+        if (bs.phase === 1) setBossSeal(target, 2);
+        else if (bs.phase === 2) await corruptPreferredSegment(target);
+        else {
+            await addBossPressure(Math.min(6, 2 + stacks));
+            setBossSeal(target, 1);
+        }
+        bs.observationStacks = 0;
+        gameState.repeatedBossSourceCount = 0;
+    } else {
+        if (bs.phase === 1) await corruptPreferredSegment(target);
+        else if (bs.phase === 2) {
+            if (!swapRandomSurfacesSafely()) await corruptPreferredSegment(target);
+        } else {
+            swapRandomSurfacesSafely();
+            await corruptPreferredSegment(target);
+        }
+    }
+}
 async function advanceBossTurn() {
     const bs = gameState.bossState;
     if (!bs || bs.defeated) return;
@@ -454,36 +664,17 @@ async function advanceBossTurn() {
         }
     }
     bs.actionCountdown--;
+    if (bs.actionCountdown <= 2) ensureBossTelegraph();
     if (bs.actionCountdown > 0) {
         renderBossHUD();
+        renderBoard();
         return;
     }
     bs.attackCount++;
     bs.phaseAttackCount = (bs.phaseAttackCount || 0) + 1;
-    if (bs.phase === 1) {
-        showToast(currentLang === 'ja' ? 'ボス攻撃：黒インク注入' : 'Boss Attack: Obsidian Injection', 'rose');
-        await corruptRandomSegment();
-    } else if (bs.phase === 2) {
-        const candidates = gameState.tubes
-            .map((tube, idx) => ({tube, idx}))
-            .filter(x => x.tube.length > 0 && !gameState.completedFlags[x.idx]);
-        if (candidates.length > 0) {
-            const target = pick(candidates);
-            bs.sealedTubeIdx = target.idx;
-            bs.sealTurns = 2;
-            showFloatText(target.idx, currentLang === 'ja' ? '2ターン封印' : 'SEALED 2T', '#c084fc');
-            showToast(currentLang === 'ja' ? 'ボス攻撃：チューブ封印' : 'Boss Attack: Tube Seal', 'purple');
-        } else {
-            await corruptRandomSegment();
-        }
-    } else if (bs.phaseAttackCount % 2 === 1) {
-        showToast(currentLang === 'ja' ? 'ボス攻撃：圧力波 +4' : 'Boss Attack: Pressure Wave +4', 'rose');
-        if (addPressure(4)) await applyPressureDamage(false);
-    } else {
-        showToast(currentLang === 'ja' ? 'ボス攻撃：黒インク注入' : 'Boss Attack: Obsidian Injection', 'rose');
-        await corruptRandomSegment();
-    }
+    await executeBossAttack();
     bs.actionCountdown = bs.actionInterval;
+    bs.telegraphTubeIdx = null;
     renderHUD();
     renderBoard();
 }
@@ -506,7 +697,7 @@ async function applyPressureDamage(visualOnly = false) {
     renderBoard();
     await new Promise(r => setTimeout(r, 500));
 }
-function corruptRandomSegment() {
+function corruptPreferredSegment(preferredIdx = null) {
     return new Promise((resolve) => {
         const candidates = gameState.tubes
             .map((t, i) => ({ idx: i, length: t.length }))
@@ -516,7 +707,11 @@ function corruptRandomSegment() {
                 const top = gameState.tubes[t.idx].length > 0 ? gameState.tubes[t.idx][gameState.tubes[t.idx].length - 1] : null;
                 return top !== 'K';
             });
-        const shuffledCandidates = candidates.sort(() => Math.random() - 0.5);
+        const shuffledCandidates = candidates.sort((a, b) => {
+            if (a.idx === preferredIdx) return -1;
+            if (b.idx === preferredIdx) return 1;
+            return Math.random() - 0.5;
+        });
         let placed = false;
         for (let candidate of shuffledCandidates) {
             gameState.tubes[candidate.idx].push('K');
@@ -524,6 +719,7 @@ function corruptRandomSegment() {
                 placed = true;
                 renderBoard();
                 showFloatText(candidate.idx, "CORRUPTED", "#ef4444");
+                if (typeof triggerTubeCorruptionVfx === 'function') triggerTubeCorruptionVfx(candidate.idx);
                 break;
             } else {
                 gameState.tubes[candidate.idx].pop();
@@ -548,16 +744,31 @@ function corruptRandomSegment() {
         resolve();
     });
 }
+function corruptRandomSegment() {
+    return corruptPreferredSegment(null);
+}
 function startNewRun() {
     clearSave();
     let startFloor = 1;
     let effectiveDebug = IS_DEBUG;
+    let debugAnomalyId = null;
+    let debugContractId = null;
+    let debugOverdrivePerkId = null;
+    let debugOverdriveMode = null;
     if (IS_DEBUG) {
         const input = ui('debug-floor-input');
         startFloor = parseInt(input.value) || 0;
         if (startFloor <= 0) {
             effectiveDebug = false;
             startFloor = 1;
+        }
+        if (effectiveDebug) {
+            debugAnomalyId = ui('debug-anomaly-input')?.value || null;
+            debugContractId = ui('debug-contract-input')?.value || null;
+            const debugOverdriveValue = ui('debug-overdrive-input')?.value || '';
+            [debugOverdrivePerkId, debugOverdriveMode] = debugOverdriveValue.split(':');
+            debugOverdrivePerkId ||= null;
+            debugOverdriveMode ||= null;
         }
     }
     gameState.isExecutionDebug = effectiveDebug;
@@ -572,7 +783,9 @@ function startNewRun() {
         hp: 3,
         maxHp: 3,
         capacity: initialCapacity,
-        perks: {},
+        perks: debugOverdrivePerkId
+            ? {[debugOverdrivePerkId]: debugOverdriveMode ? PERK_LEVEL_CAP : OVERDRIVE_UNLOCK_LEVEL}
+            : {},
         pressure: 0,
         pressureMax: PRESSURE_MAX_BASE,
         history: [],
@@ -584,6 +797,23 @@ function startNewRun() {
         completedFlags: [],
         bossState: null,
         temporaryInventory: {},
+        abyssAttention: 0,
+        attentionPeak: 0,
+        pendingAnomalyId: debugAnomalyId,
+        anomaly: null,
+        anomalyHistory: [],
+        anomaliesCleared: 0,
+        routeContract: debugContractId ? {id: debugContractId, startFloor, endFloor: startFloor + 4} : null,
+        contractHistory: [],
+        overdrives: debugOverdriveMode ? {[debugOverdrivePerkId]: debugOverdriveMode} : {},
+        pendingOverdriveMode: null,
+        floorStartHp: 3,
+        floorItemsUsed: 0,
+        overdriveGuards: 0,
+        lastBossSourceIdx: null,
+        repeatedBossSourceCount: 0,
+        saveSchemaVersion: SAVE_SCHEMA_VERSION,
+        runVersion: GAME_VERSION,
         turnCount: 0,
         selectedIdx: null,
         focusIdx: null,
@@ -606,6 +836,7 @@ function startNewRun() {
     }
     perkScreen.classList.add('hidden');
     generateBoard();
+    prepareFloorSystems();
     generateGoals();
     renderHUD();
     renderBoard(true);
@@ -678,12 +909,17 @@ function nextFloor(isFirst=false){
         history: [],
         completedFlags: [],
         bossState: enteringBoss ? createBossState(gameState.floor) : null,
-        temporaryInventory: {}
+        temporaryInventory: {},
+        anomaly: null,
+        pendingOverdriveMode: null,
+        lastBossSourceIdx: null,
+        repeatedBossSourceCount: 0
     });
     if(hasPerk('overflow')) {
         gameState.pressureMax = defaultPressureMax + (getPerkLevel('overflow') * 4);
     }
     generateBoard(); 
+    prepareFloorSystems();
     generateGoals(); 
     renderHUD(); 
     renderBoard(true);
@@ -696,6 +932,17 @@ function nextFloor(isFirst=false){
 function showFloorStartSequence(rewards) {
     const floorMsg = currentLang === 'ja' ? `第 ${gameState.floor} 階層` : `FLOOR ${gameState.floor}`;
     showToast(floorMsg, 'sky');
+    if (gameState.routeContract?.startFloor === gameState.floor) {
+        const contract = getCurrentContract();
+        setTimeout(() => showToast(currentLang === 'ja' ? `${contract.name.ja} 開始` : `${contract.name.en} begins`, contract.id === 'forbidden' ? 'rose' : contract.id === 'volatile' ? 'yellow' : 'sky'), 250);
+    }
+    if (gameState.anomaly) {
+        const anomaly = getAnomalyDefinition();
+        setTimeout(() => {
+            showToast(currentLang === 'ja' ? `異常階層：${anomaly.name.ja}` : `ANOMALY: ${anomaly.name.en}`, 'purple');
+            if (typeof triggerAbyssVfx === 'function') triggerAbyssVfx('anomaly', anomaly.color);
+        }, 450);
+    }
     if (rewards.length === 0) return;
     const summary = rewards.reduce((acc, curr) => {
         acc[curr.key] = (acc[curr.key] || 0) + 1;
@@ -751,6 +998,11 @@ function tryUndo(){
         extractorSourceIdx: null,
         bossState: prev.bossState ? deepCopy(prev.bossState) : gameState.bossState,
         temporaryInventory: prev.temporaryInventory ? {...prev.temporaryInventory} : {...gameState.temporaryInventory},
+        anomaly: prev.anomaly ? deepCopy(prev.anomaly) : gameState.anomaly,
+        abyssAttention: typeof prev.abyssAttention === 'number' ? prev.abyssAttention : gameState.abyssAttention,
+        overdriveGuards: typeof prev.overdriveGuards === 'number' ? prev.overdriveGuards : gameState.overdriveGuards,
+        lastBossSourceIdx: prev.lastBossSourceIdx ?? gameState.lastBossSourceIdx,
+        repeatedBossSourceCount: prev.repeatedBossSourceCount ?? gameState.repeatedBossSourceCount,
         pipetteMode: false,
         selectedIdx: null
     });

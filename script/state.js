@@ -1,5 +1,38 @@
 // state.js — ゲーム状態、セーブ/ロード、履歴(Undo用)
 const SAVE_KEY = 'abyssal_alchemy_save_v1';
+const SAVE_SCHEMA_VERSION = 2;
+function migrateV080State(state) {
+    const defaults = {
+        saveSchemaVersion: SAVE_SCHEMA_VERSION,
+        runVersion: GAME_VERSION,
+        abyssAttention: 0,
+        attentionPeak: 0,
+        pendingAnomalyId: null,
+        anomaly: null,
+        anomalyHistory: [],
+        anomaliesCleared: 0,
+        routeContract: null,
+        contractHistory: [],
+        overdrives: {},
+        pendingOverdriveMode: null,
+        floorStartHp: state.hp || 3,
+        floorItemsUsed: 0,
+        overdriveGuards: 0,
+        lastBossSourceIdx: null,
+        repeatedBossSourceCount: 0
+    };
+    Object.entries(defaults).forEach(([key, value]) => {
+        if (typeof state[key] === 'undefined' || state[key] === null && Array.isArray(value)) {
+            state[key] = Array.isArray(value) ? [] : (value && typeof value === 'object' ? {...value} : value);
+        }
+    });
+    if (!state.overdrives || typeof state.overdrives !== 'object') state.overdrives = {};
+    if (!Array.isArray(state.anomalyHistory)) state.anomalyHistory = [];
+    if (!Array.isArray(state.contractHistory)) state.contractHistory = [];
+    state.saveSchemaVersion = SAVE_SCHEMA_VERSION;
+    state.runVersion = GAME_VERSION;
+    return state;
+}
 function saveGame() {
     try {
         const data = JSON.stringify(gameState);
@@ -15,6 +48,7 @@ function loadGame() {
         if (data) {
             const loadedState = JSON.parse(data);
             Object.assign(gameState, loadedState);
+            migrateV080State(gameState);
             gameState.busy = false; 
             gameState.selectedIdx = null;
             gameState.targetMode = null;
@@ -92,6 +126,23 @@ const gameState = {
     isExecutionDebug: false,
     bossState: null,
     temporaryInventory: {},
+    saveSchemaVersion: SAVE_SCHEMA_VERSION,
+    runVersion: GAME_VERSION,
+    abyssAttention: 0,
+    attentionPeak: 0,
+    pendingAnomalyId: null,
+    anomaly: null,
+    anomalyHistory: [],
+    anomaliesCleared: 0,
+    routeContract: null,
+    contractHistory: [],
+    overdrives: {},
+    pendingOverdriveMode: null,
+    floorStartHp: 3,
+    floorItemsUsed: 0,
+    overdriveGuards: 0,
+    lastBossSourceIdx: null,
+    repeatedBossSourceCount: 0,
 };
 function pushHistory(){
     gameState.history.push({
@@ -111,7 +162,12 @@ function pushHistory(){
         extractorHeldColor: gameState.extractorHeldColor,
         extractorSourceIdx: gameState.extractorSourceIdx,
         bossState: gameState.bossState ? deepCopy(gameState.bossState) : null,
-        temporaryInventory: {...gameState.temporaryInventory}
+        temporaryInventory: {...gameState.temporaryInventory},
+        anomaly: gameState.anomaly ? deepCopy(gameState.anomaly) : null,
+        abyssAttention: gameState.abyssAttention,
+        overdriveGuards: gameState.overdriveGuards,
+        lastBossSourceIdx: gameState.lastBossSourceIdx,
+        repeatedBossSourceCount: gameState.repeatedBossSourceCount
     });
     if (gameState.history.length > 50) gameState.history.shift();
 }

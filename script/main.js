@@ -182,7 +182,7 @@ window.onkeydown = (e) => {
         if (e.key === 'Escape') closeHelpGuide();
         return;
     }
-    if(!perkScreen.classList.contains('hidden') || !helpScreen.classList.contains('hidden') || !mutationsScreen.classList.contains('hidden') || !bossIntroScreen.classList.contains('hidden')) return;
+    if(!perkScreen.classList.contains('hidden') || !helpScreen.classList.contains('hidden') || !mutationsScreen.classList.contains('hidden') || !bossIntroScreen.classList.contains('hidden') || !contractScreen.classList.contains('hidden') || !overdriveScreen.classList.contains('hidden')) return;
     if (['ArrowLeft', 'ArrowRight', 'Enter', ' '].includes(e.key)) {
             e.preventDefault();
         }

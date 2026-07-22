@@ -959,6 +959,264 @@ body {
         font-size: 1rem !important;
     }
 }
+
+/* ===== 0.8.00 Abyssal Tides ===== */
+#vfx-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    overflow: hidden;
+    pointer-events: none;
+    isolation: isolate;
+}
+.vfx-depth-current,
+.vfx-vignette {
+    position: absolute;
+    inset: -20%;
+    pointer-events: none;
+}
+.vfx-depth-current {
+    opacity: .08;
+    background:
+        repeating-radial-gradient(ellipse at 50% 120%, transparent 0 48px, rgba(56,189,248,.35) 52px 54px, transparent 58px 92px);
+    transform-origin: 50% 100%;
+    animation: depth-current 12s linear infinite;
+}
+.vfx-vignette {
+    inset: 0;
+    opacity: .32;
+    background: radial-gradient(circle at 50% 52%, transparent 35%, rgba(2,6,23,.6) 100%);
+}
+.anomaly-pressure_tide .vfx-depth-current,
+.anomaly-void_omen .vfx-depth-current,
+.anomaly-sealed_resonance .vfx-depth-current,
+.anomaly-unstable_reaction .vfx-depth-current {
+    opacity: .19;
+    animation-duration: 4.5s;
+}
+.contract-volatile .vfx-depth-current { filter: hue-rotate(135deg) saturate(1.5); }
+.contract-forbidden .vfx-depth-current { filter: hue-rotate(285deg) saturate(2); opacity: .15; }
+@keyframes depth-current {
+    from { transform: translate3d(-2%, 4%, 0) scale(1); }
+    50% { transform: translate3d(2%, -2%, 0) scale(1.04); }
+    to { transform: translate3d(-2%, 4%, 0) scale(1); }
+}
+.pour-trail {
+    position: fixed;
+    height: 4px;
+    transform-origin: 0 50%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, var(--trail-color), rgba(255,255,255,.9), var(--trail-color), transparent);
+    box-shadow: 0 0 12px var(--trail-color);
+    animation: pour-trail-flow .5s ease-out forwards;
+}
+@keyframes pour-trail-flow {
+    0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+    25% { opacity: 1; clip-path: inset(0 0 0 0); }
+    100% { opacity: 0; clip-path: inset(0 0 0 100%); }
+}
+.liquid-particle {
+    position: fixed;
+    width: 5px;
+    height: 5px;
+    margin: -2px;
+    border-radius: 50%;
+    background: var(--particle-color);
+    box-shadow: 0 0 8px var(--particle-color);
+    animation: liquid-particle-burst .8s cubic-bezier(.2,.8,.2,1) forwards;
+}
+.completion-particle { width: 7px; height: 7px; }
+.ink-particle { border-radius: 40% 60% 65% 35%; filter: blur(.3px); }
+@keyframes liquid-particle-burst {
+    from { opacity: 1; transform: translate(0,0) scale(1); }
+    to { opacity: 0; transform: translate(var(--particle-x),var(--particle-y)) scale(.25); }
+}
+.abyss-shockwave {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    width: 80px;
+    height: 80px;
+    margin: -40px;
+    border: 3px solid var(--wave-color);
+    border-radius: 50%;
+    box-shadow: 0 0 35px var(--wave-color), inset 0 0 28px var(--wave-color);
+    animation: abyss-wave 1s ease-out forwards;
+}
+@keyframes abyss-wave {
+    from { opacity: .85; transform: scale(.2); }
+    to { opacity: 0; transform: scale(16); }
+}
+#abyss-system-hud {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    right: 8px;
+    z-index: 76;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    pointer-events: none;
+}
+#board-area.boss-mode #abyss-system-hud { top: 72px; }
+.abyss-chip {
+    --system-color: #38bdf8;
+    min-height: 22px;
+    padding: 3px 7px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid color-mix(in srgb, var(--system-color) 48%, transparent);
+    border-radius: 7px;
+    background: rgba(2,6,23,.82);
+    color: #e2e8f0;
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: .05em;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--system-color) 18%, transparent);
+    backdrop-filter: blur(7px);
+}
+.abyss-chip.hidden { display: none; }
+.abyss-chip-icon { color: #38bdf8; }
+#attention-value,
+#anomaly-countdown { color: var(--system-color, #38bdf8); }
+.attention-track {
+    width: 54px;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: rgba(148,163,184,.2);
+}
+#attention-fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg,#38bdf8,#a855f7,#f43f5e);
+    transition: width .35s ease;
+}
+.tube.anomaly-targeted,
+.tube.boss-targeted {
+    border-color: #fbbf24 !important;
+    box-shadow: 0 0 0 3px rgba(251,191,36,.2), 0 0 25px rgba(251,191,36,.5) !important;
+}
+.tube.anomaly-targeted::before,
+.tube.boss-targeted::before {
+    content: '▼';
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    color: #fbbf24;
+    font-size: 13px;
+    filter: drop-shadow(0 0 5px #f59e0b);
+    animation: hazard-marker .65s ease-in-out infinite alternate;
+}
+@keyframes hazard-marker { to { transform: translate(-50%, 4px); filter: drop-shadow(0 0 10px #f59e0b); } }
+.tube.anomaly-sealed {
+    filter: grayscale(.8) brightness(.58);
+    border-color: #22d3ee !important;
+    box-shadow: 0 0 0 4px rgba(34,211,238,.25), inset 0 0 25px rgba(0,0,0,.9) !important;
+}
+.tube.anomaly-sealed::after {
+    content: 'PULSE LOCK';
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    z-index: 80;
+    padding: 3px 5px;
+    border: 1px solid #67e8f9;
+    border-radius: 5px;
+    background: rgba(8,47,73,.92);
+    color: #cffafe;
+    font-size: 7px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+.contract-panel,
+.overdrive-panel { box-shadow: 0 0 90px rgba(34,211,238,.12); }
+.contract-card,
+.overdrive-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 170px;
+    border-color: color-mix(in srgb, var(--contract-color, var(--overdrive-color)) 45%, transparent);
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.contract-card:hover,
+.overdrive-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--contract-color, var(--overdrive-color));
+    box-shadow: 0 12px 35px color-mix(in srgb, var(--contract-color, var(--overdrive-color)) 25%, transparent);
+}
+.contract-card::before,
+.overdrive-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 100% 0, color-mix(in srgb, var(--contract-color, var(--overdrive-color)) 24%, transparent), transparent 52%);
+    pointer-events: none;
+}
+.contract-risk {
+    width: 28px;
+    height: 28px;
+    margin-bottom: 12px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--contract-color);
+    border-radius: 50%;
+    color: var(--contract-color);
+    font-size: 11px;
+    font-weight: 900;
+}
+.overdrive-ready-badge,
+.overdrive-active-badge {
+    flex-shrink: 0;
+    padding: 3px 5px;
+    border-radius: 5px;
+    font-size: 8px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: .08em;
+}
+.overdrive-ready-badge {
+    color: #fdf4ff;
+    border: 1px solid #e879f9;
+    background: rgba(162,28,175,.4);
+    animation: overdrive-ready 1.2s ease-in-out infinite alternate;
+}
+.overdrive-active-surge { color: #fbcfe8; border: 1px solid #f472b6; background: rgba(131,24,67,.45); }
+.overdrive-active-stable { color: #cffafe; border: 1px solid #22d3ee; background: rgba(8,47,73,.55); }
+@keyframes overdrive-ready { to { box-shadow: 0 0 13px rgba(232,121,249,.7); filter: brightness(1.2); } }
+.boss-theme-crucible #board-area.boss-mode { --boss-accent: #fb7185; background: radial-gradient(circle at 50% 55%,rgba(251,113,133,.2),transparent 27%),linear-gradient(180deg,rgba(69,10,10,.32),rgba(2,6,23,.8)); }
+.boss-theme-gravity_vat #board-area.boss-mode { --boss-accent: #c084fc; background: radial-gradient(circle at 50% 55%,rgba(192,132,252,.22),transparent 27%),linear-gradient(180deg,rgba(46,16,101,.3),rgba(2,6,23,.82)); }
+.boss-theme-observer #board-area.boss-mode { --boss-accent: #67e8f9; background: radial-gradient(circle at 50% 55%,rgba(103,232,249,.18),transparent 27%),linear-gradient(180deg,rgba(8,47,73,.3),rgba(2,6,23,.84)); }
+.boss-theme-aberration #board-area.boss-mode { --boss-accent: #f472b6; background: radial-gradient(circle at 50% 55%,rgba(244,114,182,.21),transparent 27%),linear-gradient(180deg,rgba(80,7,36,.3),rgba(2,6,23,.84)); }
+#boss-arena-header { border-color: color-mix(in srgb,var(--boss-color,#fb7185) 46%,transparent); box-shadow: 0 0 24px color-mix(in srgb,var(--boss-color,#fb7185) 18%,transparent); }
+#boss-arena-header .boss-name { color: var(--boss-color,#fda4af); }
+#boss-core-visual { color: var(--boss-color,#7f1d1d); box-shadow: 0 0 18px color-mix(in srgb,var(--boss-color,#e11d48) 48%,transparent), inset 0 0 12px rgba(0,0,0,.75); }
+
+@media (max-width: 640px) {
+    #abyss-system-hud { top: 4px; left: 4px; right: 4px; gap: 3px; }
+    #board-area.boss-mode #abyss-system-hud { top: 61px; }
+    .abyss-chip { min-height: 19px; padding: 2px 5px; font-size: 7px; gap: 3px; }
+    .attention-track { width: 30px; }
+    .contract-card, .overdrive-card { min-height: 130px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .vfx-depth-current,
+    .pour-trail,
+    .liquid-particle,
+    .abyss-shockwave,
+    .tube.anomaly-targeted::before,
+    .tube.boss-targeted::before,
+    .overdrive-ready-badge { animation: none !important; }
+    .pour-trail,
+    .liquid-particle,
+    .abyss-shockwave { display: none !important; }
+}
 .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;

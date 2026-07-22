@@ -57,6 +57,11 @@ utils → config → i18n → dom → state → logic → render → actions →
 - **ショップ価格:** `getPriceMultiplier()` が階層で逓増(6F: x1.2 / 11F: x1.5 / 21F〜: x2.0*1.1^n / 31F〜: さらに1.3^n)。
 - **ボス階層:** 10の倍数階は `bossState` を持つ3フェーズ制の専用エリア。アイテム使用で核露出・攻撃遅延、未使用時は色2本完成で核露出。ボス中は通常の色完成イベントを表示しない。
 - **ボス支給品:** `temporaryInventory` で通常在庫と区別し、使用時は一時在庫から先に消費、撃破後に残数を除去する。Undo履歴には `bossState` と `temporaryInventory` の両方を含める。
+- **深淵脈動:** `abyssAttention` が100に達すると `pendingAnomalyId` を予約し、次の非ボス階層で `anomaly` を生成する。異常攻撃は必ずカウントダウンと対象を描画し、黒インク追加時はデッドロック検査を通す。
+- **深淵契約:** 5階層ごとに `routeContract` を選択し、5階層の報酬・注目度・開始圧力・追加圧力へ反映する。
+- **オーバードライブ:** Perkの通常上限はLv.4。Lv.3からの強化時に `overdrives[perkId]` へ `surge` または `stable` を保存する。
+- **固有ボス:** `bossState.bossId` により `advanceBossTurn()` の攻撃が分岐する。攻撃対象は `telegraphTubeIdx` で2手前から予告する。
+- **セーブ移行:** 0.8.00の追加状態は `migrateV080State()` で旧セーブへ補完する。保存キーは互換維持のためv1のまま。
 
 ### コンテンツ追加の作法
 

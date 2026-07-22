@@ -7,8 +7,12 @@ function addPressure(amount) {
     }
     return false;
 }
-function getPerkLevel(id){ return gameState.perks[id] || 0; }
-function hasPerk(id){ return (gameState.perks[id] || 0) > 0; }
+function getRawPerkLevel(id){ return gameState.perks[id] || 0; }
+function getPerkLevel(id){
+    const raw = getRawPerkLevel(id);
+    return raw + (gameState.overdrives?.[id] === 'surge' ? 2 : 0);
+}
+function hasPerk(id){ return getRawPerkLevel(id) > 0; }
 function isBossFloor(floor = gameState.floor){
     return floor > 0 && floor % BOSS_INTERVAL === 0;
 }
@@ -26,7 +30,8 @@ function getBossDefinition(floor = gameState.floor){
     return BOSS_NAMES[(rank - 1) % BOSS_NAMES.length];
 }
 function getBossActionInterval(floor = gameState.floor){
-    return clamp(BOSS_BASE_ACTION_INTERVAL - getBossRank(floor), 3, 5);
+    const contractPenalty = gameState.routeContract?.id === 'forbidden' ? 1 : 0;
+    return clamp(BOSS_BASE_ACTION_INTERVAL - getBossRank(floor) - contractPenalty, 2, 5);
 }
 function getBossSupplyChoices(floor = gameState.floor){
     const offset = (getBossRank(floor) - 1) % BOSS_SUPPLY_POOL.length;
@@ -34,7 +39,9 @@ function getBossSupplyChoices(floor = gameState.floor){
 }
 function createBossState(floor = gameState.floor){
     const interval = getBossActionInterval(floor);
+    const definition = getBossDefinition(floor);
     return {
+        bossId: definition.id,
         hp: BOSS_MAX_HP,
         maxHp: BOSS_MAX_HP,
         phase: 1,
@@ -50,8 +57,115 @@ function createBossState(floor = gameState.floor){
         usedItemTypes: [],
         supplyChoices: getBossSupplyChoices(floor),
         pendingIntro: true,
-        defeated: false
+        defeated: false,
+        telegraphTubeIdx: null,
+        observedTubeIdx: null,
+        observationStacks: 0
     };
+}
+
+function getCurrentContract() {
+    const active = gameState.routeContract;
+    if (!active) return CONTRACT_DEFINITIONS.safe;
+    if (gameState.floor < active.startFloor || gameState.floor > active.endFloor) return CONTRACT_DEFINITIONS.safe;
+    return CONTRACT_DEFINITIONS[active.id] || CONTRACT_DEFINITIONS.safe;
+}
+function shouldOfferRouteContract(nextFloor = gameState.floor + 1) {
+    return nextFloor > 1 && nextFloor % 5 === 0;
+}
+function getContractRewardMultiplier() {
+    return getCurrentContract().rewardMultiplier || 1;
+}
+function getContractPressureForMove(nextTurn) {
+    const id = getCurrentContract().id;
+    if (id === 'forbidden' && nextTurn % 3 === 0) return 1;
+    if (id === 'volatile' && nextTurn % 4 === 0) return 1;
+    return 0;
+}
+function getAnomalyDefinition(id = gameState.anomaly?.id) {
+    return id ? ANOMALY_DEFINITIONS[id] || null : null;
+}
+function chooseNextAnomaly() {
+    const previous = gameState.anomalyHistory?.[gameState.anomalyHistory.length - 1];
+    const candidates = Object.keys(ANOMALY_DEFINITIONS).filter(id => id !== previous);
+    return pick(candidates.length ? candidates : Object.keys(ANOMALY_DEFINITIONS));
+}
+function chooseHazardTube(excludedIdx = null) {
+    const candidates = gameState.tubes
+        .map((tube, idx) => ({tube, idx}))
+        .filter(({tube, idx}) => idx !== excludedIdx && tube.length > 0 && !isCompleteTube(tube));
+    return candidates.length ? pick(candidates).idx : null;
+}
+function createAnomalyState(id) {
+    const def = getAnomalyDefinition(id);
+    if (!def) return null;
+    return {
+        id,
+        countdown: def.interval,
+        targetTubeIdx: id === 'pressure_tide' || id === 'unstable_reaction' ? null : chooseHazardTube(),
+        sealedTubeIdx: null,
+        sealTurns: 0,
+        effectCount: 0,
+        avoidedCount: 0
+    };
+}
+function prepareFloorSystems() {
+    if (gameState.routeContract && gameState.floor > gameState.routeContract.endFloor) {
+        gameState.routeContract = null;
+    }
+    if (!isBossFloor() && gameState.pendingAnomalyId) {
+        gameState.anomaly = createAnomalyState(gameState.pendingAnomalyId);
+        gameState.pendingAnomalyId = null;
+    } else {
+        gameState.anomaly = null;
+    }
+    gameState.floorStartHp = gameState.hp;
+    gameState.floorItemsUsed = 0;
+    gameState.lastBossSourceIdx = null;
+    gameState.repeatedBossSourceCount = 0;
+    const stableCount = Object.values(gameState.overdrives || {}).filter(mode => mode === 'stable').length;
+    gameState.overdriveGuards = Math.min(2, stableCount);
+    const contractPressure = getCurrentContract().startPressure || 0;
+    const stablePressure = stableCount;
+    gameState.pressure = Math.min(Math.max(0, gameState.pressureMax - 1), gameState.pressure + contractPressure + stablePressure);
+}
+function resolveFloorSystems() {
+    const contract = getCurrentContract();
+    const fastLimit = Math.max(18, 24 - Math.floor(gameState.floor / 10));
+    let attentionGain = ABYSS_ATTENTION_BASE_GAIN;
+    if (gameState.hp >= gameState.floorStartHp) attentionGain += ABYSS_ATTENTION_NO_DAMAGE_BONUS;
+    if (gameState.floorItemsUsed === 0) attentionGain += ABYSS_ATTENTION_ITEMLESS_BONUS;
+    if (gameState.turnCount <= fastLimit) attentionGain += ABYSS_ATTENTION_FAST_BONUS;
+    attentionGain = Math.max(1, Math.round(attentionGain * (contract.attentionMultiplier || 1)));
+    let anomalyReward = 0;
+    if (gameState.anomaly) {
+        anomalyReward = Math.round(ANOMALY_CLEAR_REWARD * (contract.rewardMultiplier || 1));
+        gameState.anomaliesCleared = (gameState.anomaliesCleared || 0) + 1;
+        gameState.anomalyHistory = [...(gameState.anomalyHistory || []), gameState.anomaly.id].slice(-8);
+        gameState.anomaly = null;
+    }
+    if (gameState.bossState?.defeated) attentionGain = Math.max(5, Math.round(attentionGain * 0.5));
+    gameState.abyssAttention = clamp((gameState.abyssAttention || 0) + attentionGain, 0, ABYSS_ATTENTION_MAX);
+    gameState.attentionPeak = Math.max(gameState.attentionPeak || 0, gameState.abyssAttention);
+    let scheduledAnomaly = null;
+    if (gameState.abyssAttention >= ABYSS_ATTENTION_MAX && !gameState.pendingAnomalyId) {
+        scheduledAnomaly = chooseNextAnomaly();
+        gameState.pendingAnomalyId = scheduledAnomaly;
+        gameState.abyssAttention = ABYSS_ATTENTION_AFTER_TRIGGER;
+    }
+    return {attentionGain, anomalyReward, scheduledAnomaly};
+}
+function consumeOverdriveGuard(source = 'hazard') {
+    if ((gameState.overdriveGuards || 0) <= 0) return false;
+    gameState.overdriveGuards--;
+    const msg = currentLang === 'ja' ? `安定共振が${source === 'boss' ? 'ボス攻撃' : '異常'}を遮断` : `Stable Core blocked ${source === 'boss' ? 'the boss attack' : 'the anomaly'}`;
+    showToast(msg, 'cyan');
+    if (typeof triggerAbyssVfx === 'function') triggerAbyssVfx('guard', '#22d3ee');
+    return true;
+}
+function getOverdriveStrainPressure(nextTurn) {
+    const surgeCount = Object.values(gameState.overdrives || {}).filter(mode => mode === 'surge').length;
+    return surgeCount > 0 && nextTurn % 6 === 0 ? 1 + surgeCount : 0;
 }
 function getPerkDesc(id, level=1){
     const def = PERKS[id];
@@ -266,6 +380,9 @@ function canPour(fromIdx, toIdx){
     if (isBossActive() && gameState.bossState.sealTurns > 0 && gameState.bossState.sealedTubeIdx === fromIdx) {
         return {ok:false, reason:'sealed'};
     }
+    if (gameState.anomaly?.sealTurns > 0 && gameState.anomaly.sealedTubeIdx === fromIdx) {
+        return {ok:false, reason:'anomaly-sealed'};
+    }
     const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
     if (!from.length || tubeFree(to) <= 0) return {ok:false};
     const top = tubeTop(from), toTop = tubeTop(to);
@@ -293,7 +410,7 @@ function rarityWeight(r){
     return 1.00;
 }
 function rollPerkChoices(count = 3) {
-    const ids = Object.keys(PERKS);
+    const ids = Object.keys(PERKS).filter(id => getRawPerkLevel(id) < PERK_LEVEL_CAP);
     const f = clamp((gameState.floor - 1) / 10, 0, 1);
     const pool = ids.slice();
     const w = pool.map(id => {
@@ -355,8 +472,16 @@ function getDiscountedCost(base) {
     return Math.max(1, Math.floor(cost));
 }
 function acquirePerk(id){ 
+    if (getRawPerkLevel(id) >= PERK_LEVEL_CAP) return;
     if(!gameState.perks[id]) gameState.perks[id] = 0; 
     gameState.perks[id]++; 
+    if (gameState.pendingOverdriveMode && !gameState.overdrives?.[id]) {
+        if (!gameState.overdrives) gameState.overdrives = {};
+        gameState.overdrives[id] = gameState.pendingOverdriveMode;
+        const mode = OVERDRIVE_MODES[gameState.pendingOverdriveMode];
+        showToast(currentLang === 'ja' ? `${mode.name.ja}を起動` : `${mode.name.en} activated`, gameState.pendingOverdriveMode === 'surge' ? 'pink' : 'cyan');
+    }
+    gameState.pendingOverdriveMode = null;
     if(id === 'overflow') gameState.pressureMax += 4; 
     if(id === 'reflux') {
         gameState.refluxUses += 1;

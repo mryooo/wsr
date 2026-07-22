@@ -1,5 +1,5 @@
 // config.js — 定数定義(バージョン、色、パレット、Perk、アイテム、ショップ、バランス係数)
-const GAME_VERSION = "0.7.01";
+const GAME_VERSION = "0.8.00";
 const IS_DEBUG = true;
 
 // ===== バランス定数 =====
@@ -22,11 +22,100 @@ const BOSS_SUPPLY_POOL = [
     'transfer', 'vacuum', 'inverter', 'summon_vial'
 ];
 const BOSS_NAMES = [
-    { en: 'Abyss Crucible', ja: '深淵炉' },
-    { en: 'Gravity Vat', ja: '重力槽' },
-    { en: 'Void Observer', ja: '虚無観測者' },
-    { en: 'Alchemy Aberration', ja: '錬金暴走体' }
+    {
+        id: 'crucible', en: 'Abyss Crucible', ja: '深淵炉', color: '#fb7185',
+        desc: {
+            en: 'Heat and pressure rise together. Read the countdown and vent before the crucible erupts.',
+            ja: '熱と圧力が連動する炉。攻撃予告を読み、噴出前に圧力を逃がしてください。'
+        }
+    },
+    {
+        id: 'gravity_vat', en: 'Gravity Vat', ja: '重力槽', color: '#c084fc',
+        desc: {
+            en: 'Gravity seals and overturns marked vials. Keep more than one route open.',
+            ja: '重力で予告された瓶を封印・反転します。複数の移動経路を残してください。'
+        }
+    },
+    {
+        id: 'observer', en: 'Void Observer', ja: '虚無観測者', color: '#67e8f9',
+        desc: {
+            en: 'It learns repeated source vials and punishes predictable play.',
+            ja: '同じ注ぎ元の反復を観測し、単調な手順へ干渉します。'
+        }
+    },
+    {
+        id: 'aberration', en: 'Alchemy Aberration', ja: '錬金暴走体', color: '#f472b6',
+        desc: {
+            en: 'It rewrites surfaces and injects Obsidian as the phases advance.',
+            ja: 'フェーズ進行に合わせて液面を書き換え、黒インクを注入します。'
+        }
+    }
 ];
+
+// ===== 0.8.00 深淵脈動 / 契約 / オーバードライブ =====
+const ABYSS_ATTENTION_MAX = 100;
+const ABYSS_ATTENTION_BASE_GAIN = 14;
+const ABYSS_ATTENTION_NO_DAMAGE_BONUS = 10;
+const ABYSS_ATTENTION_ITEMLESS_BONUS = 8;
+const ABYSS_ATTENTION_FAST_BONUS = 6;
+const ABYSS_ATTENTION_AFTER_TRIGGER = 28;
+const ANOMALY_CLEAR_REWARD = 10;
+const OVERDRIVE_UNLOCK_LEVEL = 3;
+const PERK_LEVEL_CAP = 4;
+
+const ANOMALY_DEFINITIONS = {
+    pressure_tide: {
+        id: 'pressure_tide', color: '#fb7185', interval: 5,
+        name: { en: 'Pressure Tide', ja: '圧力津波' },
+        desc: { en: 'A pressure wave strikes every 5 moves. Items delay the next wave.', ja: '5手ごとに圧力波が到来します。アイテム使用で次の波を遅らせられます。' }
+    },
+    void_omen: {
+        id: 'void_omen', color: '#a78bfa', interval: 5,
+        name: { en: 'Void Omen', ja: '黒潮予兆' },
+        desc: { en: 'A marked vial receives Obsidian when the countdown reaches zero.', ja: '予告された瓶へ、カウントが0になると黒インクが注入されます。' }
+    },
+    sealed_resonance: {
+        id: 'sealed_resonance', color: '#67e8f9', interval: 6,
+        name: { en: 'Sealed Resonance', ja: '封鎖共鳴' },
+        desc: { en: 'A marked source vial is sealed for 2 moves. Any item breaks the seal.', ja: '予告された注ぎ元が2手封鎖されます。アイテム使用で解除できます。' }
+    },
+    unstable_reaction: {
+        id: 'unstable_reaction', color: '#fbbf24', interval: 4,
+        name: { en: 'Unstable Reaction', ja: '不安定反応' },
+        desc: { en: 'Every 4th pour gains extra Pressure, but each completion grants +2 Essence.', ja: '4手ごとの注ぎで圧力が増える代わりに、完成するたびエッセンスを2獲得します。' }
+    }
+};
+
+const CONTRACT_DEFINITIONS = {
+    safe: {
+        id: 'safe', color: '#38bdf8', rewardMultiplier: 1, attentionMultiplier: 0.75, startPressure: 0,
+        name: { en: 'Stable Route', ja: '安定ルート' },
+        desc: { en: 'Current rules. Abyss Attention rises 25% slower.', ja: '現行ルールを維持。深淵注目度の上昇が25%緩やかになります。' }
+    },
+    volatile: {
+        id: 'volatile', color: '#f59e0b', rewardMultiplier: 1.35, attentionMultiplier: 1.15, startPressure: 2,
+        name: { en: 'Volatile Contract', ja: '危険契約' },
+        desc: { en: 'Start with +2 Pressure. Every 4th pour gains +1 Pressure. Rewards x1.35.', ja: '開始時プレッシャー+2。4手ごとに追加+1。報酬は1.35倍。' }
+    },
+    forbidden: {
+        id: 'forbidden', color: '#f43f5e', rewardMultiplier: 1.75, attentionMultiplier: 1.35, startPressure: 4,
+        name: { en: 'Forbidden Descent', ja: '禁忌ルート' },
+        desc: { en: 'Start with +4 Pressure. Every 3rd pour gains +1. Bosses act faster. Rewards x1.75.', ja: '開始時プレッシャー+4。3手ごとに追加+1。ボス攻撃が加速し、報酬は1.75倍。' }
+    }
+};
+
+const OVERDRIVE_MODES = {
+    surge: {
+        id: 'surge', color: '#f472b6',
+        name: { en: 'Resonant Surge', ja: '暴走共鳴' },
+        desc: { en: 'This Perk acts as +2 levels. Every 6th move releases Overdrive strain as Pressure.', ja: 'このPerkを実質+2Lvで扱います。6手ごとに暴走負荷がプレッシャーとして放出されます。' }
+    },
+    stable: {
+        id: 'stable', color: '#22d3ee',
+        name: { en: 'Stable Core', ja: '安定共振' },
+        desc: { en: 'Blocks the first anomaly or boss attack each floor. Each Stable Core adds starting Pressure.', ja: '各階層で最初の異常・ボス攻撃を無効化します。安定共振数に応じて開始時プレッシャーが増えます。' }
+    }
+};
 
 const COLOR_POOL = [
     { key: 'R', name:{en:'Crimson', ja:'紅'}, hex:'#dc2626' }, 
