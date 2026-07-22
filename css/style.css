@@ -1050,15 +1050,19 @@ body {
 #abyss-system-hud {
     position: absolute;
     top: 6px;
-    left: 8px;
-    right: 8px;
+    left: 50%;
+    width: min(64rem, calc(100% - 16px));
+    transform: translateX(-50%);
     z-index: 76;
     display: flex;
     align-items: center;
     gap: 5px;
     pointer-events: none;
 }
-#board-area.boss-mode #abyss-system-hud { top: 72px; }
+#board-area.boss-mode #abyss-system-hud {
+    top: 72px;
+    width: min(700px, calc(100% - 20px));
+}
 .abyss-chip {
     --system-color: #38bdf8;
     min-height: 22px;
@@ -1199,7 +1203,7 @@ body {
 #boss-core-visual { color: var(--boss-color,#7f1d1d); box-shadow: 0 0 18px color-mix(in srgb,var(--boss-color,#e11d48) 48%,transparent), inset 0 0 12px rgba(0,0,0,.75); }
 
 @media (max-width: 640px) {
-    #abyss-system-hud { top: 4px; left: 4px; right: 4px; gap: 3px; }
+    #abyss-system-hud { top: 4px; width: calc(100% - 8px); gap: 3px; }
     #board-area.boss-mode #abyss-system-hud { top: 61px; }
     .abyss-chip { min-height: 19px; padding: 2px 5px; font-size: 7px; gap: 3px; }
     .attention-track { width: 30px; }
