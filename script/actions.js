@@ -288,13 +288,19 @@ async function tryPour(fromIdx, toIdx) {
             showFloatText(fromIdx, currentLang === 'ja' ? `暴走負荷 +${strainPressure}` : `STRAIN +${strainPressure}`, '#f472b6');
         }
         gameState.turnCount += 1;
+        // Reflect the pressure result before the pour animation starts. Without
+        // this update an overload can look as if it happened at max - 1.
+        renderHUD();
         await animatePour(fromIdx, toIdx, check.color, check.moveCount);
         const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
         for (let i = 0; i < check.moveCount; i++) to.push(from.pop());
-        if (isOverloaded) {
-            await applyPressureDamage(false);
-        }
         const counts = getBoardCounts();
+        const purgesBlackAtDestination = check.color === 'K' && isCompleteTube(to, counts);
+        if (isOverloaded) {
+            // A Black purge already removes the moved ink. Do not immediately
+            // redraw it as new corruption in the source tube on the same move.
+            await applyPressureDamage(false, purgesBlackAtDestination ? fromIdx : null);
+        }
         if (isCompleteTube(to, counts)) {
             await handleCompletion(toIdx, to[0]);
         } else if (gameState.secondaryGoal?.type === 'combo' && !secondarySucceeded()) {
@@ -325,7 +331,6 @@ async function tryPour(fromIdx, toIdx) {
     }
 }
 async function handleCompletion(tubeIdx, colorKey) {
-    const tubeEls = document.querySelectorAll(`.tube[data-idx="${tubeIdx}"]`);
     if (colorKey === 'K') {
         gameState.busy = true;
         const segmentCount = gameState.tubes[tubeIdx].length;
@@ -337,6 +342,10 @@ async function handleCompletion(tubeIdx, colorKey) {
             gameState.pressure = Math.max(0, gameState.pressure - (2 + lv));
             gameState.essence += (1 + lv);
         }
+        // The pour animation temporarily owns both tube DOMs. Synchronize the
+        // moved state first so the source ink cannot reappear during evaporation.
+        renderBoard();
+        const tubeEls = document.querySelectorAll(`.tube[data-idx="${tubeIdx}"]`);
         tubeEls.forEach(el => el.classList.add('evaporating'));
         await new Promise(r => setTimeout(r, 800));
         gameState.tubes[tubeIdx] = []; 
@@ -352,6 +361,7 @@ async function handleCompletion(tubeIdx, colorKey) {
         if (checkLevelClear()) onLevelClear(); 
         return; 
     }
+    const tubeEls = document.querySelectorAll(`.tube[data-idx="${tubeIdx}"]`);
     if (gameState.anomaly?.targetTubeIdx === tubeIdx) {
         const def = getAnomalyDefinition();
         gameState.anomaly.avoidedCount = (gameState.anomaly.avoidedCount || 0) + 1;
@@ -678,7 +688,10 @@ async function advanceBossTurn() {
     renderHUD();
     renderBoard();
 }
-async function applyPressureDamage(visualOnly = false) {
+async function applyPressureDamage(visualOnly = false, excludedCorruptionTubeIdx = null) {
+    // addPressure() has already reset an overloaded gauge to zero. Update it
+    // before any shake/corruption animation so max - 1 is never shown as hit.
+    renderHUD();
     if (!visualOnly) {
         if (hasPerk('void_shield') && Math.random() < getPerkLevel('void_shield') * 0.15) {
             showToast("Void Shield!", "#a855f7");
@@ -690,18 +703,19 @@ async function applyPressureDamage(visualOnly = false) {
     container.classList.remove('animate-shake');
     void container.offsetWidth;
     container.classList.add('animate-shake');
-    await corruptRandomSegment();
+    await corruptRandomSegment(excludedCorruptionTubeIdx);
     const msg = currentLang === 'ja' ? "オーバーロード！ HP-1" : "Pressure Overload! HP -1";
     showToast(msg, "#ef4444");
     renderHUD();
     renderBoard();
     await new Promise(r => setTimeout(r, 500));
 }
-function corruptPreferredSegment(preferredIdx = null) {
+function corruptPreferredSegment(preferredIdx = null, excludedIdx = null) {
     return new Promise((resolve) => {
         const candidates = gameState.tubes
             .map((t, i) => ({ idx: i, length: t.length }))
             .filter(t => {
+                if (t.idx === excludedIdx) return false;
                 if (gameState.completedFlags[t.idx]) return false;
                 if (t.length >= gameState.capacity) return false;
                 const top = gameState.tubes[t.idx].length > 0 ? gameState.tubes[t.idx][gameState.tubes[t.idx].length - 1] : null;
@@ -744,8 +758,8 @@ function corruptPreferredSegment(preferredIdx = null) {
         resolve();
     });
 }
-function corruptRandomSegment() {
-    return corruptPreferredSegment(null);
+function corruptRandomSegment(excludedIdx = null) {
+    return corruptPreferredSegment(null, excludedIdx);
 }
 function startNewRun() {
     clearSave();
@@ -964,7 +978,7 @@ function showFloorStartSequence(rewards) {
         });
     }, 500);
 }
-function tryUndo(){
+async function tryUndo(){
     if (gameState.busy) return;
     if (!gameState.history.length) return;
     const prev = gameState.history[gameState.history.length - 1];
@@ -1006,8 +1020,9 @@ function tryUndo(){
         pipetteMode: false,
         selectedIdx: null
     });
+    let refluxOverloaded = false;
     if(isFree){ 
-        gameState.pressure += 2; 
+        refluxOverloaded = addPressure(2);
         gameState.refluxUses--; 
         showFloatText(0, `Reflux Used (${gameState.refluxUses} left)`, "#a855f7");
     } else { 
@@ -1019,5 +1034,20 @@ function tryUndo(){
     updateTubeLayout(); 
     renderHUD(); 
     renderBoard(); 
+    if (refluxOverloaded) {
+        gameState.busy = true;
+        try {
+            await applyPressureDamage(false);
+        } finally {
+            gameState.busy = false;
+        }
+        if (gameState.hp <= 0) {
+            gameState.hp = 0;
+            renderHUD();
+            clearSave();
+            openPerkScreen(true);
+            return;
+        }
+    }
     saveGame();
 }
