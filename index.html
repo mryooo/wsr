@@ -6,7 +6,7 @@
     <title>Abyss Alchemy - Water Sort Rogue</title>
     <link rel="icon" href="./icons/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="./css/style.css?v=0.8.00-20260723a">
+    <link rel="stylesheet" href="./css/style.css?v=0.8.00-20260723b">
 </head>
 <body>
     <div id="help-overlay"></div>
@@ -21,47 +21,47 @@
                 <div class="vfx-vignette"></div>
             </div>
             <div id="alert-banner">NO MOVES LEFT</div>
-            <div id="top-hud" class="w-full max-w-5xl glass-panel flex items-center justify-between shrink-0">
+            <div id="top-hud" class="w-full max-w-5xl glass-panel shrink-0">
                 <details id="title-accordion" class="relative">
-                    <summary id="title-accordion-toggle" aria-label="タイトルを表示" class="glass-panel flex items-center gap-2 cursor-pointer select-none">
+                    <summary id="title-accordion-toggle" aria-label="メニューを表示" aria-expanded="false" class="glass-panel flex items-center gap-2 cursor-pointer select-none">
                         <span class="text-sky-300">⚗</span>
-                        <span class="hidden sm:inline text-[10px] font-black tracking-[0.18em] text-slate-300">ABYSS</span>
+                        <span class="text-[10px] font-black tracking-[0.18em] text-slate-300">ABYSS</span>
                         <span class="text-[9px] text-slate-500 accordion-chevron">▼</span>
                     </summary>
                     <div id="title-accordion-panel" class="glass-panel">
                         <div class="text-[9px] text-slate-400 uppercase tracking-[0.35em]" id="ui-subtitle">錬金術の深淵</div>
                         <div class="text-xl font-black tracking-tight leading-none bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent" id="ui-title">Abyss Alchemy</div>
-                        <div class="text-[9px] text-slate-500 mt-2">Water Sort Rogue</div>
+                        <div class="text-[9px] text-slate-500 mt-1">Water Sort Rogue</div>
+                        <nav id="title-menu-actions" aria-label="Game menu">
+                            <button id="btn-mutations" title="Status" class="title-menu-button text-sky-300 border-sky-500/30">
+                                <span>🧬</span><span id="btn-mutations-text">Status</span>
+                            </button>
+                            <button id="btn-retire" title="Retire" class="title-menu-button text-rose-300 border-rose-500/30">
+                                <span>🏳️</span><span id="btn-retire-text">Retire</span>
+                            </button>
+                            <button id="btn-palette" title="Palette" class="title-menu-button text-yellow-300 border-yellow-500/30">
+                                <span>🎨</span><span id="btn-palette-text">Pallet</span>
+                            </button>
+                            <button id="btn-help" title="Help" aria-controls="help-overlay" aria-expanded="false" class="title-menu-button">
+                                <span>?</span><span id="btn-help-text">Help</span>
+                            </button>
+                        </nav>
                     </div>
                 </details>
-                <div class="flex items-center gap-1.5">
-                    <button id="btn-mutations" title="Status" class="w-9 h-9 md:w-auto md:h-9 md:px-3 flex items-center justify-center glass-panel font-bold text-[10px] uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all text-sky-300 border-sky-500/30">
-                        <span class="md:hidden">🧬</span><span class="hidden md:inline" id="btn-mutations-text">Status</span>
-                    </button>
-                    <button id="btn-retire" title="Retire" class="w-9 h-9 md:w-auto md:h-9 md:px-3 flex items-center justify-center glass-panel font-bold text-[10px] uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all text-rose-300 border-rose-500/30">
-                        <span class="md:hidden">🏳️</span><span class="hidden md:inline" id="btn-retire-text">Retire</span>
-                    </button>
-                    <button id="btn-palette" title="Palette" class="w-9 h-9 md:w-auto md:h-9 md:px-3 flex items-center justify-center glass-panel font-bold text-[10px] uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all text-yellow-300 border-yellow-500/30">
-                        <span class="md:hidden">🎨</span><span class="hidden md:inline" id="btn-palette-text">Pallet</span>
-                    </button>
-                    <button id="btn-help" title="Help" aria-controls="help-overlay" aria-expanded="false" class="w-9 h-9 md:w-auto md:h-9 md:px-3 flex items-center justify-center glass-panel font-bold text-[10px] uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all">
-                        <span class="md:hidden">?</span><span class="hidden md:inline" id="btn-help-text">Help</span>
-                    </button>
-                </div>
-            </div>
-            <div id="status-bar" class="w-full max-w-5xl flex gap-1.5 shrink-0">
-                <div id="goal-panel" class="flex-1 min-w-0 glass-panel border-l-2 border-l-sky-500/50 flex flex-col justify-center">
-                    <div class="font-black tracking-tight text-white truncate" id="ui-goal">—</div>
-                    <div class="font-bold truncate" id="ui-goal-sub">—</div>
-                </div>
-                <div id="pressure-panel" class="glass-panel border-l-2 border-l-rose-500/50 flex items-center gap-2">
-                    <div class="text-[8px] text-slate-400 uppercase tracking-[0.18em] shrink-0" id="ui-pressure-label">PRESSURE</div>
-                    <div class="flex-1 h-4 rounded-full bg-slate-800/80 overflow-hidden relative border border-white/5">
-                        <div id="ui-pressure-bar"
-                            class="h-full rounded-full bg-gradient-to-r from-sky-400 via-purple-400 to-rose-500 transition-all duration-300"
-                            style="width:0%"></div>
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span id="ui-pressure-sub" class="text-[9px] font-black text-white drop-shadow-md">0 / 16</span>
+                <div id="status-bar" class="flex gap-1.5 min-w-0">
+                    <div id="goal-panel" class="flex-1 min-w-0 border-l-2 border-l-sky-500/50 flex flex-col justify-center">
+                        <div class="font-black tracking-tight text-white truncate" id="ui-goal">—</div>
+                        <div class="font-bold truncate" id="ui-goal-sub">—</div>
+                    </div>
+                    <div id="pressure-panel" class="border-l-2 border-l-rose-500/50 flex items-center gap-2">
+                        <div class="text-[8px] text-slate-400 uppercase tracking-[0.18em] shrink-0" id="ui-pressure-label">PRESSURE</div>
+                        <div class="flex-1 h-4 rounded-full bg-slate-800/80 overflow-hidden relative border border-white/5">
+                            <div id="ui-pressure-bar"
+                                class="h-full rounded-full bg-gradient-to-r from-sky-400 via-purple-400 to-rose-500 transition-all duration-300"
+                                style="width:0%"></div>
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span id="ui-pressure-sub" class="text-[9px] font-black text-white drop-shadow-md">0 / 16</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -376,6 +376,6 @@
     <script src="./script/render.js?v=0.8.00-20260723a"></script>
     <script src="./script/actions.js?v=0.8.00-20260722e"></script>
     <script src="./script/screens.js?v=0.8.00-20260722e"></script>
-    <script src="./script/main.js?v=0.8.00-20260723a"></script>
+    <script src="./script/main.js?v=0.8.00-20260723b"></script>
 </body>
 </html>

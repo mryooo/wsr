@@ -1,4 +1,17 @@
 // main.js — イベントバインディングと初期化(必ず最後に読み込む)
+const titleAccordion = ui('title-accordion');
+function closeTitleMenu() {
+    if (titleAccordion) titleAccordion.open = false;
+}
+if (titleAccordion) {
+    titleAccordion.addEventListener('toggle', () => {
+        const toggle = ui('title-accordion-toggle');
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', String(titleAccordion.open));
+            toggle.setAttribute('aria-label', titleAccordion.open ? 'メニューを閉じる' : 'メニューを表示');
+        }
+    });
+}
 const btnStatusPerk = ui('btn-status-perk');
 if (btnStatusPerk) {
     btnStatusPerk.onclick = (e) => {
@@ -43,6 +56,7 @@ const btnPalette = ui('btn-palette');
 if(btnPalette){
     btnPalette.onclick = (e) => {
         e.stopPropagation();
+        closeTitleMenu();
         setPalette(currentPalette); 
         ui('palette-screen').classList.replace('hidden', 'flex');
     };
@@ -98,6 +112,9 @@ window.addEventListener('resize', () => {
     if (isHelpActive) closeHelpGuide();
 });
 document.addEventListener('mousedown', (e) => {
+    if (titleAccordion?.open && !e.target.closest('#title-accordion')) {
+        closeTitleMenu();
+    }
     const isTube = e.target.closest('.tube');
     const isSkillBtn = e.target.closest('.skill-btn');
     const isHUDControl = e.target.closest('button[id^="btn-"]');
@@ -127,12 +144,14 @@ const btnHelp = ui('btn-help');
 if (btnHelp) {
     btnHelp.onclick = (e) => {
         e.stopPropagation();
+        closeTitleMenu();
         if (isHelpActive) closeHelpGuide();
         else showTutorialBubbles();
     };
 }
 ui('btn-mutations').onclick = (e) => {
     e.stopPropagation();
+    closeTitleMenu();
     openMutationsScreen();
 };
 ui('mutations-close').onclick = (e) => {
@@ -143,6 +162,7 @@ const btnRetire = ui('btn-retire');
 if(btnRetire){
     btnRetire.onclick = (e) => {
         e.stopPropagation();
+        closeTitleMenu();
         const msg = currentLang === 'ja' 
             ? "探索を諦めますか？\n(HPが0になりゲームオーバーになります)" 
             : "Give up exploration?\n(HP becomes 0 and Game Over)";

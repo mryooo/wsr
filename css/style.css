@@ -286,13 +286,18 @@ body {
     margin-bottom: var(--safe-area-bottom);
 }
 #top-hud {
-    min-height: 44px;
-    padding: 4px 7px;
-    margin-bottom: 4px;
+    min-height: 42px;
+    padding: 3px 5px;
+    margin-bottom: 2px;
     border-radius: 12px;
     position: relative;
     z-index: 160;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: stretch;
+    gap: 5px;
 }
+#title-accordion { align-self: center; }
 #title-accordion > summary {
     list-style: none;
     height: 34px;
@@ -307,36 +312,61 @@ body {
     top: calc(100% + 7px);
     left: 0;
     width: 240px;
-    padding: 14px;
+    padding: 13px;
     border-color: rgba(56, 189, 248, .3);
     box-shadow: 0 18px 45px rgba(0, 0, 0, .7);
     animation: title-panel-in .18s ease-out;
 }
+#title-menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 11px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(148, 163, 184, .15);
+}
+.title-menu-button {
+    width: 100%;
+    min-height: 36px;
+    padding: 0 11px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 8px;
+    background: rgba(15,23,42,.72);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.title-menu-button:hover { background: rgba(255,255,255,.07); }
+.title-menu-button:active { transform: scale(.98); }
 @keyframes title-panel-in {
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
 }
 #status-bar {
-    min-height: 42px;
-    margin-bottom: 3px;
-    position: relative;
-    z-index: 150;
+    min-height: 36px;
+    width: 100%;
 }
-#goal-panel { padding: 4px 10px; border-radius: 11px; }
+#goal-panel { padding: 2px 8px; border-radius: 8px; background: rgba(2,6,23,.24); }
 #ui-goal { font-size: 12px; line-height: 1.25; }
 #ui-goal-sub { font-size: 10px; line-height: 1.25; }
 #pressure-panel {
-    width: 245px;
-    padding: 4px 10px;
-    border-radius: 11px;
+    width: min(245px, 32vw);
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: rgba(2,6,23,.24);
 }
 #board-area { margin-top: 0 !important; margin-bottom: 0 !important; }
 #skills-container {
-    height: 66px;
-    min-height: 66px;
-    max-height: 66px;
-    margin: 2px 0;
-    padding: 9px 12px;
+    height: 58px;
+    min-height: 58px;
+    max-height: 58px;
+    margin: 1px 0;
+    padding: 5px 10px;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -642,15 +672,18 @@ body {
 .boss-supply-card:hover { transform: translateY(-4px); border-color: rgba(251, 191, 36, .7); background: rgba(120, 53, 15, .18); }
 @media (max-width: 640px) {
     #game-container { padding: 4px 5px calc(var(--safe-area-bottom) + 4px); }
-    #top-hud { min-height: 42px; padding: 3px 5px; margin-bottom: 3px; }
-    #status-bar { min-height: 46px; gap: 4px; margin-bottom: 2px; }
-    #goal-panel { padding: 4px 7px; }
-    #ui-goal { font-size: 11px; }
-    #ui-goal-sub { font-size: 9px; }
-    #pressure-panel { width: 126px; padding: 5px 7px; }
+    #top-hud { min-height: 40px; padding: 2px 3px; margin-bottom: 1px; gap: 3px; }
+    #title-accordion > summary { width: 42px; padding: 0 7px; gap: 4px; }
+    #title-accordion > summary span:nth-child(2) { display: none; }
+    #title-accordion-panel { width: min(230px, calc(100vw - 18px)); }
+    #status-bar { min-height: 34px; gap: 3px; }
+    #goal-panel { padding: 2px 5px; }
+    #ui-goal { font-size: 10px; }
+    #ui-goal-sub { font-size: 8px; }
+    #pressure-panel { width: 104px; padding: 3px 5px; }
     #ui-pressure-label { display: none; }
-    #skills-container { padding: 9px 8px; margin: 1px 0; }
-    #bottom-hud { padding: 4px 5px; }
+    #skills-container { height: 56px; min-height: 56px; max-height: 56px; padding: 4px 7px; margin: 0; }
+    #bottom-hud { padding: 3px 4px; }
     .compact-status-row { grid-template-columns: auto auto minmax(58px, 1fr) auto auto; gap: 3px; }
     .compact-stat { height: 25px; padding: 0 6px; font-size: 9px; }
     .compact-hp { height: 25px; }
