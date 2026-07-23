@@ -360,7 +360,12 @@ body {
     border-radius: 8px;
     background: rgba(2,6,23,.24);
 }
-#board-area { margin-top: 0 !important; margin-bottom: 0 !important; }
+#board-area {
+    min-height: 0;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    z-index: 10;
+}
 #skills-container {
     height: 58px;
     min-height: 58px;
@@ -380,10 +385,14 @@ body {
     mask-image: none;
     position: relative;
     isolation: isolate;
-    z-index: 40;
+    z-index: 80;
     cursor: grab;
     scrollbar-width: none;
     -ms-overflow-style: none;
+}
+#skills-container .skill-btn > .badge-count {
+    top: -5px !important;
+    right: -2px !important;
 }
 #skills-container:active { cursor: grabbing; }
 #skills-container::-webkit-scrollbar { display: none; width: 0; height: 0; }
@@ -575,6 +584,8 @@ body {
     overscroll-behavior-x: none;
     contain: layout paint;
     touch-action: pan-x;
+    position: relative;
+    z-index: 0;
 }
 #board-scroll-area:active {
     cursor: grabbing;
