@@ -85,9 +85,14 @@ slider.addEventListener('mousemove', (e) => {
         isDragging = true;
     }
 });
+let boardScrollFrame = 0;
 slider.addEventListener('scroll', () => {
-    checkInfiniteScrollLoop();
-});
+    if (boardScrollFrame) return;
+    boardScrollFrame = requestAnimationFrame(() => {
+        boardScrollFrame = 0;
+        checkInfiniteScrollLoop();
+    });
+}, { passive: true });
 window.addEventListener('resize', () => {
     requestAnimationFrame(adjustBoardScale);
     if (isHelpActive) closeHelpGuide();

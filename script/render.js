@@ -1,5 +1,12 @@
 // render.js — 描画(盤面、HUD、スキル欄、アニメーション、無限スクロール)
-const CLONE_PADDING = 30; 
+// One complete copy on each side is sufficient for a seamless loop.  The old
+// fixed padding of 30 created up to 70 fully-painted tubes (and every liquid
+// segment inside them) on mobile.
+function getScrollCloneCount() {
+    return gameState.tubes.length;
+}
+let boardLayoutFrame = 0;
+let lastSkillsRenderKey = '';
 function normalizeWaterSegmentStyles(water) {
     if (!water) return;
     water.querySelectorAll('.water-segment').forEach(seg => {
@@ -36,21 +43,13 @@ function renderBoard(resetScroll = false){
     const bossMode = isBossArena();
     boardArea.classList.toggle('boss-mode', bossMode);
     boardArea.classList.toggle('anomaly-mode', !!gameState.anomaly);
-    slider.classList.toggle('boss-scroll', bossMode);
-    tubesContainer.classList.toggle('boss-layout', bossMode);
-    if (bossMode) {
-        for(let i = 0; i < totalTubes; i++) renderList.push({ idx: i, isClone: false, key: `boss-${i}` });
-    } else {
-        for(let i = 0; i < CLONE_PADDING; i++) {
-            let idx = (totalTubes - CLONE_PADDING + i) % totalTubes;
-            if (idx < 0) idx += totalTubes;
-            renderList.push({ idx: idx, isClone: true, key: `clone-pre-${i}` });
-        }
-        for(let i = 0; i < totalTubes; i++) renderList.push({ idx: i, isClone: false, key: `real-${i}` });
-        for(let i = 0; i < CLONE_PADDING; i++) {
-            const idx = i % totalTubes;
-            renderList.push({ idx: idx, isClone: true, key: `clone-post-${i}` });
-        }
+    const cloneCount = getScrollCloneCount();
+    for(let i = 0; i < cloneCount; i++) {
+        renderList.push({ idx: i % totalTubes, isClone: true, key: `clone-pre-${i}` });
+    }
+    for(let i = 0; i < totalTubes; i++) renderList.push({ idx: i, isClone: false, key: `real-${i}` });
+    for(let i = 0; i < cloneCount; i++) {
+        renderList.push({ idx: i % totalTubes, isClone: true, key: `clone-post-${i}` });
     }
     const existingTubes = Array.from(tubesContainer.children);
     const existingMap = new Map();
@@ -58,16 +57,18 @@ function renderBoard(resetScroll = false){
         if (el.dataset.renderKey) existingMap.set(el.dataset.renderKey, el);
     });
     const newlyCompleted = new Set();
-    const processedKeys = new Set();
     renderList.forEach((item, loopIndex) => {
         const i = item.idx;
         const segments = gameState.tubes[i];
         if (!segments) return;
-        processedKeys.add(item.key);
         let tube = existingMap.get(item.key);
         if (!tube) {
             tube = document.createElement('div');
             tube.className = 'tube';
+            tube.onclick = () => {
+                if (isDragging) return;
+                handleTubeClick(Number(tube.dataset.idx));
+            };
             const cap = document.createElement('div');
             cap.className = 'tube-cap';
             tube.appendChild(cap);
@@ -75,10 +76,6 @@ function renderBoard(resetScroll = false){
             water.className = 'water-container';
             tube.appendChild(water);
         }
-        tube.onclick = (e) => {
-            if(isDragging) return;
-            handleTubeClick(i); 
-        };
         if (item.isClone) {
             tube.classList.add('is-clone');
         } else {
@@ -131,7 +128,7 @@ function renderBoard(resetScroll = false){
         const ghostState = (gameState.extractorHeldColor && i === gameState.extractorSourceIdx) ? ("_ghost_" + gameState.extractorHeldColor + "_" + (gameState.targetMode || "pipette")) : "";
         const currentStateStr = JSON.stringify(segments) + ghostState;
         if (water.dataset.lastState !== currentStateStr) {
-            water.innerHTML = '';
+            const segmentFragment = document.createDocumentFragment();
             let displaySegments = [...segments];
             if (gameState.extractorHeldColor !== null && i === gameState.extractorSourceIdx) {
                 const isBottom = (gameState.targetMode === 'quantum_pipette' || (gameState.pipetteMode && !gameState.targetMode));
@@ -155,14 +152,11 @@ function renderBoard(resetScroll = false){
                 if (actualKey === 'K') {
                     seg.classList.add('void-ink');
                 }
-                water.appendChild(seg);
+                segmentFragment.appendChild(seg);
             });
+            water.replaceChildren(segmentFragment);
             water.dataset.lastState = currentStateStr;
         }
-        // Animation can return a tube to the same serialized state (for example,
-        // pouring Black and receiving Black corruption immediately afterward).
-        // In that case the keyed DOM is reused, so always clear transient styles.
-        normalizeWaterSegmentStyles(water);
     });
     while (tubesContainer.children.length > renderList.length) {
         tubesContainer.lastChild.remove();
@@ -178,7 +172,8 @@ function renderBoard(resetScroll = false){
     }
     renderSkills();
     renderBossHUD();
-    requestAnimationFrame(() => {
+    cancelAnimationFrame(boardLayoutFrame);
+    boardLayoutFrame = requestAnimationFrame(() => {
         adjustBoardScale();
         if (resetScroll) {
             initInfiniteScroll();
@@ -195,11 +190,27 @@ function adjustBoardScale() {
     const targetH = availableH * 0.95; 
     let scale = targetH / contentH;
     scale = Math.min(Math.max(scale, 0.3), 1.5);
-    tubesContainer.style.transform = `scale(${scale})`;
+    const nextTransform = `scale(${scale})`;
+    if (tubesContainer.style.transform !== nextTransform) {
+        tubesContainer.style.transform = nextTransform;
+    }
 }
 function renderSkills(){
-    skillsContainer.innerHTML = '';
     const isHoldingColor = gameState.extractorHeldColor !== null;
+    const renderKey = JSON.stringify([
+        gameState.inventory,
+        gameState.temporaryInventory,
+        gameState.pipetteMode,
+        gameState.targetMode,
+        gameState.pendingSkill,
+        gameState.extractorHeldColor,
+        isHoldingColor,
+        currentLang,
+        currentPalette
+    ]);
+    if (renderKey === lastSkillsRenderKey) return;
+    lastSkillsRenderKey = renderKey;
+    const fragment = document.createDocumentFragment();
     Object.keys(gameState.inventory).forEach(key => {
         const count = gameState.inventory[key];
         const def = ITEM_REGISTRY[key]; 
@@ -234,9 +245,10 @@ function renderSkills(){
             btn.onclick = () => useItem(key);
             btn.onmouseenter = () => showGlobalTooltip(btn, name, desc);
             btn.onmouseleave = () => hideGlobalTooltip();
-            skillsContainer.appendChild(btn);
+            fragment.appendChild(btn);
         }
     });
+    skillsContainer.replaceChildren(fragment);
 }
 function showFloatText(tubeIdx, text, color = "#38bdf8") {
     const targetEl = tubeCenterEl(tubeIdx);
@@ -376,6 +388,7 @@ function animatePour(fromIdx, toIdx, colorKey, count){
         setTimeout(() => {
             toEls.forEach(toEl => {
                 const toWater = toEl.querySelector('.water-container');
+                const incomingSegments = [];
                 for(let i=0; i<count; i++){
                     const newSeg = document.createElement('div'); 
                     newSeg.className = 'water-segment'; 
@@ -386,10 +399,15 @@ function animatePour(fromIdx, toIdx, colorKey, count){
                     newSeg.style.height = '0px'; 
                     newSeg.style.opacity = '0.5'; 
                     toWater.appendChild(newSeg); 
-                    void newSeg.offsetWidth;
+                    incomingSegments.push(newSeg);
+                }
+                // One layout flush per destination tube, rather than one per
+                // liquid segment.
+                void toWater.offsetWidth;
+                incomingSegments.forEach(newSeg => {
                     newSeg.style.height = 'var(--segment-height)'; 
                     newSeg.style.opacity = '1';
-                }
+                });
             });
         }, 50);
         setTimeout(() => { 
@@ -641,10 +659,6 @@ function getBoardScale() {
 function initInfiniteScroll() {
     const slider = document.getElementById('board-scroll-area');
     const tubesContainer = document.getElementById('tubes-container');
-    if (isBossArena()) {
-        slider.scrollLeft = 0;
-        return;
-    }
     const tubeEl = tubesContainer.querySelector('.tube');
     if(!tubeEl) return;
     const style = window.getComputedStyle(tubeEl);
@@ -656,21 +670,20 @@ function initInfiniteScroll() {
     const scale = getBoardScale();
     const scaledItemWidth = rawItemWidth * scale;
     const totalTubes = gameState.tubes.length;
-    const scaledCloneWidth = scaledItemWidth * CLONE_PADDING;
+    const scaledCloneWidth = scaledItemWidth * getScrollCloneCount();
     const centerOfScreen = slider.clientWidth / 2;
     const firstTubeCenter = scaledCloneWidth + (scaledItemWidth / 2);
     const initialScrollPos = firstTubeCenter - centerOfScreen;
     slider.scrollLeft = Math.round(initialScrollPos);
 }
 function checkInfiniteScrollLoop() {
-    if (isBossArena()) return;
     if(!gameState.tubes.length) return;
     const slider = document.getElementById('board-scroll-area');
     const currentScroll = slider.scrollLeft;
     const scrollWidth = slider.scrollWidth;
     const clientWidth = slider.clientWidth;
     const maxScroll = scrollWidth - clientWidth;
-    const totalItems = gameState.tubeCount + (CLONE_PADDING * 2);
+    const totalItems = gameState.tubeCount + (getScrollCloneCount() * 2);
     const singleTubeWidth = scrollWidth / totalItems;
     const contentWidth = singleTubeWidth * gameState.tubeCount;
     const buffer = singleTubeWidth * 1.5;
