@@ -270,19 +270,16 @@ async function tryPour(fromIdx, toIdx) {
     gameState.busy = true;
     try {
         pushHistory();
-        const steadyHandActive = (hasPerk('steady_hand') && gameState.turnCount < getPerkLevel('steady_hand') * 3);
-        const momentumActive = (gameState.momentumTurns > 0);
-        let pressureImmune = steadyHandActive || momentumActive;
-        if (!steadyHandActive && momentumActive) {
+        const pressurePreview = getNextMovePressurePreview();
+        if (!pressurePreview.steadyHandActive && pressurePreview.momentumActive) {
             gameState.momentumTurns--;
         }
-        const nextTurn = gameState.turnCount + 1;
+        const nextTurn = pressurePreview.nextTurn;
         let isOverloaded = false;
-        if (!pressureImmune) {
-            const movePressure = PRESSURE_PER_POUR + getContractPressureForMove(nextTurn);
-            isOverloaded = addPressure(movePressure);
+        if (pressurePreview.movePressure > 0) {
+            isOverloaded = addPressure(pressurePreview.movePressure);
         }
-        const strainPressure = getOverdriveStrainPressure(nextTurn);
+        const strainPressure = pressurePreview.strainPressure;
         if (strainPressure > 0) {
             isOverloaded = addPressure(strainPressure) || isOverloaded;
             showFloatText(fromIdx, currentLang === 'ja' ? `暴走負荷 +${strainPressure}` : `STRAIN +${strainPressure}`, '#f472b6');

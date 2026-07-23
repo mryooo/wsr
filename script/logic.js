@@ -82,6 +82,30 @@ function getContractPressureForMove(nextTurn) {
     if (id === 'volatile' && nextTurn % 4 === 0) return 1;
     return 0;
 }
+function getNextMovePressurePreview() {
+    const nextTurn = gameState.turnCount + 1;
+    const steadyHandActive = hasPerk('steady_hand')
+        && gameState.turnCount < getPerkLevel('steady_hand') * 3;
+    const momentumActive = gameState.momentumTurns > 0;
+    const pressureImmune = steadyHandActive || momentumActive;
+    const movePressure = pressureImmune
+        ? 0
+        : PRESSURE_PER_POUR + getContractPressureForMove(nextTurn);
+    const strainPressure = getOverdriveStrainPressure(nextTurn);
+    const increase = movePressure + strainPressure;
+    const projected = gameState.pressure + increase;
+    return {
+        nextTurn,
+        steadyHandActive,
+        momentumActive,
+        pressureImmune,
+        movePressure,
+        strainPressure,
+        increase,
+        projected,
+        willOverload: projected >= gameState.pressureMax
+    };
+}
 function getAnomalyDefinition(id = gameState.anomaly?.id) {
     return id ? ANOMALY_DEFINITIONS[id] || null : null;
 }

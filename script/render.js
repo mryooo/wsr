@@ -540,11 +540,12 @@ function renderHUD(){
     }
     const curP = gameState.pressure;
     const maxP = gameState.pressureMax;
+    const pressurePreview = getNextMovePressurePreview();
     const pct = Math.round((curP / maxP) * 100);
     const pBar = ui('ui-pressure-bar'); 
     if(pBar){ 
         pBar.style.width = `${clamp(pct, 0, 100)}%`; 
-        if(curP >= maxP - 3){ 
+        if(pressurePreview.willOverload || curP >= maxP - 3){
             pBar.classList.remove('from-sky-400'); 
             pBar.classList.add('bg-rose-600'); 
         } else { 
@@ -554,15 +555,23 @@ function renderHUD(){
     }
     const pSubEl = ui('ui-pressure-sub');
     if (pSubEl) {
-        let displayText = `${curP} / ${maxP}`;
+        const preview = pressurePreview;
+        const dangerFull = preview.willOverload
+            ? ` <span class="pressure-danger">⚠ ${currentLang === 'ja' ? 'ダメージ' : 'DAMAGE'}</span>`
+            : '';
+        const dangerCompact = preview.willOverload ? ' ⚠' : '';
+        const fullText = `${curP} +${preview.increase} → ${preview.projected} / ${maxP}${dangerFull}`;
+        const compactText = `${curP} +${preview.increase} → ${preview.projected}${dangerCompact}`;
         const steadyHandLv = getPerkLevel('steady_hand');
         const steadyHandTurns = Math.max(0, (steadyHandLv * 3) - gameState.turnCount);
         const totalImmuneTurns = gameState.momentumTurns + steadyHandTurns;
-        if (totalImmuneTurns > 0) {
-            pSubEl.innerHTML = `${displayText} <span class="text-sky-400 font-black ml-1" style="text-shadow: -1px -1px 0 #024, 1px -1px 0 #024, -1px 1px 0 #024, 1px 1px 0 #024;">(${totalImmuneTurns})</span>`;
-        } else {
-            pSubEl.textContent = displayText;
-        }
+        const immuneText = totalImmuneTurns > 0
+            ? `<span class="pressure-immune">(${totalImmuneTurns})</span>`
+            : '';
+        pSubEl.innerHTML = `<span class="pressure-preview-full">${fullText}</span><span class="pressure-preview-compact">${compactText}</span>${immuneText}`;
+        pSubEl.title = currentLang === 'ja'
+            ? `現在 ${curP}、次の1手で +${preview.increase}、到達予定 ${preview.projected} / ${maxP}${preview.willOverload ? '（ダメージ発生）' : ''}`
+            : `Current ${curP}, next move +${preview.increase}, projected ${preview.projected} / ${maxP}${preview.willOverload ? ' (damage)' : ''}`;
     }
     let undoCost = `✨${UNDO_COST}`;
     if (gameState.refluxUses > 0) {

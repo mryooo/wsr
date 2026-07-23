@@ -474,6 +474,17 @@ body {
     letter-spacing: 0.05em;
     text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
+.pressure-preview-compact { display: none; }
+.pressure-danger {
+    color: #fecaca;
+    font-weight: 900;
+}
+.pressure-immune {
+    margin-left: 4px;
+    color: #38bdf8;
+    font-weight: 900;
+    text-shadow: -1px -1px 0 #024, 1px -1px 0 #024, -1px 1px 0 #024, 1px 1px 0 #024;
+}
 /* バーの高さを少し太くして文字を読みやすくする場合（任意） */
 #ui-pressure-bar-container {
     height: 20px;
@@ -693,6 +704,9 @@ body {
     #ui-goal-sub { font-size: 8px; }
     #pressure-panel { width: 104px; padding: 3px 5px; }
     #ui-pressure-label { display: none; }
+    .pressure-preview-full { display: none; }
+    .pressure-preview-compact { display: inline; }
+    .pressure-immune { margin-left: 2px; }
     #skills-container { height: 56px; min-height: 56px; max-height: 56px; padding: 4px 7px; margin: 0; }
     #bottom-hud { padding: 3px 4px; }
     .compact-status-row { grid-template-columns: auto auto minmax(58px, 1fr) auto auto; gap: 3px; }
