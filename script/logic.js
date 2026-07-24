@@ -495,7 +495,7 @@ function getDiscountedCost(base) {
     }
     return Math.max(1, Math.floor(cost));
 }
-function acquirePerk(id){ 
+function acquirePerk(id, saveImmediately = true){
     if (getRawPerkLevel(id) >= PERK_LEVEL_CAP) return;
     if(!gameState.perks[id]) gameState.perks[id] = 0; 
     gameState.perks[id]++; 
@@ -512,7 +512,7 @@ function acquirePerk(id){
         showToast(currentLang === 'ja' ? '逆流制御チャージ！' : 'Reflux Charged!', 'purple');
     }
     renderHUD(); 
-    saveGame(); 
+    if (saveImmediately) saveGame();
 }
 function getValidRandomConsumable() {
     const keys = Object.keys(ITEMS).filter(x => ITEMS[x].type === 'consumable');

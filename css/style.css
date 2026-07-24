@@ -188,6 +188,30 @@ body {
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     border-color: rgba(56,189,248,0.35);
 }
+.action-processing {
+    opacity: 0.78 !important;
+    cursor: progress !important;
+    pointer-events: none !important;
+}
+.shop-btn.action-processing,
+#continue-btn[aria-busy="true"],
+.contract-card.action-processing {
+    position: relative;
+    overflow: hidden;
+}
+.shop-btn.action-processing::after,
+#continue-btn[aria-busy="true"]::after,
+.contract-card.action-processing::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,.16) 48%, transparent 76%);
+    transform: translateX(-100%);
+    animation: action-progress-sheen .65s linear infinite;
+}
+@keyframes action-progress-sheen {
+    to { transform: translateX(100%); }
+}
 .rarity-common{ border-left: 8px solid var(--rarity-common); }
 .rarity-rare{ border-left: 8px solid var(--rarity-rare); }
 .rarity-epic{ border-left: 8px solid var(--rarity-epic); }

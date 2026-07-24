@@ -31,6 +31,9 @@ function onLevelClear(){
         showToast(currentLang === 'ja' ? `深淵脈動を検知：${def.name.ja}` : `Abyssal Pulse detected: ${def.name.en}`, 'rose');
         if (typeof triggerAbyssVfx === 'function') triggerAbyssVfx('warning', def.color);
     }
+    // A cleared floor cannot be undone. Dropping the snapshots here keeps
+    // synchronous shop saves small, especially on long mobile sessions.
+    gameState.history = [];
     saveGame();
     setTimeout(() => {
         gameState.busy = false;

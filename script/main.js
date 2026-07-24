@@ -179,6 +179,7 @@ if(undoBtn) undoBtn.onclick = (e) => {
     tryUndo();
 };
 ui('reroll-btn').onclick = () => {
+    if (shopPurchasePending || perkAdvancePending) return;
     if (gameState.rerollCoupons > 0) {
         gameState.rerollCoupons--;
     } else if (gameState.essence >= 5) {
@@ -187,10 +188,8 @@ ui('reroll-btn').onclick = () => {
         return;
     }
     gameState.currentShopOffers = null; 
-    shopCards.innerHTML = '';
     gameState.currentShopOffers = generateShopOffers();
-    gameState.currentShopOffers.forEach(item => shopCards.appendChild(buildShopCard(item)));
-    updateShopButtons();
+    renderCurrentShopOffers();
     refreshRerollUI();
     saveGame();
 };

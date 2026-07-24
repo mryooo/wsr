@@ -1,4 +1,44 @@
 // screens.js — 画面/モーダル(イベント、ショップ、Perk選択、ステータス、ヘルプ、パレット)
+let perkAdvancePending = false;
+let shopPurchasePending = false;
+let contractSelectionPending = false;
+
+function runAfterUiPaint(callback) {
+    requestAnimationFrame(() => requestAnimationFrame(callback));
+}
+
+function updateContinueActionState() {
+    if (!continueBtn) return;
+    const enabled = !!gameState.pendingPerkId && !perkAdvancePending && !shopPurchasePending;
+    continueBtn.disabled = !enabled;
+    continueBtn.classList.toggle('opacity-50', !enabled);
+    continueBtn.classList.toggle('cursor-not-allowed', !enabled);
+    continueBtn.setAttribute('aria-busy', String(perkAdvancePending));
+}
+
+function renderCurrentShopOffers() {
+    if (!shopCards) return;
+    const fragment = document.createDocumentFragment();
+    (gameState.currentShopOffers || []).forEach(item => fragment.appendChild(buildShopCard(item)));
+    shopCards.replaceChildren(fragment);
+    updateShopButtons();
+}
+
+function setShopControlsPending(active, activeButton = null) {
+    document.querySelectorAll('.shop-btn').forEach(button => {
+        button.disabled = active || button.closest('.shop-card')?.dataset.locked === '1';
+    });
+    if (activeButton) {
+        activeButton.classList.toggle('action-processing', active);
+        activeButton.setAttribute('aria-busy', String(active));
+    }
+    if (rerollBtn) {
+        rerollBtn.disabled = active;
+        rerollBtn.classList.toggle('opacity-50', active);
+        rerollBtn.classList.toggle('cursor-not-allowed', active);
+    }
+    updateContinueActionState();
+}
 function setPalette(mode) {
     if (!PALETTES_DATA[mode]) return;
     currentPalette = mode;
@@ -96,6 +136,7 @@ function openContractScreen(nextFloorNumber, onComplete) {
         return;
     }
     contractContinuation = onComplete;
+    contractSelectionPending = false;
     setText('contract-title', currentLang === 'ja' ? `第${nextFloorNumber}階層からの契約` : `Contract from Floor ${nextFloorNumber}`);
     setText('contract-desc', currentLang === 'ja'
         ? '次の5階層に適用する危険度を選択してください。高危険度ほど報酬と深淵注目度が増加します。'
@@ -112,15 +153,25 @@ function openContractScreen(nextFloorNumber, onComplete) {
             <div class="text-[11px] text-slate-300 mt-2 leading-relaxed">${currentLang === 'ja' ? def.desc.ja : def.desc.en}</div>
             <div class="text-[10px] font-black mt-4" style="color:${def.color}">${currentLang === 'ja' ? `報酬 ${reward}%` : `REWARD ${reward}%`}</div>`;
         card.onclick = () => {
-            gameState.routeContract = {id: def.id, startFloor: nextFloorNumber, endFloor: nextFloorNumber + 4};
-            gameState.contractHistory = [...(gameState.contractHistory || []), {id: def.id, startFloor: nextFloorNumber}].slice(-12);
-            contractScreen.classList.replace('flex', 'hidden');
-            showToast(currentLang === 'ja' ? `${def.name.ja}を締結` : `${def.name.en} signed`, def.id === 'forbidden' ? 'rose' : def.id === 'volatile' ? 'yellow' : 'sky');
-            if (typeof triggerAbyssVfx === 'function') triggerAbyssVfx('contract', def.color);
-            saveGame();
-            const continuation = contractContinuation;
-            contractContinuation = null;
-            if (continuation) continuation();
+            if (contractSelectionPending) return;
+            contractSelectionPending = true;
+            contractChoices.querySelectorAll('button').forEach(button => {
+                button.disabled = true;
+                button.classList.toggle('action-processing', button === card);
+            });
+            card.setAttribute('aria-busy', 'true');
+            runAfterUiPaint(() => {
+                gameState.routeContract = {id: def.id, startFloor: nextFloorNumber, endFloor: nextFloorNumber + 4};
+                gameState.contractHistory = [...(gameState.contractHistory || []), {id: def.id, startFloor: nextFloorNumber}].slice(-12);
+                contractScreen.classList.replace('flex', 'hidden');
+                const continuation = contractContinuation;
+                contractContinuation = null;
+                if (continuation) continuation();
+                else saveGame();
+                showToast(currentLang === 'ja' ? `${def.name.ja}を締結` : `${def.name.en} signed`, def.id === 'forbidden' ? 'rose' : def.id === 'volatile' ? 'yellow' : 'sky');
+                if (typeof triggerAbyssVfx === 'function') triggerAbyssVfx('contract', def.color);
+                contractSelectionPending = false;
+            });
         };
         contractChoices.appendChild(card);
     });
@@ -151,7 +202,7 @@ function openOverdriveScreen(perk) {
                 node.classList.toggle('selected-perk', selected);
                 node.style.opacity = selected ? '1' : '0.4';
             });
-            continueBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            updateContinueActionState();
             showToast(currentLang === 'ja' ? `${mode.name.ja}を予約` : `${mode.name.en} selected`, mode.id === 'surge' ? 'pink' : 'cyan');
         };
         overdriveChoices.appendChild(card);
@@ -543,36 +594,57 @@ function buildShopCard(offer) {
     const btn = card.querySelector('.shop-btn');
     btn.disabled = disabled;
     btn.onclick = () => {
-        if (btn.disabled) return;
+        if (btn.disabled || shopPurchasePending || perkAdvancePending) return;
         const latestCount = gameState.inventory[rawId] || 0;
         if (!isTool && latestCount >= LIMIT) {
             showToast(currentLang === 'ja' ? "これ以上持てません" : "Max capacity reached", 'rose');
-            openPerkScreen(false);
+            btn.disabled = true;
             return;
         }
-        gameState.essence -= cost;
-        offer.purchased = true;
-        if (offer.kind === 'instant') {
-            const result = itemDef.effect(gameState);
-            showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'emerald');
-            if(result.isMystery) {
-                gameState.currentShopOffers = null;
-                openPerkScreen(false);
-                renderHUD();
-                return;
-            }
-        } else {
-            if (itemDef.type === 'tool') {
-                gameState.inventory[rawId] = 1;
-            } else {
-                gameState.inventory[rawId] = (gameState.inventory[rawId] || 0) + 1;
-            }
-            showToast(currentLang === 'ja' ? "購入しました" : "Purchased", 'emerald');
+        if (gameState.essence < cost) {
+            updateShopButtons();
+            return;
         }
-        saveGame();
-        refreshRerollUI();
-        renderHUD();
-        openPerkScreen(false);
+        shopPurchasePending = true;
+        setShopControlsPending(true, btn);
+        btn.textContent = currentLang === 'ja' ? '購入中…' : 'BUYING…';
+        runAfterUiPaint(() => {
+            let refreshAllOffers = false;
+            try {
+                const currentCount = gameState.inventory[rawId] || 0;
+                if (gameState.essence < cost || (!isTool && currentCount >= LIMIT)) return;
+                gameState.essence -= cost;
+                offer.purchased = true;
+                if (offer.kind === 'instant') {
+                    const result = itemDef.effect(gameState);
+                    showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'emerald');
+                    if (result.isMystery) {
+                        gameState.currentShopOffers = generateShopOffers();
+                        refreshAllOffers = true;
+                    }
+                } else {
+                    if (itemDef.type === 'tool') {
+                        gameState.inventory[rawId] = 1;
+                    } else {
+                        gameState.inventory[rawId] = (gameState.inventory[rawId] || 0) + 1;
+                    }
+                    showToast(currentLang === 'ja' ? "購入しました" : "Purchased", 'emerald');
+                }
+                refreshRerollUI();
+                renderHUD();
+                if (refreshAllOffers) {
+                    renderCurrentShopOffers();
+                } else {
+                    card.replaceWith(buildShopCard(offer));
+                }
+                saveGame();
+            } finally {
+                shopPurchasePending = false;
+                setShopControlsPending(false);
+                updateShopButtons();
+                updateContinueActionState();
+            }
+        });
     };
     return card;
 }
@@ -708,6 +780,8 @@ function openMutationsScreen() {
     mutationsScreen.classList.replace('hidden', 'flex');
 }
 function openPerkScreen(isDeath){
+    perkAdvancePending = false;
+    shopPurchasePending = false;
     perkScreen.classList.remove('hidden');
     const bossVictory = !isDeath && !!gameState.bossState?.defeated;
     ui('perk-title').textContent = isDeath ? t('gameOver') : (bossVictory ? (currentLang === 'ja' ? 'ボス撃破' : 'BOSS PURGED') : t('victory'));
@@ -732,24 +806,35 @@ function openPerkScreen(isDeath){
     if (shopHeader) shopHeader.classList.remove('hidden');
     continueBtn.style.display = 'block'; 
     continueBtn.textContent = t('continue');
-    if (gameState.pendingPerkId) {
-        continueBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-    } else {
-        continueBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    }
     continueBtn.onclick = () => { 
         if(!gameState.pendingPerkId) {
             showToast(currentLang==='ja'?'スキルを選択してください':'Select a Mutation!', 'rose');
             return;
         }
-        acquirePerk(gameState.pendingPerkId);
-        perkScreen.classList.add('hidden'); 
-        const nextFloorNumber = gameState.floor + 1;
-        if (shouldOfferRouteContract(nextFloorNumber)) {
-            openContractScreen(nextFloorNumber, () => nextFloor());
-        } else {
-            nextFloor();
-        }
+        if (perkAdvancePending || shopPurchasePending) return;
+        perkAdvancePending = true;
+        continueBtn.textContent = currentLang === 'ja' ? '次階層を準備中…' : 'PREPARING…';
+        updateContinueActionState();
+        runAfterUiPaint(() => {
+            try {
+                // nextFloor() persists the completed selection, avoiding a
+                // duplicate synchronous save in the same interaction.
+                acquirePerk(gameState.pendingPerkId, false);
+                perkScreen.classList.add('hidden');
+                const nextFloorNumber = gameState.floor + 1;
+                if (shouldOfferRouteContract(nextFloorNumber)) {
+                    openContractScreen(nextFloorNumber, () => nextFloor());
+                } else {
+                    nextFloor();
+                }
+            } catch (error) {
+                console.error('Floor transition error:', error);
+                perkAdvancePending = false;
+                continueBtn.textContent = t('continue');
+                updateContinueActionState();
+                showToast(currentLang === 'ja' ? '次階層の準備に失敗しました' : 'Failed to prepare next floor', 'rose');
+            }
+        });
     };
     shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"; 
     shopCards.className = "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3";
@@ -758,14 +843,15 @@ function openPerkScreen(isDeath){
         gameState.currentPerkChoices = rollPerkChoices((bossVictory ? 4 : 3) + contractBonusChoice);
         gameState.pendingPerkId = null; 
         gameState.pendingOverdriveMode = null;
-        continueBtn.classList.add('opacity-50', 'cursor-not-allowed'); 
     }
     updateShopPriceUI();
     if (!gameState.currentShopOffers) gameState.currentShopOffers = generateShopOffers();
-    gameState.currentPerkChoices.forEach(p => perkCards.appendChild(buildPerkCard(p))); 
+    const perkFragment = document.createDocumentFragment();
+    gameState.currentPerkChoices.forEach(p => perkFragment.appendChild(buildPerkCard(p)));
+    perkCards.appendChild(perkFragment);
     refreshRerollUI();
-    gameState.currentShopOffers.forEach(item => shopCards.appendChild(buildShopCard(item))); 
-    updateShopButtons();
+    renderCurrentShopOffers();
+    updateContinueActionState();
     saveGame();
 }
 function buildPerkCard(perk){
@@ -825,7 +911,7 @@ function buildPerkCard(perk){
         }); 
         card.style.opacity = '1'; 
         card.classList.add('selected-perk');
-        continueBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        updateContinueActionState();
     };
     return card;
 }
