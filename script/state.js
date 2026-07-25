@@ -88,8 +88,21 @@ function loadGame() {
 function clearSave() {
     localStorage.removeItem(SAVE_KEY);
 }
+function getResumableSaveData() {
+    try {
+        const data = localStorage.getItem(SAVE_KEY);
+        if (!data) return null;
+        const savedState = JSON.parse(data);
+        if (!savedState || typeof savedState !== 'object' || Array.isArray(savedState)) return null;
+        const savedHp = Number(savedState.hp);
+        return Number.isFinite(savedHp) && savedHp > 0 ? savedState : null;
+    } catch (e) {
+        console.warn("Invalid save data:", e);
+        return null;
+    }
+}
 function hasSaveData() {
-    return !!localStorage.getItem(SAVE_KEY);
+    return getResumableSaveData() !== null;
 }
 const gameState = {
     floor: 1,

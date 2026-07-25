@@ -193,7 +193,10 @@ ui('reroll-btn').onclick = () => {
     refreshRerollUI();
     saveGame();
 };
-ui('start-run-btn').onclick = startNewRun;
+ui('start-run-btn').onclick = () => {
+    if (hasSaveData() && !confirm(t('newRunSaveWarning'))) return;
+    startNewRun();
+};
 ui('continue-run-btn').onclick = () => { startScreen.classList.add('hidden'); loadGame(); };
 document.addEventListener('click', (e) => {
     if (!gameState.extractorHeldColor) return;
