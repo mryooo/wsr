@@ -194,6 +194,30 @@ function adjustBoardScale() {
     if (tubesContainer.style.transform !== nextTransform) {
         tubesContainer.style.transform = nextTransform;
     }
+    updateBoardScrollMode(scale);
+}
+function updateBoardScrollMode(scale = getBoardScale()) {
+    const slider = document.getElementById('board-scroll-area');
+    const tubeEl = tubesContainer?.querySelector('.tube:not(.is-clone)');
+    if (!slider || !tubesContainer || !tubeEl || !gameState.tubes.length) return;
+    const tubeStyle = window.getComputedStyle(tubeEl);
+    const containerStyle = window.getComputedStyle(tubesContainer);
+    const itemWidth = tubeEl.offsetWidth
+        + (parseFloat(tubeStyle.marginLeft) || 0)
+        + (parseFloat(tubeStyle.marginRight) || 0)
+        + (parseFloat(containerStyle.gap) || 0);
+    const horizontalPadding = (parseFloat(containerStyle.paddingLeft) || 0)
+        + (parseFloat(containerStyle.paddingRight) || 0);
+    const realBoardWidth = ((itemWidth * gameState.tubes.length) + horizontalPadding) * scale;
+    const finite = realBoardWidth <= slider.clientWidth;
+    const changed = slider.classList.contains('finite-board') !== finite;
+    slider.classList.toggle('finite-board', finite);
+    tubesContainer.classList.toggle('finite-board', finite);
+    if (finite) {
+        slider.scrollLeft = 0;
+    } else if (changed) {
+        requestAnimationFrame(initInfiniteScroll);
+    }
 }
 function renderSkills(){
     const isHoldingColor = gameState.extractorHeldColor !== null;
@@ -668,6 +692,10 @@ function getBoardScale() {
 function initInfiniteScroll() {
     const slider = document.getElementById('board-scroll-area');
     const tubesContainer = document.getElementById('tubes-container');
+    if (slider.classList.contains('finite-board')) {
+        slider.scrollLeft = 0;
+        return;
+    }
     const tubeEl = tubesContainer.querySelector('.tube');
     if(!tubeEl) return;
     const style = window.getComputedStyle(tubeEl);
@@ -688,6 +716,7 @@ function initInfiniteScroll() {
 function checkInfiniteScrollLoop() {
     if(!gameState.tubes.length) return;
     const slider = document.getElementById('board-scroll-area');
+    if (slider.classList.contains('finite-board')) return;
     const currentScroll = slider.scrollLeft;
     const scrollWidth = slider.scrollWidth;
     const clientWidth = slider.clientWidth;

@@ -638,6 +638,20 @@ body {
     transform-origin: left center;
     contain: layout style;
 }
+#board-scroll-area.finite-board {
+    overflow-x: hidden;
+    mask-image: none;
+    -webkit-mask-image: none;
+    cursor: default;
+}
+#tubes-container.finite-board {
+    width: 100%;
+    justify-content: center;
+    transform-origin: center center;
+}
+#tubes-container.finite-board > .is-clone {
+    display: none;
+}
 #board-area.boss-mode {
     border: 1px solid rgba(244, 63, 94, 0.25);
     border-radius: 20px;
