@@ -235,6 +235,11 @@ async function finalizeItemAction(idx, colorHint) {
 async function handleTubeClick(idx) {
     hideGlobalTooltip();
     if (gameState.busy) return;
+    const isPulseLocked = gameState.anomaly?.sealTurns > 0 && gameState.anomaly.sealedTubeIdx === idx;
+    if (isPulseLocked) {
+        showFloatText(idx, 'PULSE LOCK', '#67e8f9');
+        return;
+    }
     if (gameState.targetMode) {
         await applyItemToTube(idx);
         renderSkills(); 
@@ -266,7 +271,8 @@ async function tryPour(fromIdx, toIdx) {
     const check = canPour(fromIdx, toIdx);
     if (!check.ok) {
         const content = gameState.tubes[toIdx];
-        gameState.selectedIdx = (content.length > 0 && !isCompleteTube(content)) ? toIdx : null;
+        const destinationLocked = check.reason === 'sealed' || check.reason === 'anomaly-sealed';
+        gameState.selectedIdx = (!destinationLocked && content.length > 0 && !isCompleteTube(content)) ? toIdx : null;
         renderBoard();
         return;
     }
@@ -299,7 +305,7 @@ async function tryPour(fromIdx, toIdx) {
         if (isOverloaded) {
             // A Black purge already removes the moved ink. Do not immediately
             // redraw it as new corruption in the source tube on the same move.
-            await applyPressureDamage(false, purgesBlackAtDestination ? fromIdx : null);
+            await applyPressureDamage(false, purgesBlackAtDestination ? fromIdx : null, 'pressure_overload');
         }
         if (isCompleteTube(to, counts)) {
             await handleCompletion(toIdx, to[0]);
@@ -389,7 +395,7 @@ async function handleCompletion(tubeIdx, colorKey) {
         showToast("Resonance! HP+1 / Pressure Up", 'rose');
         const cost = Math.max(0, 6 - getPerkLevel('crimson_resonance'));
         if (addPressure(cost)) {
-            await applyPressureDamage();
+            await applyPressureDamage(false, null, 'crimson_resonance');
         }
     }
     if (colorKey === 'B' && hasPerk('azure_cycle')) {
@@ -551,7 +557,7 @@ async function advanceAnomalyTurn() {
     if (typeof triggerAbyssVfx === 'function') triggerAbyssVfx('anomaly', def?.color || '#a855f7');
     if (anomaly.id === 'pressure_tide') {
         showToast(currentLang === 'ja' ? '異常発生：圧力津波 +6' : 'Anomaly: Pressure Tide +6', 'rose');
-        if (addPressure(6)) await applyPressureDamage(false);
+        if (addPressure(6)) await applyPressureDamage(false, null, 'anomaly_pressure_tide');
     } else if (anomaly.id === 'void_omen') {
         showToast(currentLang === 'ja' ? '異常発生：黒潮注入' : 'Anomaly: Void Injection', 'purple');
         await corruptPreferredSegment(anomaly.targetTubeIdx);
@@ -564,7 +570,7 @@ async function advanceAnomalyTurn() {
         }
     } else if (anomaly.id === 'unstable_reaction') {
         showToast(currentLang === 'ja' ? '異常反応：プレッシャー +3' : 'Unstable Reaction: Pressure +3', 'yellow');
-        if (addPressure(3)) await applyPressureDamage(false);
+        if (addPressure(3)) await applyPressureDamage(false, null, 'anomaly_unstable_reaction');
     }
     resetAnomalyCycle();
     renderHUD();
@@ -619,7 +625,7 @@ function ensureBossTelegraph() {
 }
 async function addBossPressure(amount) {
     showToast(currentLang === 'ja' ? `ボス攻撃：圧力 +${amount}` : `Boss Attack: Pressure +${amount}`, 'rose');
-    if (addPressure(amount)) await applyPressureDamage(false);
+    if (addPressure(amount)) await applyPressureDamage(false, null, 'boss_attack');
 }
 async function executeBossAttack() {
     const bs = gameState.bossState;
@@ -688,7 +694,7 @@ async function advanceBossTurn() {
     renderHUD();
     renderBoard();
 }
-async function applyPressureDamage(visualOnly = false, excludedCorruptionTubeIdx = null) {
+async function applyPressureDamage(visualOnly = false, excludedCorruptionTubeIdx = null, causeKey = 'pressure_overload') {
     // addPressure() has already reset an overloaded gauge to zero. Update it
     // before any shake/corruption animation so max - 1 is never shown as hit.
     renderHUD();
@@ -698,6 +704,11 @@ async function applyPressureDamage(visualOnly = false, excludedCorruptionTubeIdx
             return;
         }
         gameState.hp -= 1;
+        gameState.lastDamageCause = {
+            key: causeKey,
+            floor: gameState.floor,
+            turn: gameState.turnCount
+        };
     }
     const container = ui('game-container');
     container.classList.remove('animate-shake');
@@ -826,6 +837,7 @@ function startNewRun() {
         overdriveGuards: 0,
         lastBossSourceIdx: null,
         repeatedBossSourceCount: 0,
+        lastDamageCause: null,
         saveSchemaVersion: SAVE_SCHEMA_VERSION,
         runVersion: GAME_VERSION,
         turnCount: 0,
@@ -1037,7 +1049,7 @@ async function tryUndo(){
     if (refluxOverloaded) {
         gameState.busy = true;
         try {
-            await applyPressureDamage(false);
+            await applyPressureDamage(false, null, 'reflux');
         } finally {
             gameState.busy = false;
         }

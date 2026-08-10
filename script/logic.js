@@ -401,10 +401,12 @@ function updateTubeLayout(){
 }
 function canPour(fromIdx, toIdx){
     if (fromIdx === toIdx) return {ok:false};
-    if (isBossActive() && gameState.bossState.sealTurns > 0 && gameState.bossState.sealedTubeIdx === fromIdx) {
+    if (isBossActive() && gameState.bossState.sealTurns > 0
+        && (gameState.bossState.sealedTubeIdx === fromIdx || gameState.bossState.sealedTubeIdx === toIdx)) {
         return {ok:false, reason:'sealed'};
     }
-    if (gameState.anomaly?.sealTurns > 0 && gameState.anomaly.sealedTubeIdx === fromIdx) {
+    if (gameState.anomaly?.sealTurns > 0
+        && (gameState.anomaly.sealedTubeIdx === fromIdx || gameState.anomaly.sealedTubeIdx === toIdx)) {
         return {ok:false, reason:'anomaly-sealed'};
     }
     const from = gameState.tubes[fromIdx], to = gameState.tubes[toIdx];
@@ -524,5 +526,16 @@ function generateShareText(){
         .filter(([_,lv]) => (lv||0)>0)
         .map(([id,lv]) => `${(currentLang==='ja'?PERKS[id].name.ja:PERKS[id].name.en)} Lv.${lv}`)
         .join(', ');
-    return `Abyss Alchemy | FLOOR ${gameState.floor} | ESSENCE ${gameState.essence} | ${perkList || 'No Mutations'}`;
+    const deathCause = gameState.hp <= 0 && gameState.lastDamageCause
+        ? ` | ${currentLang === 'ja' ? '死亡原因' : 'CAUSE'}: ${getDamageCauseText(gameState.lastDamageCause)}`
+        : '';
+    return `Abyss Alchemy | FLOOR ${gameState.floor} | ESSENCE ${gameState.essence}${deathCause} | ${perkList || 'No Mutations'}`;
+}
+function getDamageCauseText(cause = gameState.lastDamageCause) {
+    if (!cause) return currentLang === 'ja' ? '不明' : 'Unknown';
+    const def = DAMAGE_CAUSE_LABELS[cause.key] || DAMAGE_CAUSE_LABELS.pressure_overload;
+    const label = currentLang === 'ja' ? def.ja : def.en;
+    const floor = Number.isFinite(cause.floor) ? cause.floor : gameState.floor;
+    const turn = Number.isFinite(cause.turn) ? cause.turn : gameState.turnCount;
+    return currentLang === 'ja' ? `${label}（${floor}階・${turn}手目）` : `${label} (Floor ${floor}, Turn ${turn})`;
 }

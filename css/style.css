@@ -831,7 +831,9 @@ body {
     transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
     pointer-events: none;
 }
-.tube.capped .tube-cap {
+.tube.capped .tube-cap,
+.tube.anomaly-sealed .tube-cap,
+.tube.boss-sealed .tube-cap {
     transform: translate(-50%, 0); 
     opacity: 1;
     background: linear-gradient(90deg, 

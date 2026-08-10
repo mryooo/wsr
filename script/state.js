@@ -19,7 +19,8 @@ function migrateV080State(state) {
         floorItemsUsed: 0,
         overdriveGuards: 0,
         lastBossSourceIdx: null,
-        repeatedBossSourceCount: 0
+        repeatedBossSourceCount: 0,
+        lastDamageCause: null
     };
     Object.entries(defaults).forEach(([key, value]) => {
         if (typeof state[key] === 'undefined' || state[key] === null && Array.isArray(value)) {
@@ -156,6 +157,7 @@ const gameState = {
     overdriveGuards: 0,
     lastBossSourceIdx: null,
     repeatedBossSourceCount: 0,
+    lastDamageCause: null,
 };
 function pushHistory(){
     gameState.history.push({

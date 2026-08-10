@@ -168,6 +168,7 @@ if(btnRetire){
             : "Give up exploration?\n(HP becomes 0 and Game Over)";
                 if(confirm(msg)){
             gameState.hp = 0;
+            gameState.lastDamageCause = { key: 'abandoned', floor: gameState.floor, turn: gameState.turnCount };
             renderHUD();
             clearSave();
             openPerkScreen(true);

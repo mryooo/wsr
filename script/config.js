@@ -1,6 +1,19 @@
 // config.js — 定数定義(バージョン、色、パレット、Perk、アイテム、ショップ、バランス係数)
-const GAME_VERSION = "0.8.01";
+const GAME_VERSION = "0.8.04";
 const IS_DEBUG = true;
+
+const DAMAGE_CAUSE_LABELS = {
+    pressure_overload: { ja: '通常操作によるプレッシャー超過', en: 'Pressure overload from a normal move' },
+    crimson_resonance: { ja: '紅の熱量によるプレッシャー超過', en: 'Crimson Resonance overload' },
+    anomaly_pressure_tide: { ja: '異常階層「圧力津波」', en: 'Anomaly: Pressure Tide' },
+    anomaly_unstable_reaction: { ja: '異常階層「不安定反応」', en: 'Anomaly: Unstable Reaction' },
+    boss_attack: { ja: 'ボス攻撃によるプレッシャー超過', en: 'Boss attack pressure overload' },
+    reflux: { ja: 'Undo「逆流制御」の反動', en: 'Reflux Undo backlash' },
+    event_vitality: { ja: 'イベント「生命力活性」の反動', en: 'Vitality event backlash' },
+    event_abyssal_price: { ja: 'イベント「深淵の代償」', en: 'Abyssal Price event' },
+    event_greed: { ja: 'イベント「強欲」の反動', en: 'Greed event backlash' },
+    abandoned: { ja: '探索を断念した', en: 'Exploration abandoned' }
+};
 
 // ===== バランス定数 =====
 const PRESSURE_MAX_BASE = 16;      // プレッシャー最大値の基準 (旧: 20 / 1注ぎ=+1 に変更したため引き下げ)

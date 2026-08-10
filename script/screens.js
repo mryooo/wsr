@@ -276,7 +276,7 @@ function buildEventChoices(colorKey){
                 async apply(){
                     gameState.hp = Math.min(gameState.maxHp, gameState.hp + 1);
                     toast(isJa ? "生命力が活性化した (HP+1)" : "Vitality Restored (HP+1)", "emerald");
-                    if(addPressure(3)) await applyPressureDamage();
+                    if(addPressure(3)) await applyPressureDamage(false, null, 'event_vitality');
                 } 
             }, 
             { 
@@ -373,7 +373,7 @@ function buildEventChoices(colorKey){
                 async apply(){
                     gameState.essence += 12;
                     toast(isJa ? "深淵の代償を支払った (+12 Essence)" : "Paid Abyssal Price (+12 Essence)", "purple");
-                    if(addPressure(8)) await applyPressureDamage();
+                    if(addPressure(8)) await applyPressureDamage(false, null, 'event_abyssal_price');
                 }
             },
             {
@@ -491,7 +491,7 @@ function buildEventChoices(colorKey){
             async apply(){ 
                 gameState.essence += 3;
                 toast(isJa ? "富を貪った (+3 Essence)" : "Greed Rewarded (+3 Essence)", "amber");
-                if(addPressure(1)) await applyPressureDamage();
+                if(addPressure(1)) await applyPressureDamage(false, null, 'event_greed');
             } 
         }
     ];
@@ -787,6 +787,8 @@ function openPerkScreen(isDeath){
     ui('perk-title').textContent = isDeath ? t('gameOver') : (bossVictory ? (currentLang === 'ja' ? 'ボス撃破' : 'BOSS PURGED') : t('victory'));
     ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : (bossVictory ? (currentLang === 'ja' ? '深淵の戦利品を選択' : 'Choose an abyssal reward') : t('victorySub'));
     ui('perk-essence').textContent = `✨ Essence: ${gameState.essence}`;
+    const resultHp = ui('perk-hp-val');
+    if (resultHp) resultHp.textContent = `${gameState.hp} / ${gameState.maxHp}`;
     perkCards.innerHTML = ''; 
     shopCards.innerHTML = '';
     const perkLabel = perkCards.previousElementSibling;
@@ -794,7 +796,7 @@ function openPerkScreen(isDeath){
     if (isDeath) {
         if (perkLabel) perkLabel.classList.add('hidden');
         if (shopHeader) shopHeader.classList.add('hidden');
-        perkCards.innerHTML = `<div class="flex flex-col gap-4 h-full"><div class="text-xl font-bold text-rose-400 uppercase tracking-widest border-b border-white/10 pb-2">${currentLang==='ja'?'探索記録':'Exploration Log'}</div><div class="grid grid-cols-2 gap-4"><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">FLOOR</div><div class="text-4xl font-black text-white">${gameState.floor}</div></div><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">ESSENCE</div><div class="text-4xl font-black text-sky-300">${gameState.essence}</div></div></div><div class="mt-auto"><div class="text-[10px] text-slate-500 mb-2 uppercase tracking-widest">Result String</div><textarea id="share-text-area" class="w-full h-24 bg-black/50 border border-white/10 rounded p-2 text-[10px] text-slate-400 font-mono resize-none" readonly>${generateShareText()}</textarea></div></div>`;
+        perkCards.innerHTML = `<div class="flex flex-col gap-4 h-full"><div class="text-xl font-bold text-rose-400 uppercase tracking-widest border-b border-white/10 pb-2">${currentLang==='ja'?'探索記録':'Exploration Log'}</div><div class="grid grid-cols-2 gap-4"><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">FLOOR</div><div class="text-4xl font-black text-white">${gameState.floor}</div></div><div class="glass-panel p-4 flex flex-col items-center justify-center bg-white/5"><div class="text-[10px] text-slate-400 uppercase tracking-widest">ESSENCE</div><div class="text-4xl font-black text-sky-300">${gameState.essence}</div></div></div><div class="glass-panel border border-rose-500/30 bg-rose-950/30 p-3"><div class="text-[10px] text-rose-300 uppercase tracking-widest mb-1">${currentLang==='ja'?'死亡原因':'Cause of Death'}</div><div class="text-sm font-bold text-rose-100">${getDamageCauseText()}</div></div><div class="mt-auto"><div class="text-[10px] text-slate-500 mb-2 uppercase tracking-widest">Result String</div><textarea id="share-text-area" class="w-full h-24 bg-black/50 border border-white/10 rounded p-2 text-[10px] text-slate-400 font-mono resize-none" readonly>${generateShareText()}</textarea></div></div>`;
         const perkList = Object.entries(gameState.perks).map(([id, lv]) => `<div class="flex justify-between items-center py-2 border-b border-white/5"><span class="text-sm font-bold text-slate-200">${currentLang==='ja'?PERKS[id].name.ja:PERKS[id].name.en}</span><span class="text-xs font-bold text-sky-400">Lv.${lv}</span></div>`).join('');
         shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto";
         shopCards.className = "flex flex-col gap-4 h-full";
