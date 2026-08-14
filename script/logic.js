@@ -63,6 +63,12 @@ function createBossState(floor = gameState.floor){
         observationStacks: 0
     };
 }
+function bossAttackUsesTubeTarget(bs = gameState.bossState) {
+    if (!bs || bs.defeated) return false;
+    if (bs.bossId === 'crucible') return bs.phase !== 2;
+    if (bs.bossId === 'aberration') return bs.phase !== 2;
+    return true;
+}
 
 function getCurrentContract() {
     const active = gameState.routeContract;

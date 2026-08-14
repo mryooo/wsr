@@ -686,8 +686,8 @@ body {
 .boss-sub { color: #64748b; font-size: 9px; font-weight: 900; letter-spacing: .2em; }
 .boss-hp { color: #fb7185; font-size: 20px; letter-spacing: .2em; text-shadow: 0 0 12px #e11d48; white-space: nowrap; }
 .boss-intent-wrap { text-align: right; }
-.boss-intent { color: #f8fafc; font-size: 11px; font-weight: 900; }
-.boss-countdown { color: #fbbf24; font-size: 10px; font-weight: 900; }
+.boss-intent { color: #f8fafc; font-size: 12px; font-weight: 900; }
+.boss-countdown { color: #fbbf24; font-size: 12px; font-weight: 900; }
 #boss-core-visual {
     position: relative;
     z-index: 2;

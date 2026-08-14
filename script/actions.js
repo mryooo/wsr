@@ -619,7 +619,12 @@ function swapRandomSurfacesSafely() {
 }
 function ensureBossTelegraph() {
     const bs = gameState.bossState;
-    if (!bs || bs.telegraphTubeIdx !== null) return;
+    if (!bs) return;
+    if (!bossAttackUsesTubeTarget(bs)) {
+        bs.telegraphTubeIdx = null;
+        return;
+    }
+    if (bs.telegraphTubeIdx !== null) return;
     if (bs.bossId === 'observer' && bs.observedTubeIdx !== null) bs.telegraphTubeIdx = bs.observedTubeIdx;
     else bs.telegraphTubeIdx = chooseHazardTube();
 }

@@ -455,7 +455,8 @@ function renderAbyssSystems() {
     const activeAnomaly = getAnomalyDefinition();
     const pendingAnomaly = getAnomalyDefinition(gameState.pendingAnomalyId);
     if (anomalyChip) {
-        anomalyChip.classList.toggle('hidden', !activeAnomaly && !pendingAnomaly);
+        const visiblePendingAnomaly = !isBossArena() ? pendingAnomaly : null;
+        anomalyChip.classList.toggle('hidden', !activeAnomaly && !visiblePendingAnomaly);
         if (activeAnomaly) {
             anomalyChip.style.setProperty('--system-color', activeAnomaly.color);
             setText('anomaly-name', currentLang === 'ja' ? activeAnomaly.name.ja : activeAnomaly.name.en);
@@ -463,9 +464,9 @@ function renderAbyssSystems() {
                 ? (currentLang === 'ja' ? `封鎖 ${gameState.anomaly.sealTurns}` : `SEAL ${gameState.anomaly.sealTurns}`)
                 : `${Math.max(0, gameState.anomaly?.countdown || 0)}`;
             setText('anomaly-countdown', sealText);
-        } else if (pendingAnomaly) {
-            anomalyChip.style.setProperty('--system-color', pendingAnomaly.color);
-            setText('anomaly-name', currentLang === 'ja' ? `次回：${pendingAnomaly.name.ja}` : `NEXT: ${pendingAnomaly.name.en}`);
+        } else if (visiblePendingAnomaly) {
+            anomalyChip.style.setProperty('--system-color', visiblePendingAnomaly.color);
+            setText('anomaly-name', currentLang === 'ja' ? `次回：${visiblePendingAnomaly.name.ja}` : `NEXT: ${visiblePendingAnomaly.name.en}`);
             setText('anomaly-countdown', '!');
         }
     }
