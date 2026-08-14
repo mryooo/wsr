@@ -1153,6 +1153,10 @@ body {
     backdrop-filter: blur(7px);
 }
 .abyss-chip.hidden { display: none; }
+#attention-chip,
+#contract-chip {
+    font-size: 12px;
+}
 .abyss-chip-icon { color: #38bdf8; }
 #attention-value,
 #anomaly-countdown { color: var(--system-color, #38bdf8); }
