@@ -1146,17 +1146,13 @@ body {
     border-radius: 7px;
     background: rgba(2,6,23,.82);
     color: #e2e8f0;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 900;
     letter-spacing: .05em;
     box-shadow: 0 0 12px color-mix(in srgb, var(--system-color) 18%, transparent);
     backdrop-filter: blur(7px);
 }
 .abyss-chip.hidden { display: none; }
-#attention-chip,
-#contract-chip {
-    font-size: 12px;
-}
 .abyss-chip-icon { color: #38bdf8; }
 #attention-value,
 #anomaly-countdown { color: var(--system-color, #38bdf8); }
@@ -1281,7 +1277,7 @@ body {
 @media (max-width: 640px) {
     #abyss-system-hud { top: 4px; width: calc(100% - 8px); gap: 3px; }
     #board-area.boss-mode #abyss-system-hud { top: 61px; }
-    .abyss-chip { min-height: 19px; padding: 2px 5px; font-size: 7px; gap: 3px; }
+    .abyss-chip { min-height: 19px; padding: 2px 5px; font-size: 12px; gap: 3px; }
     .attention-track { width: 30px; }
     .contract-card, .overdrive-card { min-height: 130px; }
 }
