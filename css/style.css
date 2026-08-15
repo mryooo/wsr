@@ -381,10 +381,14 @@ body {
 #ui-pressure-label,
 #ui-pressure-sub { font-size: 12px; }
 #pressure-panel {
-    width: min(245px, 32vw);
+    width: min(360px, 42vw);
     padding: 3px 8px;
     border-radius: 8px;
     background: rgba(2,6,23,.24);
+}
+#pressure-panel > div {
+    height: 24px;
+    min-height: 24px;
 }
 #board-area {
     min-height: 0;
@@ -497,7 +501,11 @@ body {
 /* style.css に追加または修正 */
 #ui-pressure-sub {
     margin-top: 0 !important; /* HTMLの構成が変わるためリセット */
-    letter-spacing: 0.05em;
+    max-width: 100%;
+    padding: 0 4px;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
     text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 .pressure-preview-compact { display: none; }
@@ -514,6 +522,12 @@ body {
 /* バーの高さを少し太くして文字を読みやすくする場合（任意） */
 #ui-pressure-bar-container {
     height: 20px;
+}
+@media (max-width: 900px) {
+    #pressure-panel { width: min(170px, 38vw); }
+    #ui-pressure-label { display: none; }
+    .pressure-preview-full { display: none; }
+    .pressure-preview-compact { display: inline; }
 }
 #global-tooltip {
     position: fixed;
@@ -742,7 +756,7 @@ body {
     #goal-panel { padding: 2px 5px; }
     #ui-goal { font-size: 12px; }
     #ui-goal-sub { font-size: 12px; }
-    #pressure-panel { width: 104px; padding: 3px 5px; }
+    #pressure-panel { width: 132px; padding: 3px 5px; }
     #ui-pressure-label { display: none; }
     .pressure-preview-full { display: none; }
     .pressure-preview-compact { display: inline; }
