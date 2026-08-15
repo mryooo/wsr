@@ -292,14 +292,15 @@ function showFloatText(tubeIdx, text, color = "#38bdf8") {
     float.style.textShadow = '0 0 10px rgba(0,0,0,0.9), 0 2px 4px black';
     float.style.whiteSpace = 'nowrap';
     float.animate([
-        { transform: 'translate(-50%, 0)', opacity: 1 },
-        { transform: 'translate(-50%, -50px)', opacity: 0 }
+        { transform: 'translate(-50%, 0)', opacity: 1, offset: 0 },
+        { transform: 'translate(-50%, -12px)', opacity: 1, offset: 0.72 },
+        { transform: 'translate(-50%, -50px)', opacity: 0, offset: 1 }
     ], { 
-        duration: 1200, 
+        duration: 3000,
         easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' 
     });
     document.body.appendChild(float);
-    setTimeout(() => float.remove(), 1200);
+    setTimeout(() => float.remove(), 3000);
 }
 function tubeCenterEl(idx) {
     const els = ui('tubes-container').querySelectorAll(`.tube[data-idx="${String(idx)}"]`);
@@ -751,9 +752,10 @@ function showFloatTextAtCenter(text, color = "#38bdf8") {
     float.style.textShadow = '0 0 10px rgba(0,0,0,0.9), 0 2px 4px black';
     float.style.whiteSpace = 'nowrap';
     float.animate([
-        { transform: 'translate(-50%, 0)', opacity: 1 },
-        { transform: 'translate(-50%, -50px)', opacity: 0 }
-    ], { duration: 1400, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+        { transform: 'translate(-50%, 0)', opacity: 1, offset: 0 },
+        { transform: 'translate(-50%, -12px)', opacity: 1, offset: 0.72 },
+        { transform: 'translate(-50%, -50px)', opacity: 0, offset: 1 }
+    ], { duration: 3000, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
     document.body.appendChild(float);
-    setTimeout(() => float.remove(), 1400);
+    setTimeout(() => float.remove(), 3000);
 }
