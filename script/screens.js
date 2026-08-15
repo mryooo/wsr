@@ -228,7 +228,12 @@ function showCompletionEvent(colorKey){
             card.className = 'glass-panel perk-card p-4 cursor-pointer hover:bg-white/5 border-l-4 border-l-sky-500 bg-slate-900/90';
             card.innerHTML = `<div class="text-[16px] text-sky-300 uppercase tracking-[0.35em] mb-1">${ch.kicker}</div><div class="text-xl font-black text-white">${ch.title}</div><div class="text-slate-400 text-xs mt-2 leading-relaxed">${ch.desc}</div>`;
             card.onclick = async () => { 
-                await ch.apply(); 
+                await ch.apply();
+                // Every completion choice can change HUD or board state. Keep
+                // the shared exit synchronized instead of relying on each
+                // individual choice to remember the appropriate render calls.
+                renderHUD();
+                renderBoard();
                 saveGame(); 
                 eventScreen.classList.add('hidden'); 
                 eventScreen.classList.remove('flex'); 

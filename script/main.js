@@ -192,6 +192,7 @@ ui('reroll-btn').onclick = () => {
     gameState.currentShopOffers = generateShopOffers();
     renderCurrentShopOffers();
     refreshRerollUI();
+    renderHUD();
     saveGame();
 };
 ui('start-run-btn').onclick = () => {
