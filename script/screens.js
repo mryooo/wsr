@@ -618,16 +618,19 @@ function buildShopCard(offer) {
             try {
                 const currentCount = gameState.inventory[rawId] || 0;
                 if (gameState.essence < cost || (!isTool && currentCount >= LIMIT)) return;
-                gameState.essence -= cost;
-                offer.purchased = true;
                 if (offer.kind === 'instant') {
                     const result = itemDef.effect(gameState);
                     showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'emerald');
+                    if (!result.success) return;
+                    gameState.essence -= cost;
+                    offer.purchased = true;
                     if (result.isMystery) {
                         gameState.currentShopOffers = generateShopOffers();
                         refreshAllOffers = true;
                     }
                 } else {
+                    gameState.essence -= cost;
+                    offer.purchased = true;
                     if (itemDef.type === 'tool') {
                         gameState.inventory[rawId] = 1;
                     } else {

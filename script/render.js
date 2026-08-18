@@ -88,7 +88,8 @@ function renderBoard(resetScroll = false){
         tube.dataset.idx = String(i);
         tube.dataset.renderKey = item.key;
         const setClass = (cls, on) => on ? tube.classList.add(cls) : tube.classList.remove(cls);
-        const isIsolatedBlack = (totalBlackCount === 1 && segments.length === 1 && segments[0] === 'K');
+        const isBlackOnlyTube = segments.length > 0 && segments.every(color => color === 'K');
+        const isIsolatedBlack = isBlackOnlyTube && segments.length === totalBlackCount;
         setClass('selected', i === gameState.selectedIdx);
         setClass('tube-focused', gameState.focusIdx !== null && i === gameState.focusIdx);
         setClass('deadlock-glow', deadlocked || isIsolatedBlack);
