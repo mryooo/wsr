@@ -21,7 +21,98 @@ function renderCurrentShopOffers() {
     const fragment = document.createDocumentFragment();
     (gameState.currentShopOffers || []).forEach(item => fragment.appendChild(buildShopCard(item)));
     shopCards.replaceChildren(fragment);
+    renderErosionServices();
     updateShopButtons();
+}
+
+function getErosionServiceCost(baseCost) {
+    if (!hasPerk('bargain')) return baseCost;
+    const halfDiscount = (15 + getPerkLevel('bargain') * 5) / 200;
+    return Math.max(1, Math.ceil(baseCost * (1 - halfDiscount)));
+}
+
+function renderErosionServices() {
+    const container = ui('erosion-services');
+    if (!container) return;
+    const nextConfig = getErosionConfig(gameState.floor + 1);
+    const inventoryIds = Object.keys(gameState.inventory).filter(id => gameState.inventory[id] > 0 && ITEM_REGISTRY[id]?.type === 'consumable');
+    if (nextConfig.tier === 0 && !inventoryIds.some(id => getItemCondition(id) !== 'normal')) {
+        container.innerHTML = '';
+        container.classList.add('hidden');
+        return;
+    }
+    container.classList.remove('hidden');
+    const protectedCount = (gameState.protectedItemIds || []).length;
+    const protectCost = getErosionServiceCost(nextConfig.protectionCost || 0);
+    const protectionAvailable = nextConfig.tier > 0 && !isBossFloor(gameState.floor + 1);
+    const rows = inventoryIds.map(id => {
+        const item = ITEM_REGISTRY[id];
+        const condition = getItemCondition(id);
+        const protectedItem = gameState.protectedItemIds.includes(id);
+        const cleanseBase = getErosionCleanseCost(condition, nextConfig.tier);
+        const cleanseCost = cleanseBase ? getErosionServiceCost(cleanseBase) : 0;
+        const conditionDisplay = condition === 'decayed'
+            ? (currentLang === 'ja' ? '腐敗・次降下で消滅' : 'DECAYED · LOST ON DESCENT')
+            : getItemConditionLabel(condition);
+        const protectDisabled = condition === 'decayed' || !protectionAvailable || protectedItem || protectedCount >= EROSION_PROTECTION_LIMIT || gameState.essence < protectCost;
+        const cleanseDisabled = !cleanseCost || gameState.essence < cleanseCost;
+        const conditionClass = condition !== 'normal' ? `item-eroded item-${condition}` : '';
+        const protectionClass = protectedItem ? 'item-protected' : '';
+        const cleanseLabel = currentLang === 'ja' ? `浄化：${cleanseCost || '対象外'}エッセンス` : `Cleanse: ${cleanseCost || 'unavailable'} Essence`;
+        const protectLabel = protectedItem
+            ? (currentLang === 'ja' ? '次層の封蝋保護を予約済み' : 'Wax seal reserved for next floor')
+            : (currentLang === 'ja' ? `保護：${protectCost}エッセンス` : `Seal: ${protectCost} Essence`);
+        return `<div data-erosion-item-id="${id}" class="erosion-compact-card ${conditionClass} flex items-center gap-2 min-w-0 rounded border border-white/5 bg-black/10 px-1.5 py-1 text-[9px]">
+            <div class="relative shrink-0">
+                <span class="erosion-mini-icon ${conditionClass} ${protectionClass}" title="${conditionDisplay}" aria-label="${conditionDisplay}">${item.icon}</span>
+                <span class="badge-count absolute -top-2 -right-2 bg-sky-500 text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full text-white pointer-events-none shadow-sm z-10 leading-none">${gameState.inventory[id]}</span>
+            </div>
+            <div class="flex items-center min-w-0 flex-1">
+                <span class="erosion-item-name min-w-0 flex-1 truncate text-slate-200" title="${currentLang === 'ja' ? item.name.ja : item.name.en}">${currentLang === 'ja' ? item.name.ja : item.name.en}</span>
+            </div>
+            <div class="erosion-action-stack flex w-12 shrink-0 flex-col gap-1">
+                <button data-erosion-action="cleanse" data-item-id="${id}" data-cost="${cleanseCost}" title="${cleanseLabel}" aria-label="${cleanseLabel}" class="erosion-icon-action text-purple-200 border-purple-500/30 ${cleanseDisabled ? 'opacity-25' : 'hover:bg-purple-500/20'}" ${cleanseDisabled ? 'disabled' : ''}>✧<span>${cleanseCost || '—'}</span></button>
+                <button data-erosion-action="protect" data-item-id="${id}" data-cost="${protectCost}" title="${protectLabel}" aria-label="${protectLabel}" class="erosion-icon-action text-cyan-200 border-cyan-500/30 ${protectDisabled ? 'opacity-25' : 'hover:bg-cyan-500/20'}" ${protectDisabled ? 'disabled' : ''}>◆<span>${protectedItem ? '✓' : protectCost}</span></button>
+            </div>
+        </div>`;
+    }).join('');
+    container.innerHTML = `<div class="glass-panel border border-purple-500/25 bg-purple-950/20 p-2 rounded-lg">
+        <div class="flex justify-between gap-2"><div class="font-black text-purple-300 text-[16px]">☣ ${currentLang === 'ja' ? '侵食対策' : 'EROSION CONTROL'}</div><div class="text-[10px] text-slate-400">${currentLang === 'ja' ? `次層 Lv.${nextConfig.tier} / 保護 ${protectedCount}/${EROSION_PROTECTION_LIMIT}` : `NEXT Lv.${nextConfig.tier} / SEALED ${protectedCount}/${EROSION_PROTECTION_LIMIT}`}</div></div>
+        <div class="text-[9px] text-white mt-1 mb-1">${!protectionAvailable && isBossFloor(gameState.floor + 1) ? (currentLang === 'ja' ? '次はボス階層のため侵食判定はありません。浄化のみ利用できます。' : 'The next boss floor has no erosion check. Cleansing remains available.') : (currentLang === 'ja' ? `侵食率 ${Math.round(nextConfig.rate * 100)}%・不発率上限 ${Math.round(nextConfig.misfire * 100)}%。未保護品は降下時に抽選で侵食が進み、腐敗すると次回降下で消滅します。保護は次の1階層のみ有効。` : `Erosion ${Math.round(nextConfig.rate * 100)}% · Misfire cap ${Math.round(nextConfig.misfire * 100)}%. Unsealed items may erode on descent; decayed items vanish on the following descent. Seals last one floor.`)}</div><div class="grid grid-cols-2 md:grid-cols-3 gap-1">${rows || `<div class="text-[10px] text-slate-500 py-2 col-span-full">${currentLang === 'ja' ? '対象アイテムなし' : 'No eligible items'}</div>`}</div>
+    </div>`;
+    container.querySelectorAll('[data-erosion-item-id]').forEach(card => {
+        card.onclick = event => {
+            if (event.target.closest('[data-erosion-action]') || !window.matchMedia('(max-width: 767px)').matches) return;
+            const item = ITEM_REGISTRY[card.dataset.erosionItemId];
+            if (!item) return;
+            showToast(`${item.icon} ${currentLang === 'ja' ? item.name.ja : item.name.en}`, 'slate');
+        };
+    });
+    container.querySelectorAll('[data-erosion-action]').forEach(button => {
+        button.onclick = () => {
+            if (shopPurchasePending || perkAdvancePending) return;
+            const id = button.dataset.itemId;
+            const cost = Number(button.dataset.cost);
+            if (gameState.essence < cost) return;
+            if (button.dataset.erosionAction === 'protect') {
+                if (gameState.protectedItemIds.includes(id) || gameState.protectedItemIds.length >= EROSION_PROTECTION_LIMIT) return;
+                gameState.protectedItemIds.push(id);
+                gameState.erosionStats.essenceSpentOnProtection += cost;
+                showToast(currentLang === 'ja' ? `${ITEM_REGISTRY[id].name.ja}を封蝋保護` : `${ITEM_REGISTRY[id].name.en} sealed`, 'sky');
+            } else {
+                if (getItemCondition(id) === 'normal') return;
+                const currentIndex = ITEM_CONDITION_ORDER.indexOf(getItemCondition(id));
+                const nextCondition = ITEM_CONDITION_ORDER[Math.max(0, currentIndex - 1)];
+                gameState.itemConditions[id] = nextCondition;
+                if (nextCondition !== 'decayed') gameState.decayPending = gameState.decayPending.filter(itemId => itemId !== id);
+                showToast(currentLang === 'ja'
+                    ? `${ITEM_REGISTRY[id].name.ja}を1段階浄化：${getItemConditionLabel(nextCondition)}`
+                    : `${ITEM_REGISTRY[id].name.en} cleansed one step: ${getItemConditionLabel(nextCondition)}`, 'purple');
+            }
+            gameState.essence -= cost;
+            refreshRerollUI(); renderHUD(); renderErosionServices(); updateShopButtons(); saveGame();
+        };
+    });
 }
 
 function setShopControlsPending(active, activeButton = null) {
@@ -314,6 +405,7 @@ function buildEventChoices(colorKey){
                     const k = getValidRandomConsumable();
                     if(k) {
                         gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                        markItemFresh(k);
                         const name = isJa ? ITEMS[k].name.ja : ITEMS[k].name.en;
                         toast(isJa ? `${ITEMS[k].icon} ${name} を精製した` : `Transmuted ${name}`, "yellow");
                     } else {
@@ -390,6 +482,7 @@ function buildEventChoices(colorKey){
                         const k = getValidRandomConsumable();
                         if(k) {
                             gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                            markItemFresh(k);
                             const item = ITEMS[k];
                             const itemName = isJa ? item.name.ja : item.name.en;
                             const msg = isJa ? `${item.icon} ${itemName} を獲得` : `${item.icon} ${itemName} Obtained`;
@@ -459,6 +552,7 @@ function buildEventChoices(colorKey){
                     const k = getValidRandomConsumable();
                     if(k) {
                         gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                        markItemFresh(k);
                         const item = ITEMS[k];
                         const itemName = isJa ? item.name.ja : item.name.en;
                         const msg = isJa ? `${item.icon} ${itemName} を獲得` : `${item.icon} ${itemName} Obtained`;
@@ -564,12 +658,11 @@ function buildShopCard(offer) {
        </span>` 
     : '';
     const card = document.createElement('div');
-    card.className = 'shop-card glass-panel perk-card p-2 sm:p-4 flex flex-col gap-1 sm:gap-2 h-full relative overflow-hidden';
+    card.className = 'shop-card glass-panel perk-card p-2 flex flex-col gap-1 h-full relative overflow-hidden';
     let priceDisplay = `<div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div>`;
     if (hasPerk('bargain') && cost !== baseCost) {
         priceDisplay = `<div class="flex flex-col items-end leading-none"><div class="text-[10px] text-slate-500 line-through decoration-slate-500">${baseCost}</div><div class="text-xl sm:text-2xl font-black text-yellow-400">${cost}</div></div>`;
     }
-    const priceTag = `<div class="absolute top-2 right-2 text-right">${priceDisplay}</div>`;
     card.dataset.cost = String(cost);
     card.dataset.locked = isLocked ? '1' : '';
     let btnLabel = currentLang === 'ja' ? '購入' : 'BUY';
@@ -583,20 +676,24 @@ function buildShopCard(offer) {
         btnLabel = currentLang === 'ja' ? '最大数' : 'MAX';
         btnColorClass = 'text-rose-500';
     }
+    const priceTag = `<div class="absolute top-2 right-2 text-right">${priceDisplay}</div>`;
+    const purchaseButton = `<button class="shop-btn absolute bottom-2 right-2 min-w-12 px-2 py-1 rounded font-black text-[9px] sm:text-[10px] uppercase leading-none tracking-wide border border-white/10 ${btnColorClass} ${disabled ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white/10'}">${btnLabel}</button>`;
     card.innerHTML = `
         ${priceTag}
-        <div class="flex items-center gap-2 mb-1 pr-8"> <div class="relative w-8 h-8 sm:w-12 sm:h-12 rounded-lg glass-panel flex items-center justify-center text-lg sm:text-2xl shrink-0 border border-white/10">
+        ${purchaseButton}
+        <div class="flex items-center gap-2 mb-0.5 pr-14 sm:pr-16"> <div class="shop-item-icon relative rounded-lg glass-panel flex items-center justify-center shrink-0 border border-white/10">
                 ${icon}${badgeHtml}
             </div>
-            <div class="sm:text-sm font-black text-white leading-tight line-clamp-2">${name}</div>
+            <div class="shop-item-name font-black text-white leading-tight line-clamp-2">${name}</div>
         </div>
-        <div class="flex-1">
+        <div class="flex-1 pr-14 sm:pr-16">
             <p class="sm:text-sm text-white leading-tight line-clamp-2">${desc}</p>
-        </div>
-        <button class="shop-btn w-full py-1.5 mt-1 rounded-lg font-black text-[10px] sm:text-sm uppercase tracking-widest border border-white/10 ${btnColorClass} ${disabled ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white/10'}">
-            ${btnLabel}
-        </button>`;
+        </div>`;
     const btn = card.querySelector('.shop-btn');
+    card.onclick = event => {
+        if (event.target.closest('.shop-btn') || !window.matchMedia('(max-width: 767px)').matches) return;
+        showToast(`${icon} ${name}`, 'slate');
+    };
     btn.disabled = disabled;
     btn.onclick = () => {
         if (btn.disabled || shopPurchasePending || perkAdvancePending) return;
@@ -621,7 +718,13 @@ function buildShopCard(offer) {
                 if (offer.kind === 'instant') {
                     const result = itemDef.effect(gameState);
                     showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'emerald');
-                    if (!result.success) return;
+                    if (!result.success) {
+                        refreshRerollUI();
+                        renderHUD();
+                        renderErosionServices();
+                        saveGame();
+                        return;
+                    }
                     gameState.essence -= cost;
                     offer.purchased = true;
                     if (result.isMystery) {
@@ -635,11 +738,13 @@ function buildShopCard(offer) {
                         gameState.inventory[rawId] = 1;
                     } else {
                         gameState.inventory[rawId] = (gameState.inventory[rawId] || 0) + 1;
+                        markItemFresh(rawId);
                     }
                     showToast(currentLang === 'ja' ? "購入しました" : "Purchased", 'emerald');
                 }
                 refreshRerollUI();
                 renderHUD();
+                renderErosionServices();
                 if (refreshAllOffers) {
                     renderCurrentShopOffers();
                 } else {
@@ -760,6 +865,15 @@ function openMutationsScreen() {
             if (!item) return;
             const name = currentLang === 'ja' ? item.name.ja : item.name.en;
             const desc = currentLang === 'ja' ? item.desc.ja : item.desc.en;
+            const condition = getItemCondition(key);
+            const conditionText = getItemConditionLabel(condition);
+            const isProtected = (gameState.protectedItemIds || []).includes(key);
+            const wasProtected = (gameState.floorProtectedItemIds || []).includes(key);
+            const stateLabels = [
+                condition !== 'normal' ? `<span class="erosion-condition erosion-${condition}">${conditionText}</span>` : '',
+                isProtected ? `<span class="text-[9px] font-black text-cyan-300">◆ ${currentLang === 'ja' ? '次層保護' : 'SEALED'}</span>` : '',
+                wasProtected ? `<span class="text-[9px] font-black text-cyan-300">◆ ${currentLang === 'ja' ? '遮断済' : 'BLOCKED'}</span>` : ''
+            ].filter(Boolean).join(' ');
             const card = document.createElement('div');
             card.className = 'glass-panel p-3 border border-white/10 flex flex-col gap-2 h-full';
             card.innerHTML = `
@@ -769,8 +883,9 @@ function openMutationsScreen() {
                             ${item.icon}
                             <span class="badge-count absolute -top-2 -right-2 bg-sky-500 text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full text-white pointer-events-none shadow-sm z-10 leading-none">${count}</span>
                         </div>
-                        <div class="text-sm font-black text-white leading-tight break-words">
-                            ${name}
+                        <div class="min-w-0">
+                            <div class="text-sm font-black text-white leading-tight break-words">${name}</div>
+                            <div class="flex flex-wrap gap-1 mt-1">${stateLabels}</div>
                         </div>
                     </div>
                     <div class="text-right shrink-0">
@@ -846,8 +961,8 @@ function openPerkScreen(isDeath){
             }
         });
     };
-    shopCards.parentElement.className = "flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"; 
-    shopCards.className = "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3";
+    shopCards.parentElement.className = "glass-panel shrink-0 md:flex-1 md:min-w-0 md:overflow-y-auto flex flex-col rounded-lg border border-yellow-500/25 bg-yellow-950/10 p-2";
+    shopCards.className = "grid grid-cols-2 gap-2";
     if (!gameState.currentPerkChoices) {
         const contractBonusChoice = getCurrentContract().id === 'forbidden' ? 1 : 0;
         gameState.currentPerkChoices = rollPerkChoices((bossVictory ? 4 : 3) + contractBonusChoice);
@@ -869,7 +984,7 @@ function buildPerkCard(perk){
     const activeOverdrive = gameState.overdrives?.[perk.id] || null;
     const overdriveReady = owned >= OVERDRIVE_UNLOCK_LEVEL && !activeOverdrive;
     const previewLevel = next + (activeOverdrive === 'surge' ? 2 : 0);
-    card.className = `perk-card glass-panel p-2 sm:p-4 cursor-pointer rarity-${perk.rarity} rarity-border-${perk.rarity} relative transition-all`;
+    card.className = `perk-card glass-panel p-2 cursor-pointer rarity-${perk.rarity} rarity-border-${perk.rarity} relative transition-all`;
     card.dataset.perkId = perk.id;
     const perkColorMap = {
         'crimson_resonance': 'R', 'azure_cycle': 'B', 'amber_greed': 'Y',
@@ -891,14 +1006,14 @@ function buildPerkCard(perk){
             ? `<span class="overdrive-active-badge overdrive-active-${activeOverdrive}">${currentLang === 'ja' ? OVERDRIVE_MODES[activeOverdrive].name.ja : OVERDRIVE_MODES[activeOverdrive].name.en}</span>`
             : `<span class="shrink-0 text-[10px] sm:text-xs ${owned>0?'text-emerald-400':'text-sky-400'} font-bold uppercase tracking-tighter">${owned>0?'UPGRADE':'NEW'}</span>`;
     card.innerHTML = `
-        <div class="flex justify-between items-center mb-2 gap-2">
-            <div class="text-lg sm:text-xl font-black text-white leading-tight truncate">
+        <div class="flex justify-between items-center mb-1 gap-2">
+            <div class="min-w-0 flex-1 text-[12px] font-black text-white leading-tight truncate">
                 ${colorIcon}${currentLang==='ja'?perk.name.ja:perk.name.en} 
-                <span class="text-xs sm:text-sm text-slate-500 ml-1 font-medium">Lv.${owned}→${next}</span>
+                <span class="text-[10px] text-slate-500 ml-1 font-medium">Lv.${owned}→${next}</span>
             </div>
             ${stateBadge}
         </div>
-        <div class="text-sm sm:text-base text-slate-300 leading-relaxed">
+        <div class="text-[12px] text-slate-300 leading-snug">
             ${getPerkDesc(perk.id, previewLevel)}
         </div>
     `;

@@ -115,6 +115,116 @@ function getNextMovePressurePreview() {
 function getAnomalyDefinition(id = gameState.anomaly?.id) {
     return id ? ANOMALY_DEFINITIONS[id] || null : null;
 }
+
+function getErosionConfig(floor = gameState.floor) {
+    return [...EROSION_TIERS].reverse().find(row => floor >= row.minFloor) || EROSION_TIERS[0];
+}
+function getItemCondition(id) {
+    return gameState.itemConditions?.[id] || 'normal';
+}
+function markItemFresh(id, state = gameState) {
+    if (!ITEM_REGISTRY[id] || !(state.inventory?.[id] > 0)) return;
+    if (!Array.isArray(state.freshItemIds)) state.freshItemIds = [];
+    if (!state.freshItemIds.includes(id)) state.freshItemIds.push(id);
+}
+function getItemConditionLabel(condition, lang = currentLang) {
+    const labels = {
+        normal: {ja: '正常', en: 'Stable'}, weathered: {ja: '風化', en: 'Weathered'},
+        polluted: {ja: '汚染', en: 'Polluted'}, decayed: {ja: '腐敗', en: 'Decayed'}
+    };
+    return labels[condition]?.[lang] || labels.normal[lang];
+}
+function getErosionCleanseCost(condition, tier = getErosionConfig().tier) {
+    const pricing = EROSION_CLEANSE_PRICING[condition];
+    if (!pricing) return 0;
+    return pricing.base + pricing.perTier * Math.max(0, tier);
+}
+function cleanupErosionInventoryState() {
+    Object.keys(gameState.itemConditions || {}).forEach(id => {
+        if (!(gameState.inventory[id] > 0)) delete gameState.itemConditions[id];
+    });
+    ['protectedItemIds', 'floorProtectedItemIds', 'freshItemIds', 'decayPending'].forEach(key => {
+        gameState[key] = (gameState[key] || []).filter(id => gameState.inventory[id] > 0);
+    });
+}
+function resolvePendingDecay() {
+    cleanupErosionInventoryState();
+    const candidates = (gameState.decayPending || []).filter(id => {
+        if (!(gameState.inventory[id] > 0) || getItemCondition(id) !== 'decayed') return false;
+        if (id === 'heal' || id === 'panacea') {
+            const healingCount = (gameState.inventory.heal || 0) + (gameState.inventory.panacea || 0);
+            if (healingCount <= 1) return false;
+        }
+        return true;
+    });
+    if (!candidates.length) {
+        gameState.decayPending = [];
+        return null;
+    }
+    const stacked = candidates.filter(id => (gameState.inventory[id] || 0) >= 2);
+    const lostId = pick(stacked.length ? stacked : candidates);
+    gameState.inventory[lostId] = Math.max(0, gameState.inventory[lostId] - 1);
+    gameState.erosionStats.lostItems++;
+    gameState.decayPending = [];
+    if (gameState.inventory[lostId] <= 0) delete gameState.itemConditions[lostId];
+    else gameState.itemConditions[lostId] = 'polluted';
+    cleanupErosionInventoryState();
+    return {id: lostId, remaining: gameState.inventory[lostId] || 0};
+}
+function rollFloorErosion() {
+    const config = getErosionConfig();
+    gameState.erosionTier = config.tier;
+    gameState.erosionPreview = {rate: config.rate, targets: config.targets, misfire: config.misfire};
+    if (!config.targets || isBossFloor(gameState.floor)) {
+        gameState.floorProtectedItemIds = [];
+        gameState.protectedItemIds = [];
+        gameState.freshItemIds = [];
+        return [];
+    }
+    const protectedSet = new Set(gameState.protectedItemIds || []);
+    gameState.floorProtectedItemIds = [...protectedSet].filter(id => gameState.inventory[id] > 0);
+    const freshSet = new Set(gameState.freshItemIds || []);
+    let candidates = Object.keys(gameState.inventory).filter(id =>
+        gameState.inventory[id] > 0 && ITEM_REGISTRY[id]?.type === 'consumable'
+        && getItemCondition(id) !== 'decayed'
+        && !protectedSet.has(id) && !freshSet.has(id) && !(gameState.temporaryInventory[id] > 0)
+    );
+    const targetLimit = Math.max(0, config.targets - (gameState.anomaly ? 1 : 0));
+    const affected = [];
+    for (let i = 0; i < targetLimit && candidates.length; i++) {
+        const progressing = candidates.filter(id => getItemCondition(id) !== 'normal');
+        const normal = candidates.filter(id => getItemCondition(id) === 'normal');
+        const preferredPool = progressing.length && (normal.length === 0 || Math.random() < 0.65) ? progressing : normal;
+        const id = pick(preferredPool.length ? preferredPool : candidates);
+        candidates.splice(candidates.indexOf(id), 1);
+        gameState.erosionStats.checks++;
+        let rate = config.rate;
+        const contractId = getCurrentContract().id;
+        if (contractId === 'safe') rate *= 0.75;
+        if (contractId === 'forbidden') rate *= 1.25;
+        if (Math.random() >= Math.min(1, rate)) continue;
+        const currentIndex = ITEM_CONDITION_ORDER.indexOf(getItemCondition(id));
+        const next = ITEM_CONDITION_ORDER[Math.min(currentIndex + 1, ITEM_CONDITION_ORDER.length - 1)];
+        gameState.itemConditions[id] = next;
+        gameState.erosionStats.affected++;
+        affected.push({id, condition: next});
+    }
+    gameState.decayPending = Object.keys(gameState.itemConditions).filter(id => getItemCondition(id) === 'decayed');
+    gameState.protectedItemIds = [];
+    gameState.freshItemIds = [];
+    cleanupErosionInventoryState();
+    return affected;
+}
+function shouldItemMisfire(id) {
+    if ((gameState.temporaryInventory[id] || 0) > 0 || getItemCondition(id) !== 'polluted') return false;
+    const chance = getErosionConfig().misfire;
+    if (!chance || Math.random() >= chance) return false;
+    gameState.itemConditions[id] = 'normal';
+    gameState.erosionStats.misfires++;
+    gameState.pressure = Math.min(gameState.pressureMax - 1, gameState.pressure + 2);
+    saveGame();
+    return true;
+}
 function chooseNextAnomaly() {
     const previous = gameState.anomalyHistory?.[gameState.anomalyHistory.length - 1];
     const candidates = Object.keys(ANOMALY_DEFINITIONS).filter(id => id !== previous);
@@ -201,6 +311,7 @@ function getPerkDesc(id, level=1){
     const def = PERKS[id];
     let txt = currentLang==='ja' ? def.desc.ja : def.desc.en;
     txt = txt.replace(/\[Lv\]/g, level);
+    txt = txt.replace(/\[Lv cap 2\]/g, Math.min(level, 2));
     txt = txt.replace(/\[4 \+ Lv\]/g, 4 + level);
     txt = txt.replace(/\[6 \- Lv\]/g, 6 - level);
     txt = txt.replace(/\[Lv x 2\]/g, level * 2);
@@ -522,9 +633,10 @@ function acquirePerk(id, saveImmediately = true){
     renderHUD(); 
     if (saveImmediately) saveGame();
 }
-function getValidRandomConsumable() {
+function getValidRandomConsumable(excludedIds = []) {
+    const excluded = new Set(excludedIds);
     const keys = Object.keys(ITEMS).filter(x => ITEMS[x].type === 'consumable');
-    const available = keys.filter(k => (gameState.inventory[k] || 0) < INVENTORY_LIMIT);
+    const available = keys.filter(k => !excluded.has(k) && (gameState.inventory[k] || 0) < INVENTORY_LIMIT);
     return available.length > 0 ? pick(available) : null;
 }
 function generateShareText(){

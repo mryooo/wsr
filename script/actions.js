@@ -34,6 +34,9 @@ function onLevelClear(){
     // A cleared floor cannot be undone. Dropping the snapshots here keeps
     // synchronous shop saves small, especially on long mobile sessions.
     gameState.history = [];
+    // Floor-play drops have already survived their acquisition floor. Only
+    // purchases and next-floor perk grants receive freshness on the descent.
+    gameState.freshItemIds = [];
     saveGame();
     setTimeout(() => {
         gameState.busy = false;
@@ -65,6 +68,11 @@ function useItem(key) {
     }
     gameState.pendingSkill = null; 
     if (item.behaviorType === 'instant') {
+        if (shouldItemMisfire(key)) {
+            showToast(currentLang === 'ja' ? `${item.name.ja}は汚染により不発。プレッシャー +2` : `${item.name.en} misfired from pollution. Pressure +2`, 'purple');
+            renderHUD(); renderSkills();
+            return;
+        }
         const result = item.effect(gameState);
         if (result.success) {
             if (item.type !== 'tool') consumeInventoryUnit(key);
@@ -130,6 +138,13 @@ async function applyItemToTube(idx) {
     if (item.behaviorType === 'two_step') {
         if (!gameState.extractorHeldColor) {
             if (tube.length === 0) { showFloatText(idx, "Empty!", "#ef4444"); return; }
+            if (shouldItemMisfire(key)) {
+                gameState.targetMode = null;
+                showFloatText(idx, currentLang === 'ja' ? "不発" : "MISFIRE", "#a855f7");
+                showToast(currentLang === 'ja' ? '汚染により不発。アイテムは失われません' : 'Pollution caused a misfire. Item retained', 'purple');
+                renderHUD(); renderSkills();
+                return;
+            }
             preExtractionState = deepCopy(gameState.tubes);
             gameState.extractorHeldColor = item.extractLogic(tube);
             gameState.extractorSourceIdx = idx;
@@ -154,6 +169,13 @@ async function applyItemToTube(idx) {
     if (item.behaviorType === 'target_effect') {
         const check = item.canUseOn(tube, gameState.capacity);
         if (!check.ok) { showFloatText(idx, check.msg || "Invalid!", "#ef4444"); return; }
+        if (shouldItemMisfire(key)) {
+            gameState.targetMode = null;
+            showFloatText(idx, currentLang === 'ja' ? "不発" : "MISFIRE", "#a855f7");
+            showToast(currentLang === 'ja' ? '汚染により不発。アイテムは失われません' : 'Pollution caused a misfire. Item retained', 'purple');
+            renderHUD(); renderSkills();
+            return;
+        }
         pushHistory(); gameState.busy = true;
         try {
             const result = item.apply(tube);
@@ -183,6 +205,7 @@ function consumeInventoryUnit(key) {
         gameState.temporaryInventory[key]--;
         if (gameState.temporaryInventory[key] <= 0) delete gameState.temporaryInventory[key];
     }
+    cleanupErosionInventoryState();
 }
 function grantTemporaryBossItem(key) {
     gameState.inventory[key] = (gameState.inventory[key] || 0) + 1;
@@ -440,6 +463,7 @@ async function handleCompletion(tubeIdx, colorKey) {
             const k = getValidRandomConsumable();
             if (k) {
                 gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                markItemFresh(k);
                 const item = ITEMS[k];
                 const itemName = currentLang === 'ja' ? item.name.ja : item.name.en;
                 const msg = currentLang === 'ja' ? `${item.icon} ${itemName} を獲得` : `${item.icon} ${itemName} Obtained`;
@@ -843,6 +867,15 @@ function startNewRun() {
         lastBossSourceIdx: null,
         repeatedBossSourceCount: 0,
         lastDamageCause: null,
+        itemConditions: {},
+        protectedItemIds: [],
+        floorProtectedItemIds: [],
+        freshItemIds: [],
+        erosionTier: 0,
+        erosionPreview: null,
+        decayPending: [],
+        abyssResidue: 0,
+        erosionStats: {checks: 0, affected: 0, misfires: 0, lostItems: 0, essenceSpentOnProtection: 0},
         saveSchemaVersion: SAVE_SCHEMA_VERSION,
         runVersion: GAME_VERSION,
         turnCount: 0,
@@ -882,6 +915,7 @@ function startNewRun() {
 }
 function nextFloor(isFirst=false){
     const rewards = [];
+    const lostToDecay = isFirst ? null : resolvePendingDecay();
     if(!isFirst) {
         gameState.floor++; 
         if (gameState.floor >= 12) gameState.capacity = 8;
@@ -893,14 +927,19 @@ function nextFloor(isFirst=false){
             const k = getValidRandomConsumable();
             if (k) {
                 gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                markItemFresh(k);
                 rewards.push({ key: k, source: 'scavenger' });
             }
         }
         if (hasPerk('transmutation')) {
-            for (let i = 0; i < getPerkLevel('transmutation'); i++) {
-                const k = getValidRandomConsumable();
+            const transmutationCount = Math.min(2, getPerkLevel('transmutation'));
+            const transmutedIds = [];
+            for (let i = 0; i < transmutationCount; i++) {
+                const k = getValidRandomConsumable(transmutedIds);
                 if (k) {
                     gameState.inventory[k] = (gameState.inventory[k] || 0) + 1;
+                    markItemFresh(k);
+                    transmutedIds.push(k);
                     rewards.push({ key: k, source: 'transmutation' });
                 }
             }
@@ -941,6 +980,7 @@ function nextFloor(isFirst=false){
         completedFlags: [],
         bossState: enteringBoss ? createBossState(gameState.floor) : null,
         temporaryInventory: {},
+        floorProtectedItemIds: [],
         anomaly: null,
         pendingOverdriveMode: null,
         lastBossSourceIdx: null,
@@ -951,18 +991,39 @@ function nextFloor(isFirst=false){
     }
     generateBoard(); 
     prepareFloorSystems();
+    const erosionResults = rollFloorErosion();
     generateGoals(); 
     renderHUD(); 
     renderBoard(true);
     saveGame();
     setTimeout(() => {
-        showFloorStartSequence(rewards);
+        showFloorStartSequence(rewards, erosionResults, lostToDecay);
         if (enteringBoss) openBossIntro();
     }, 600);
 }
-function showFloorStartSequence(rewards) {
+function showFloorStartSequence(rewards, erosionResults = [], lostToDecay = null) {
     const floorMsg = currentLang === 'ja' ? `第 ${gameState.floor} 階層` : `FLOOR ${gameState.floor}`;
     showToast(floorMsg, 'sky');
+    if ((gameState.floorProtectedItemIds || []).length) {
+        const protectedNames = gameState.floorProtectedItemIds.map(id => {
+            const item = ITEM_REGISTRY[id];
+            return `${item.icon} ${currentLang === 'ja' ? item.name.ja : item.name.en}`;
+        }).join(' / ');
+        setTimeout(() => showToast(currentLang === 'ja' ? `封蝋保護が侵食を遮断：${protectedNames}` : `Wax seals blocked erosion: ${protectedNames}`, 'sky'), 200);
+    }
+    if (lostToDecay) {
+        const item = ITEM_REGISTRY[lostToDecay.id];
+        const remainingText = lostToDecay.remaining > 0
+            ? (currentLang === 'ja' ? `（残り${lostToDecay.remaining}個は汚染状態）` : ` (${lostToDecay.remaining} remaining are polluted)`)
+            : '';
+        setTimeout(() => showToast(currentLang === 'ja'
+            ? `${item.icon} ${item.name.ja}が1個腐敗消滅 ${remainingText}`
+            : `${item.icon} One ${item.name.en} decayed${remainingText}`, 'rose'), 150);
+    }
+    if (erosionResults.length) {
+        const summary = erosionResults.map(({id, condition}) => `${ITEM_REGISTRY[id].icon} ${currentLang === 'ja' ? ITEM_REGISTRY[id].name.ja : ITEM_REGISTRY[id].name.en}: ${getItemConditionLabel(condition)}`).join(' / ');
+        setTimeout(() => showToast(currentLang === 'ja' ? `深淵侵食：${summary}` : `Abyssal Erosion: ${summary}`, 'purple'), 300);
+    }
     if (gameState.routeContract?.startFloor === gameState.floor) {
         const contract = getCurrentContract();
         setTimeout(() => showToast(currentLang === 'ja' ? `${contract.name.ja} 開始` : `${contract.name.en} begins`, contract.id === 'forbidden' ? 'rose' : contract.id === 'volatile' ? 'yellow' : 'sky'), 250);

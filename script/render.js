@@ -225,6 +225,9 @@ function renderSkills(){
     const renderKey = JSON.stringify([
         gameState.inventory,
         gameState.temporaryInventory,
+        gameState.itemConditions,
+        gameState.protectedItemIds,
+        gameState.floorProtectedItemIds,
         gameState.pipetteMode,
         gameState.targetMode,
         gameState.pendingSkill,
@@ -250,6 +253,19 @@ function renderSkills(){
             }
             const name = currentLang === 'ja' ? def.name.ja : def.name.en;
             const desc = currentLang === 'ja' ? def.desc.ja : def.desc.en;
+            const condition = getItemCondition(key);
+            const conditionText = getItemConditionLabel(condition);
+            const misfirePct = condition === 'polluted' ? Math.round(getErosionConfig().misfire * 100) : 0;
+            const erosionDesc = condition === 'normal' ? '' : (currentLang === 'ja'
+                ? `\n状態: ${conditionText}${misfirePct ? `（不発率 ${misfirePct}%）` : ''}`
+                : `\nCondition: ${conditionText}${misfirePct ? ` (${misfirePct}% misfire)` : ''}`);
+            const sealActive = (gameState.floorProtectedItemIds || []).includes(key);
+            const sealReserved = (gameState.protectedItemIds || []).includes(key);
+            const sealDesc = sealActive
+                ? (currentLang === 'ja' ? '\n◆ 封蝋保護：この階層の侵食を遮断済み' : '\n◆ Wax Seal: erosion blocked this floor')
+                : sealReserved
+                    ? (currentLang === 'ja' ? '\n◆ 封蝋保護：次の階層に予約済み' : '\n◆ Wax Seal: reserved for the next floor')
+                    : '';
             let badgeHtml = '';
             if (def.type !== 'tool' && count > 0) {
                 badgeHtml = `<span class="badge-count absolute -top-2 -right-2 bg-sky-500 text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full text-white pointer-events-none shadow-sm z-10 leading-none">${count}</span>`;
@@ -258,6 +274,21 @@ function renderSkills(){
                 badgeHtml += `<span class="boss-item-badge">BOSS</span>`;
             }
             btn.innerHTML = `${def.icon}${badgeHtml}`;
+            if (condition !== 'normal') {
+                btn.classList.add('item-eroded', `item-${condition}`);
+                btn.dataset.conditionLabel = conditionText;
+            }
+            if (sealActive || sealReserved) {
+                btn.classList.add('item-protected');
+                btn.dataset.protectionLabel = sealActive
+                    ? (currentLang === 'ja' ? '封蝋保護・侵食遮断済み' : 'Wax seal protected')
+                    : (currentLang === 'ja' ? '次層の封蝋保護予約' : 'Wax seal reserved');
+            }
+            const accessibilityStates = [
+                condition !== 'normal' ? conditionText : null,
+                sealActive || sealReserved ? btn.dataset.protectionLabel : null
+            ].filter(Boolean);
+            if (accessibilityStates.length) btn.setAttribute('aria-label', `${name} ${count} — ${accessibilityStates.join(' / ')}`);
             if (key === 'pipette' && gameState.pipetteMode) btn.classList.add('active');
             if (gameState.pendingSkill === key) btn.classList.add('pending');
             if (gameState.targetMode === key) btn.classList.add('active-mode');
@@ -268,7 +299,7 @@ function renderSkills(){
                 }
             }
             btn.onclick = () => useItem(key);
-            btn.onmouseenter = () => showGlobalTooltip(btn, name, desc);
+            btn.onmouseenter = () => showGlobalTooltip(btn, name, desc + erosionDesc + sealDesc);
             btn.onmouseleave = () => hideGlobalTooltip();
             fragment.appendChild(btn);
         }
@@ -453,6 +484,16 @@ function renderAbyssSystems() {
     setText('attention-value', `${attention}%`);
     const fill = ui('attention-fill');
     if (fill) fill.style.width = `${attention}%`;
+    const erosionConfig = getErosionConfig();
+    const erosionChip = ui('erosion-chip');
+    if (erosionChip) {
+        erosionChip.classList.toggle('hidden', erosionConfig.tier === 0 && gameState.floor !== 10);
+        setText('erosion-name', gameState.floor === 10 ? (currentLang === 'ja' ? '侵食予兆' : 'EROSION OMEN') : (currentLang === 'ja' ? '深淵侵食' : 'EROSION'));
+        setText('erosion-value', gameState.floor === 10 ? '!' : `Lv.${erosionConfig.tier} ${Math.round(erosionConfig.rate * 100)}%`);
+        erosionChip.title = currentLang === 'ja'
+            ? `最大${erosionConfig.targets}枠を判定。不発率上限${Math.round(erosionConfig.misfire * 100)}%`
+            : `Checks up to ${erosionConfig.targets} slots. Misfire cap ${Math.round(erosionConfig.misfire * 100)}%`;
+    }
     const anomalyChip = ui('anomaly-chip');
     const activeAnomaly = getAnomalyDefinition();
     const pendingAnomaly = getAnomalyDefinition(gameState.pendingAnomalyId);

@@ -1,6 +1,6 @@
 // state.js — ゲーム状態、セーブ/ロード、履歴(Undo用)
 const SAVE_KEY = 'abyssal_alchemy_save_v1';
-const SAVE_SCHEMA_VERSION = 2;
+const SAVE_SCHEMA_VERSION = 3;
 function migrateV080State(state) {
     const defaults = {
         saveSchemaVersion: SAVE_SCHEMA_VERSION,
@@ -34,6 +34,30 @@ function migrateV080State(state) {
     state.runVersion = GAME_VERSION;
     return state;
 }
+function migrateV090State(state) {
+    const defaults = {
+        itemConditions: {}, protectedItemIds: [], floorProtectedItemIds: [], freshItemIds: [], erosionTier: 0,
+        erosionPreview: null, decayPending: [], abyssResidue: 0,
+        erosionStats: {checks: 0, affected: 0, misfires: 0, lostItems: 0, essenceSpentOnProtection: 0}
+    };
+    Object.entries(defaults).forEach(([key, value]) => {
+        if (typeof state[key] === 'undefined' || state[key] === null) {
+            state[key] = Array.isArray(value) ? [] : (value && typeof value === 'object' ? deepCopy(value) : value);
+        }
+    });
+    if (!state.itemConditions || typeof state.itemConditions !== 'object') state.itemConditions = {};
+    ['protectedItemIds', 'floorProtectedItemIds', 'freshItemIds', 'decayPending'].forEach(key => {
+        if (!Array.isArray(state[key])) state[key] = [];
+        state[key] = [...new Set(state[key])].filter(id => ITEM_REGISTRY[id] && (state.inventory?.[id] || 0) > 0);
+    });
+    Object.keys(state.itemConditions).forEach(id => {
+        if (!ITEM_REGISTRY[id] || !(state.inventory?.[id] > 0) || !ITEM_CONDITION_ORDER.includes(state.itemConditions[id])) {
+            delete state.itemConditions[id];
+        }
+    });
+    state.saveSchemaVersion = SAVE_SCHEMA_VERSION;
+    return state;
+}
 function saveGame() {
     try {
         const data = JSON.stringify(gameState);
@@ -50,6 +74,7 @@ function loadGame() {
             const loadedState = JSON.parse(data);
             Object.assign(gameState, loadedState);
             migrateV080State(gameState);
+            migrateV090State(gameState);
             gameState.busy = false; 
             gameState.selectedIdx = null;
             gameState.targetMode = null;
@@ -158,6 +183,15 @@ const gameState = {
     lastBossSourceIdx: null,
     repeatedBossSourceCount: 0,
     lastDamageCause: null,
+    itemConditions: {},
+    protectedItemIds: [],
+    floorProtectedItemIds: [],
+    freshItemIds: [],
+    erosionTier: 0,
+    erosionPreview: null,
+    decayPending: [],
+    abyssResidue: 0,
+    erosionStats: {checks: 0, affected: 0, misfires: 0, lostItems: 0, essenceSpentOnProtection: 0},
 };
 function pushHistory(){
     gameState.history.push({

@@ -6,7 +6,7 @@
     <title>Abyss Alchemy - Water Sort Rogue</title>
     <link rel="icon" href="./icons/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="./css/style.css?v=0.8.11-20260815e">
+    <link rel="stylesheet" href="./css/style.css?v=0.9.00-20260819a">
 </head>
 <body>
     <div id="help-overlay"></div>
@@ -73,6 +73,9 @@
                         <span id="attention-label">深淵注目度</span>
                         <span id="attention-value">0%</span>
                         <span class="attention-track"><span id="attention-fill"></span></span>
+                    </div>
+                    <div id="erosion-chip" class="abyss-chip hidden">
+                        <span>☣</span><span id="erosion-name">侵食</span><span id="erosion-value">Lv.0</span>
                     </div>
                     <div id="anomaly-chip" class="abyss-chip hidden">
                         <span id="anomaly-name">異常なし</span>
@@ -224,7 +227,7 @@
         </div>
         <div id="perk-screen" class="fixed inset-0 z-[180] bg-slate-950 flex flex-col items-center justify-center p-4 md:p-8 hidden">
             <div class="w-full max-w-6xl h-full max-h-full flex flex-col glass-panel p-0 overflow-hidden relative border border-white/10 shadow-2xl shadow-black/80">
-                <div class="flex justify-between items-center p-3 md:p-6 border-b border-white/5 shrink-0 bg-slate-900/40">
+                <div class="flex justify-between items-center p-3 md:p-4 border-b border-white/5 shrink-0 bg-slate-900/40">
                     <div>
                         <h2 id="perk-title" class="text-xl md:text-3xl font-black text-white uppercase leading-none">ボーナス</h2>
                         <p id="perk-subtitle" class="text-slate-400 text-[10px] md:text-xs mt-1 uppercase tracking-widest">強化または物資を選択してください</p>
@@ -240,32 +243,31 @@
                         <div class="text-base font-bold text-sky-400 bg-sky-900/30 px-3 py-1.5 rounded border border-sky-500/20 whitespace-nowrap" id="perk-essence">✨ 0</div>
                     </div>
                 </div>
-                <div class="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-                    <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-white/5 bg-slate-900/20">
-                        <div class="text-sm font-bold mb-3 text-sky-300 uppercase tracking-widest flex items-center gap-2">
+                <div class="flex-1 flex flex-col md:flex-row gap-3 min-h-0 overflow-y-auto md:overflow-hidden p-4 bg-slate-900/30">
+                    <div class="glass-panel shrink-0 md:flex-1 md:min-w-0 md:overflow-y-auto flex flex-col rounded-lg border border-sky-500/25 bg-sky-950/10 p-2">
+                        <div class="text-sm font-bold mb-2 text-sky-300 uppercase tracking-widest flex items-center gap-2">
                             <span class="text-[16px]" id="ui-mutations-label">🧬 スキル</span>
                             <span class="text-[10px] text-slate-500 font-normal normal-case">Pick One</span>
                         </div>
                         <div class="grid gap-3" id="perk-cards"></div>
                     </div>
 
-                    <div class="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-slate-900/40">
-                        <div class="flex flex-col gap-2 mb-3">
+                    <div class="glass-panel shrink-0 md:flex-1 md:min-w-0 md:overflow-y-auto flex flex-col rounded-lg border border-yellow-500/25 bg-yellow-950/10 p-2">
+                        <div class="flex flex-col gap-2 mb-2">
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-yellow-500 font-bold tracking-widest text-lg">◈ SHOP</span>
+                                    <span class="text-yellow-500 font-bold tracking-widest text-[16px]">◈ SHOP</span>
                                     <div id="shop-interference-label" class="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">NORMAL</div>
+                                    <span id="price-multiplier" class="text-[10px] font-bold">x1.0</span>
                                 </div>
                                 <button id="reroll-btn" class="px-3 py-1.5 glass-panel border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 active:scale-95 transition-all"></button>
                             </div>
-                            <div class="flex items-center gap-2 text-[10px] text-slate-500 uppercase tracking-tighter">
-                                <span>Interference:</span> <span id="price-multiplier" class="font-bold">x1.0</span>
-                            </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-3" id="shop-cards"></div>
+                        <div class="grid grid-cols-2 gap-2" id="shop-cards"></div>
+                        <div id="erosion-services" class="mt-2"></div>
                     </div>
                 </div>
-                <div class="p-4 border-t border-white/5 bg-slate-900/40 shrink-0 flex justify-center z-10">
+                <div class="p-3 border-t border-white/5 bg-slate-900/40 shrink-0 flex justify-center z-10">
                     <button id="continue-btn"
                         class="w-full max-w-md py-3 bg-indigo-600 rounded-xl font-black text-white text-sm uppercase tracking-widest shadow-lg shadow-indigo-900/40 hover:bg-indigo-500 transition-all active:scale-95">Next
                         Floor</button>
@@ -367,15 +369,15 @@
         </div>
     </div>
     <!-- 読み込み順に依存関係あり: utils → config → i18n → dom → state → logic → render → actions → screens → main -->
-    <script src="./script/utils.js?v=0.8.11-20260815e"></script>
-    <script src="./script/config.js?v=0.8.11-20260815e"></script>
-    <script src="./script/i18n.js?v=0.8.11-20260815e"></script>
-    <script src="./script/dom.js?v=0.8.11-20260815e"></script>
-    <script src="./script/state.js?v=0.8.11-20260815e"></script>
-    <script src="./script/logic.js?v=0.8.11-20260815e"></script>
-    <script src="./script/render.js?v=0.8.11-20260815e"></script>
-    <script src="./script/actions.js?v=0.8.11-20260815e"></script>
-    <script src="./script/screens.js?v=0.8.11-20260815e"></script>
-    <script src="./script/main.js?v=0.8.11-20260815e"></script>
+    <script src="./script/utils.js?v=0.9.00-20260819a"></script>
+    <script src="./script/config.js?v=0.9.00-20260819a"></script>
+    <script src="./script/i18n.js?v=0.9.00-20260819a"></script>
+    <script src="./script/dom.js?v=0.9.00-20260819a"></script>
+    <script src="./script/state.js?v=0.9.00-20260819a"></script>
+    <script src="./script/logic.js?v=0.9.00-20260819a"></script>
+    <script src="./script/render.js?v=0.9.00-20260819a"></script>
+    <script src="./script/actions.js?v=0.9.00-20260819a"></script>
+    <script src="./script/screens.js?v=0.9.00-20260819a"></script>
+    <script src="./script/main.js?v=0.9.00-20260819a"></script>
 </body>
 </html>

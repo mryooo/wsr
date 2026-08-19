@@ -1,5 +1,5 @@
 // config.js — 定数定義(バージョン、色、パレット、Perk、アイテム、ショップ、バランス係数)
-const GAME_VERSION = "0.8.11";
+const GAME_VERSION = "0.9.00";
 const IS_DEBUG = true;
 
 const DAMAGE_CAUSE_LABELS = {
@@ -23,6 +23,23 @@ const FLOOR_CLEAR_BONUS_CAP = 10;  // 階層ボーナスの上限
 const SUBGOAL_REWARD = 4;          // サブ目標達成報酬
 const UNDO_COST = 5;               // Undoのエッセンスコスト
 const INVENTORY_LIMIT = 3;         // 同一アイテムの所持上限
+
+// ===== 0.9.00 深淵侵食 =====
+const EROSION_TIERS = [
+    { minFloor: 1,  tier: 0, rate: 0,    targets: 0, misfire: 0,    protectionCost: 0 },
+    { minFloor: 11, tier: 1, rate: 0.40, targets: 1, misfire: 0,    protectionCost: 4 },
+    { minFloor: 16, tier: 2, rate: 0.70, targets: 1, misfire: 0.05, protectionCost: 6 },
+    { minFloor: 21, tier: 3, rate: 0.75, targets: 2, misfire: 0.08, protectionCost: 8 },
+    { minFloor: 26, tier: 4, rate: 1.00, targets: 2, misfire: 0.10, protectionCost: 10 },
+    { minFloor: 31, tier: 5, rate: 1.00, targets: 3, misfire: 0.12, protectionCost: 12 }
+];
+const ITEM_CONDITION_ORDER = ['normal', 'weathered', 'polluted', 'decayed'];
+const EROSION_PROTECTION_LIMIT = 2;
+const EROSION_CLEANSE_PRICING = {
+    weathered: {base: 5, perTier: 3},
+    polluted: {base: 8, perTier: 4},
+    decayed: {base: 12, perTier: 5}
+};
 
 // ===== ボス階層 =====
 const BOSS_INTERVAL = 10;
@@ -158,7 +175,7 @@ const PERKS = {
     bargain:           { id: 'bargain',           name: { en: 'Bargain',           ja: '交渉術' },        rarity: 'common', desc: { en: 'Shop prices reduced by [15 + Lv x 5]%.',                                        ja: 'ショップ価格 [15 + Lv x 5]% OFF' } },
     heavy_mastery:     { id: 'heavy_mastery',     name: { en: 'Heavy Mastery',     ja: '大容量ボーナス' }, rarity: 'rare',   desc: { en: 'Clearing 5+ capacity tube reduces Pressure by [2 + Lv].',                       ja: '容量5以上のチューブ完成でプレッシャー -[2 + Lv] 減少' } },
     void_shield:       { id: 'void_shield',       name: { en: 'Void Shield',       ja: '虚空の盾' },      rarity: 'rare',   desc: { en: '[Lv x 15]% chance to negate Pressure damage.',                                  ja: 'プレッシャーダメージを受けた時、[Lv x 15]% で無効化' } },
-    transmutation:     { id: 'transmutation',     name: { en: 'Transmutation',     ja: '物質変換' },      rarity: 'epic',   desc: { en: 'Start each floor with [Lv] random items.',                                      ja: '階層開始時、[Lv] 個のランダムアイテムを獲得' } },
+    transmutation:     { id: 'transmutation',     name: { en: 'Transmutation',     ja: '物質変換' },      rarity: 'epic',   desc: { en: 'Start each floor with [Lv cap 2] fresh random items (max 2).',                   ja: '階層開始時、新鮮なランダムアイテムを [Lv cap 2] 個獲得（最大2個）' } },
     steady_hand:       { id: 'steady_hand',       name: { en: 'Steady Hand',       ja: '安定した手' },     rarity: 'rare',   desc: { en: 'Pressure does not rise for the first [Lv x 3] turns of a floor.',              ja: '階層開始から [Lv x 3] ターンの間、プレッシャー停止' } },
     deep_adapt:        { id: 'deep_adapt',        name: { en: 'Deep Adapt',        ja: '深層適応' },      rarity: 'epic',   desc: { en: 'Gain [Lv] Max HP if capacity > 4 at start of floor.',                           ja: '階層開始時、容量5以上なら最大HP +[Lv]' } },
     coupon:            { id: 'coupon',            name: { en: 'Coupon',            ja: 'クーポン券' },     rarity: 'common', desc: { en: 'Start each floor with [Lv] free Rerolls.',                                     ja: '階層開始時、リロールクーポンを [Lv] 枚入手' } },
@@ -216,6 +233,7 @@ const ITEM_REGISTRY = {
                const gift = pick(available);
                if (!gs.inventory[gift]) gs.inventory[gift] = 0;
                gs.inventory[gift]++;
+               markItemFresh(gift, gs);
                const item = ITEM_REGISTRY[gift];
                return { success: true, msg: {ja:`${item.name.ja} を獲得`, en:`${item.name.en} Obtained`}, color: 'yellow' };
            }
