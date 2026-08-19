@@ -43,6 +43,7 @@ function renderErosionServices() {
     }
     container.classList.remove('hidden');
     const protectedCount = (gameState.protectedItemIds || []).length;
+    const cleansesUsed = Math.max(0, gameState.erosionCleansesUsed || 0);
     const protectCost = getErosionServiceCost(nextConfig.protectionCost || 0);
     const protectionAvailable = nextConfig.tier > 0 && !isBossFloor(gameState.floor + 1);
     const rows = inventoryIds.map(id => {
@@ -51,14 +52,20 @@ function renderErosionServices() {
         const protectedItem = gameState.protectedItemIds.includes(id);
         const cleanseBase = getErosionCleanseCost(condition, nextConfig.tier);
         const cleanseCost = cleanseBase ? getErosionServiceCost(cleanseBase) : 0;
-        const conditionDisplay = condition === 'decayed'
-            ? (currentLang === 'ja' ? '腐敗・次降下で消滅' : 'DECAYED · LOST ON DESCENT')
-            : getItemConditionLabel(condition);
+        const conditionDisplay = condition === 'weathered'
+            ? (currentLang === 'ja' ? `風化・使用時${Math.round(nextConfig.misfire * 100)}%で不発` : `WEATHERED · ${Math.round(nextConfig.misfire * 100)}% MISFIRE`)
+            : condition === 'polluted'
+                ? (currentLang === 'ja' ? '汚染・次降下で1個消滅' : 'POLLUTED · LOSE ONE ON DESCENT')
+                : condition === 'decayed'
+                    ? (currentLang === 'ja' ? '腐敗・使用不能・次降下で全数消滅' : 'DECAYED · UNUSABLE · STACK LOST ON DESCENT')
+                    : getItemConditionLabel(condition);
         const protectDisabled = condition === 'decayed' || !protectionAvailable || protectedItem || protectedCount >= EROSION_PROTECTION_LIMIT || gameState.essence < protectCost;
-        const cleanseDisabled = !cleanseCost || gameState.essence < cleanseCost;
+        const cleanseDisabled = !cleanseCost || cleansesUsed >= EROSION_CLEANSE_LIMIT || gameState.essence < cleanseCost;
         const conditionClass = condition !== 'normal' ? `item-eroded item-${condition}` : '';
         const protectionClass = protectedItem ? 'item-protected' : '';
-        const cleanseLabel = currentLang === 'ja' ? `浄化：${cleanseCost || '対象外'}エッセンス` : `Cleanse: ${cleanseCost || 'unavailable'} Essence`;
+        const cleanseLabel = cleansesUsed >= EROSION_CLEANSE_LIMIT
+            ? (currentLang === 'ja' ? '浄化回数を使い切りました' : 'No cleanses remaining')
+            : (currentLang === 'ja' ? `浄化：${cleanseCost || '対象外'}エッセンス` : `Cleanse: ${cleanseCost || 'unavailable'} Essence`);
         const protectLabel = protectedItem
             ? (currentLang === 'ja' ? '次層の封蝋保護を予約済み' : 'Wax seal reserved for next floor')
             : (currentLang === 'ja' ? `保護：${protectCost}エッセンス` : `Seal: ${protectCost} Essence`);
@@ -77,8 +84,8 @@ function renderErosionServices() {
         </div>`;
     }).join('');
     container.innerHTML = `<div class="glass-panel border border-purple-500/25 bg-purple-950/20 p-2 rounded-lg">
-        <div class="flex justify-between gap-2"><div class="font-black text-purple-300 text-[16px]">☣ ${currentLang === 'ja' ? '侵食対策' : 'EROSION CONTROL'}</div><div class="text-[10px] text-slate-400">${currentLang === 'ja' ? `次層 Lv.${nextConfig.tier} / 保護 ${protectedCount}/${EROSION_PROTECTION_LIMIT}` : `NEXT Lv.${nextConfig.tier} / SEALED ${protectedCount}/${EROSION_PROTECTION_LIMIT}`}</div></div>
-        <div class="text-[9px] text-white mt-1 mb-1">${!protectionAvailable && isBossFloor(gameState.floor + 1) ? (currentLang === 'ja' ? '次はボス階層のため侵食判定はありません。浄化のみ利用できます。' : 'The next boss floor has no erosion check. Cleansing remains available.') : (currentLang === 'ja' ? `侵食率 ${Math.round(nextConfig.rate * 100)}%・不発率上限 ${Math.round(nextConfig.misfire * 100)}%。未保護品は降下時に抽選で侵食が進み、腐敗すると次回降下で消滅します。保護は次の1階層のみ有効。` : `Erosion ${Math.round(nextConfig.rate * 100)}% · Misfire cap ${Math.round(nextConfig.misfire * 100)}%. Unsealed items may erode on descent; decayed items vanish on the following descent. Seals last one floor.`)}</div><div class="grid grid-cols-2 md:grid-cols-3 gap-1">${rows || `<div class="text-[10px] text-slate-500 py-2 col-span-full">${currentLang === 'ja' ? '対象アイテムなし' : 'No eligible items'}</div>`}</div>
+        <div class="flex justify-between gap-2"><div class="font-black text-purple-300 text-[16px]">☣ ${currentLang === 'ja' ? '侵食対策' : 'EROSION CONTROL'}</div><div class="text-[10px] text-slate-400">${currentLang === 'ja' ? `次層 Lv.${nextConfig.tier} / 保護 ${protectedCount}/${EROSION_PROTECTION_LIMIT} / 浄化 ${cleansesUsed}/${EROSION_CLEANSE_LIMIT}` : `NEXT Lv.${nextConfig.tier} / SEALED ${protectedCount}/${EROSION_PROTECTION_LIMIT} / CLEANSE ${cleansesUsed}/${EROSION_CLEANSE_LIMIT}`}</div></div>
+        <div class="text-[9px] text-white mt-1 mb-1">${!protectionAvailable && isBossFloor(gameState.floor + 1) ? (currentLang === 'ja' ? `次はボス階層のため侵食判定はありません。浄化は残り${EROSION_CLEANSE_LIMIT - cleansesUsed}回です。` : `The next boss floor has no erosion check. ${EROSION_CLEANSE_LIMIT - cleansesUsed} cleanses remain.`) : (currentLang === 'ja' ? `${nextConfig.allTargets ? '40層以降は未保護の全所持枠が侵食します。' : `侵食率 ${Math.round(nextConfig.rate * 100)}%。`}風化は使用時に最大${Math.round(nextConfig.misfire * 100)}%で不発、汚染は次降下で1個消滅、腐敗は使用不能になり次降下で同種を全数失います。保護は次の1階層のみ、浄化は各ショップ2回まで。` : `${nextConfig.allTargets ? 'From floor 40, every unsealed inventory slot erodes. ' : `Erosion ${Math.round(nextConfig.rate * 100)}%. `}Weathered items may misfire up to ${Math.round(nextConfig.misfire * 100)}%; polluted items lose one on descent; decayed items are unusable and lose the whole stack on descent. Seals last one floor; two cleanses per shop.`)}</div><div class="grid grid-cols-2 md:grid-cols-3 gap-1">${rows || `<div class="text-[10px] text-slate-500 py-2 col-span-full">${currentLang === 'ja' ? '対象アイテムなし' : 'No eligible items'}</div>`}</div>
     </div>`;
     container.querySelectorAll('[data-erosion-item-id]').forEach(card => {
         card.onclick = event => {
@@ -104,7 +111,8 @@ function renderErosionServices() {
                 const currentIndex = ITEM_CONDITION_ORDER.indexOf(getItemCondition(id));
                 const nextCondition = ITEM_CONDITION_ORDER[Math.max(0, currentIndex - 1)];
                 gameState.itemConditions[id] = nextCondition;
-                if (nextCondition !== 'decayed') gameState.decayPending = gameState.decayPending.filter(itemId => itemId !== id);
+                if (!['polluted', 'decayed'].includes(nextCondition)) gameState.decayPending = gameState.decayPending.filter(itemId => itemId !== id);
+                gameState.erosionCleansesUsed = cleansesUsed + 1;
                 showToast(currentLang === 'ja'
                     ? `${ITEM_REGISTRY[id].name.ja}を1段階浄化：${getItemConditionLabel(nextCondition)}`
                     : `${ITEM_REGISTRY[id].name.en} cleansed one step: ${getItemConditionLabel(nextCondition)}`, 'purple');

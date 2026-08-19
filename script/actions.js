@@ -52,6 +52,10 @@ function useItem(key) {
     }
     const item = ITEM_REGISTRY[key];
     if (!item) return;
+    if (item.type !== 'tool' && (gameState.temporaryInventory[key] || 0) <= 0 && getItemCondition(key) === 'decayed') {
+        showToast(currentLang === 'ja' ? `${item.name.ja}は腐敗し、使用できない` : `${item.name.en} is decayed and unusable`, 'rose');
+        return;
+    }
     if (gameState.pendingSkill !== key) {
         gameState.pendingSkill = key;
         gameState.targetMode = null;
@@ -69,7 +73,7 @@ function useItem(key) {
     gameState.pendingSkill = null; 
     if (item.behaviorType === 'instant') {
         if (shouldItemMisfire(key)) {
-            showToast(currentLang === 'ja' ? `${item.name.ja}は汚染により不発。プレッシャー +2` : `${item.name.en} misfired from pollution. Pressure +2`, 'purple');
+            showToast(currentLang === 'ja' ? `${item.name.ja}は風化により不発。プレッシャー +2` : `${item.name.en} misfired from weathering. Pressure +2`, 'purple');
             renderHUD(); renderSkills();
             return;
         }
@@ -141,7 +145,7 @@ async function applyItemToTube(idx) {
             if (shouldItemMisfire(key)) {
                 gameState.targetMode = null;
                 showFloatText(idx, currentLang === 'ja' ? "不発" : "MISFIRE", "#a855f7");
-                showToast(currentLang === 'ja' ? '汚染により不発。アイテムは失われません' : 'Pollution caused a misfire. Item retained', 'purple');
+                showToast(currentLang === 'ja' ? '風化により不発。アイテムは失われません' : 'Weathering caused a misfire. Item retained', 'purple');
                 renderHUD(); renderSkills();
                 return;
             }
@@ -172,7 +176,7 @@ async function applyItemToTube(idx) {
         if (shouldItemMisfire(key)) {
             gameState.targetMode = null;
             showFloatText(idx, currentLang === 'ja' ? "不発" : "MISFIRE", "#a855f7");
-            showToast(currentLang === 'ja' ? '汚染により不発。アイテムは失われません' : 'Pollution caused a misfire. Item retained', 'purple');
+            showToast(currentLang === 'ja' ? '風化により不発。アイテムは失われません' : 'Weathering caused a misfire. Item retained', 'purple');
             renderHUD(); renderSkills();
             return;
         }
@@ -874,6 +878,7 @@ function startNewRun() {
         erosionTier: 0,
         erosionPreview: null,
         decayPending: [],
+        erosionCleansesUsed: 0,
         abyssResidue: 0,
         erosionStats: {checks: 0, affected: 0, misfires: 0, lostItems: 0, essenceSpentOnProtection: 0},
         saveSchemaVersion: SAVE_SCHEMA_VERSION,
@@ -918,6 +923,7 @@ function nextFloor(isFirst=false){
     const lostToDecay = isFirst ? null : resolvePendingDecay();
     if(!isFirst) {
         gameState.floor++; 
+        gameState.erosionCleansesUsed = 0;
         if (gameState.floor >= 12) gameState.capacity = 8;
         else if (gameState.floor >= 8) gameState.capacity = 6; 
         else if (gameState.floor >= 4) gameState.capacity = 5; 
@@ -1014,11 +1020,11 @@ function showFloorStartSequence(rewards, erosionResults = [], lostToDecay = null
     if (lostToDecay) {
         const item = ITEM_REGISTRY[lostToDecay.id];
         const remainingText = lostToDecay.remaining > 0
-            ? (currentLang === 'ja' ? `（残り${lostToDecay.remaining}個は汚染状態）` : ` (${lostToDecay.remaining} remaining are polluted)`)
+            ? (currentLang === 'ja' ? `（残り${lostToDecay.remaining}個）` : ` (${lostToDecay.remaining} remaining)`)
             : '';
         setTimeout(() => showToast(currentLang === 'ja'
-            ? `${item.icon} ${item.name.ja}が1個腐敗消滅 ${remainingText}`
-            : `${item.icon} One ${item.name.en} decayed${remainingText}`, 'rose'), 150);
+            ? `${item.icon} ${item.name.ja}が${lostToDecay.condition === 'decayed' ? `腐敗して${lostToDecay.lostCount}個すべて` : '汚染により1個'}消滅 ${remainingText}`
+            : `${item.icon} ${lostToDecay.condition === 'decayed' ? `Decay destroyed ${lostToDecay.lostCount}` : 'Pollution destroyed one'} ${item.name.en}${remainingText}`, 'rose'), 150);
     }
     if (erosionResults.length) {
         const summary = erosionResults.map(({id, condition}) => `${ITEM_REGISTRY[id].icon} ${currentLang === 'ja' ? ITEM_REGISTRY[id].name.ja : ITEM_REGISTRY[id].name.en}: ${getItemConditionLabel(condition)}`).join(' / ');

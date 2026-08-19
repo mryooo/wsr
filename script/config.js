@@ -31,10 +31,12 @@ const EROSION_TIERS = [
     { minFloor: 16, tier: 2, rate: 0.70, targets: 1, misfire: 0.05, protectionCost: 6 },
     { minFloor: 21, tier: 3, rate: 0.75, targets: 2, misfire: 0.08, protectionCost: 8 },
     { minFloor: 26, tier: 4, rate: 1.00, targets: 2, misfire: 0.10, protectionCost: 10 },
-    { minFloor: 31, tier: 5, rate: 1.00, targets: 3, misfire: 0.12, protectionCost: 12 }
+    { minFloor: 31, tier: 5, rate: 1.00, targets: 3, misfire: 0.12, protectionCost: 12 },
+    { minFloor: 40, tier: 6, rate: 1.00, targets: 999, allTargets: true, misfire: 0.15, protectionCost: 15 }
 ];
 const ITEM_CONDITION_ORDER = ['normal', 'weathered', 'polluted', 'decayed'];
 const EROSION_PROTECTION_LIMIT = 2;
+const EROSION_CLEANSE_LIMIT = 2;
 const EROSION_CLEANSE_PRICING = {
     weathered: {base: 5, perTier: 3},
     polluted: {base: 8, perTier: 4},

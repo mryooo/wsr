@@ -150,7 +150,7 @@ function cleanupErosionInventoryState() {
 function resolvePendingDecay() {
     cleanupErosionInventoryState();
     const candidates = (gameState.decayPending || []).filter(id => {
-        if (!(gameState.inventory[id] > 0) || getItemCondition(id) !== 'decayed') return false;
+        if (!(gameState.inventory[id] > 0) || !['polluted', 'decayed'].includes(getItemCondition(id))) return false;
         if (id === 'heal' || id === 'panacea') {
             const healingCount = (gameState.inventory.heal || 0) + (gameState.inventory.panacea || 0);
             if (healingCount <= 1) return false;
@@ -161,15 +161,27 @@ function resolvePendingDecay() {
         gameState.decayPending = [];
         return null;
     }
-    const stacked = candidates.filter(id => (gameState.inventory[id] || 0) >= 2);
-    const lostId = pick(stacked.length ? stacked : candidates);
-    gameState.inventory[lostId] = Math.max(0, gameState.inventory[lostId] - 1);
-    gameState.erosionStats.lostItems++;
+    const decayedCandidates = candidates.filter(id => getItemCondition(id) === 'decayed');
+    const pool = decayedCandidates.length ? decayedCandidates : candidates;
+    const stacked = pool.filter(id => (gameState.inventory[id] || 0) >= 2);
+    const lostId = pick(stacked.length ? stacked : pool);
+    const condition = getItemCondition(lostId);
+    let lostCount = condition === 'decayed' ? gameState.inventory[lostId] : 1;
+    if (lostId === 'heal' || lostId === 'panacea') {
+        const healingCount = (gameState.inventory.heal || 0) + (gameState.inventory.panacea || 0);
+        lostCount = Math.min(lostCount, Math.max(0, healingCount - 1));
+    }
+    if (lostCount <= 0) {
+        gameState.decayPending = [];
+        return null;
+    }
+    gameState.inventory[lostId] = Math.max(0, gameState.inventory[lostId] - lostCount);
+    gameState.erosionStats.lostItems += lostCount;
     gameState.decayPending = [];
     if (gameState.inventory[lostId] <= 0) delete gameState.itemConditions[lostId];
-    else gameState.itemConditions[lostId] = 'polluted';
+    else gameState.itemConditions[lostId] = condition === 'decayed' ? 'polluted' : 'weathered';
     cleanupErosionInventoryState();
-    return {id: lostId, remaining: gameState.inventory[lostId] || 0};
+    return {id: lostId, lostCount, condition, remaining: gameState.inventory[lostId] || 0};
 }
 function rollFloorErosion() {
     const config = getErosionConfig();
@@ -189,7 +201,7 @@ function rollFloorErosion() {
         && getItemCondition(id) !== 'decayed'
         && !protectedSet.has(id) && !freshSet.has(id) && !(gameState.temporaryInventory[id] > 0)
     );
-    const targetLimit = Math.max(0, config.targets - (gameState.anomaly ? 1 : 0));
+    const targetLimit = config.allTargets ? candidates.length : Math.max(0, config.targets - (gameState.anomaly ? 1 : 0));
     const affected = [];
     for (let i = 0; i < targetLimit && candidates.length; i++) {
         const progressing = candidates.filter(id => getItemCondition(id) !== 'normal');
@@ -200,8 +212,8 @@ function rollFloorErosion() {
         gameState.erosionStats.checks++;
         let rate = config.rate;
         const contractId = getCurrentContract().id;
-        if (contractId === 'safe') rate *= 0.75;
-        if (contractId === 'forbidden') rate *= 1.25;
+        if (!config.allTargets && contractId === 'safe') rate *= 0.75;
+        if (!config.allTargets && contractId === 'forbidden') rate *= 1.25;
         if (Math.random() >= Math.min(1, rate)) continue;
         const currentIndex = ITEM_CONDITION_ORDER.indexOf(getItemCondition(id));
         const next = ITEM_CONDITION_ORDER[Math.min(currentIndex + 1, ITEM_CONDITION_ORDER.length - 1)];
@@ -209,14 +221,14 @@ function rollFloorErosion() {
         gameState.erosionStats.affected++;
         affected.push({id, condition: next});
     }
-    gameState.decayPending = Object.keys(gameState.itemConditions).filter(id => getItemCondition(id) === 'decayed');
+    gameState.decayPending = Object.keys(gameState.itemConditions).filter(id => ['polluted', 'decayed'].includes(getItemCondition(id)));
     gameState.protectedItemIds = [];
     gameState.freshItemIds = [];
     cleanupErosionInventoryState();
     return affected;
 }
 function shouldItemMisfire(id) {
-    if ((gameState.temporaryInventory[id] || 0) > 0 || getItemCondition(id) !== 'polluted') return false;
+    if ((gameState.temporaryInventory[id] || 0) > 0 || getItemCondition(id) !== 'weathered') return false;
     const chance = getErosionConfig().misfire;
     if (!chance || Math.random() >= chance) return false;
     gameState.itemConditions[id] = 'normal';

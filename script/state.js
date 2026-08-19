@@ -37,7 +37,7 @@ function migrateV080State(state) {
 function migrateV090State(state) {
     const defaults = {
         itemConditions: {}, protectedItemIds: [], floorProtectedItemIds: [], freshItemIds: [], erosionTier: 0,
-        erosionPreview: null, decayPending: [], abyssResidue: 0,
+        erosionPreview: null, decayPending: [], erosionCleansesUsed: 0, abyssResidue: 0,
         erosionStats: {checks: 0, affected: 0, misfires: 0, lostItems: 0, essenceSpentOnProtection: 0}
     };
     Object.entries(defaults).forEach(([key, value]) => {
@@ -55,6 +55,11 @@ function migrateV090State(state) {
             delete state.itemConditions[id];
         }
     });
+    state.erosionCleansesUsed = Math.min(EROSION_CLEANSE_LIMIT, Math.max(0, Number(state.erosionCleansesUsed) || 0));
+    state.decayPending = [...new Set([
+        ...state.decayPending,
+        ...Object.keys(state.itemConditions).filter(id => ['polluted', 'decayed'].includes(state.itemConditions[id]))
+    ])];
     state.saveSchemaVersion = SAVE_SCHEMA_VERSION;
     return state;
 }
@@ -190,6 +195,7 @@ const gameState = {
     erosionTier: 0,
     erosionPreview: null,
     decayPending: [],
+    erosionCleansesUsed: 0,
     abyssResidue: 0,
     erosionStats: {checks: 0, affected: 0, misfires: 0, lostItems: 0, essenceSpentOnProtection: 0},
 };

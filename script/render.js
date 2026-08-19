@@ -255,10 +255,17 @@ function renderSkills(){
             const desc = currentLang === 'ja' ? def.desc.ja : def.desc.en;
             const condition = getItemCondition(key);
             const conditionText = getItemConditionLabel(condition);
-            const misfirePct = condition === 'polluted' ? Math.round(getErosionConfig().misfire * 100) : 0;
+            const misfirePct = condition === 'weathered' ? Math.round(getErosionConfig().misfire * 100) : 0;
+            const conditionEffect = condition === 'weathered'
+                ? (currentLang === 'ja' ? `使用時に最大${misfirePct}%で不発` : `Up to ${misfirePct}% misfire on use`)
+                : condition === 'polluted'
+                    ? (currentLang === 'ja' ? '次の降下で1個消滅' : 'Lose one on the next descent')
+                    : condition === 'decayed'
+                        ? (currentLang === 'ja' ? '使用不能・次の降下で同種を全数消失' : 'Unusable; whole stack lost on next descent')
+                        : '';
             const erosionDesc = condition === 'normal' ? '' : (currentLang === 'ja'
-                ? `\n状態: ${conditionText}${misfirePct ? `（不発率 ${misfirePct}%）` : ''}`
-                : `\nCondition: ${conditionText}${misfirePct ? ` (${misfirePct}% misfire)` : ''}`);
+                ? `\n状態: ${conditionText}（${conditionEffect}）`
+                : `\nCondition: ${conditionText} (${conditionEffect})`);
             const sealActive = (gameState.floorProtectedItemIds || []).includes(key);
             const sealReserved = (gameState.protectedItemIds || []).includes(key);
             const sealDesc = sealActive
@@ -491,8 +498,8 @@ function renderAbyssSystems() {
         setText('erosion-name', gameState.floor === 10 ? (currentLang === 'ja' ? '侵食予兆' : 'EROSION OMEN') : (currentLang === 'ja' ? '深淵侵食' : 'EROSION'));
         setText('erosion-value', gameState.floor === 10 ? '!' : `Lv.${erosionConfig.tier} ${Math.round(erosionConfig.rate * 100)}%`);
         erosionChip.title = currentLang === 'ja'
-            ? `最大${erosionConfig.targets}枠を判定。不発率上限${Math.round(erosionConfig.misfire * 100)}%`
-            : `Checks up to ${erosionConfig.targets} slots. Misfire cap ${Math.round(erosionConfig.misfire * 100)}%`;
+            ? `${erosionConfig.allTargets ? '未保護の全所持枠を判定' : `最大${erosionConfig.targets}枠を判定`}。風化不発率上限${Math.round(erosionConfig.misfire * 100)}%`
+            : `${erosionConfig.allTargets ? 'Checks every unsealed slot' : `Checks up to ${erosionConfig.targets} slots`}. Weathered misfire cap ${Math.round(erosionConfig.misfire * 100)}%`;
     }
     const anomalyChip = ui('anomaly-chip');
     const activeAnomaly = getAnomalyDefinition();
