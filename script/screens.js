@@ -4,7 +4,7 @@ let shopPurchasePending = false;
 let contractSelectionPending = false;
 
 function runAfterUiPaint(callback) {
-    requestAnimationFrame(() => requestAnimationFrame(callback));
+    requestAnimationFrame(callback);
 }
 
 function updateContinueActionState() {
@@ -685,7 +685,7 @@ function buildShopCard(offer) {
         btnColorClass = 'text-rose-500';
     }
     const priceTag = `<div class="absolute top-2 right-2 text-right">${priceDisplay}</div>`;
-    const purchaseButton = `<button class="shop-btn absolute bottom-2 right-2 min-w-12 px-2 py-1 rounded font-black text-[9px] sm:text-[10px] uppercase leading-none tracking-wide border border-white/10 ${btnColorClass} ${disabled ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white/10'}">${btnLabel}</button>`;
+    const purchaseButton = `<button class="shop-btn absolute bottom-2 right-2 w-12 px-1 py-1 rounded font-black text-[9px] sm:text-[10px] uppercase leading-none tracking-wide border border-white/10 whitespace-nowrap overflow-hidden ${btnColorClass} ${disabled ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white/10'}">${btnLabel}</button>`;
     card.innerHTML = `
         ${priceTag}
         ${purchaseButton}
@@ -717,7 +717,8 @@ function buildShopCard(offer) {
         }
         shopPurchasePending = true;
         setShopControlsPending(true, btn);
-        btn.textContent = currentLang === 'ja' ? '購入中…' : 'BUYING…';
+        const idleButtonLabel = btn.textContent;
+        btn.textContent = '…';
         runAfterUiPaint(() => {
             let refreshAllOffers = false;
             try {
@@ -761,7 +762,8 @@ function buildShopCard(offer) {
                 saveGame();
             } finally {
                 shopPurchasePending = false;
-                setShopControlsPending(false);
+                btn.textContent = idleButtonLabel;
+                setShopControlsPending(false, btn);
                 updateShopButtons();
                 updateContinueActionState();
             }
