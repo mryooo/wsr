@@ -179,7 +179,6 @@ function resolvePendingDecay() {
     gameState.erosionStats.lostItems += lostCount;
     gameState.decayPending = [];
     if (gameState.inventory[lostId] <= 0) delete gameState.itemConditions[lostId];
-    else gameState.itemConditions[lostId] = condition === 'decayed' ? 'polluted' : 'weathered';
     cleanupErosionInventoryState();
     return {id: lostId, lostCount, condition, remaining: gameState.inventory[lostId] || 0};
 }
@@ -231,7 +230,6 @@ function shouldItemMisfire(id) {
     if ((gameState.temporaryInventory[id] || 0) > 0 || getItemCondition(id) !== 'weathered') return false;
     const chance = getErosionConfig().misfire;
     if (!chance || Math.random() >= chance) return false;
-    gameState.itemConditions[id] = 'normal';
     gameState.erosionStats.misfires++;
     gameState.pressure = Math.min(gameState.pressureMax - 1, gameState.pressure + 2);
     saveGame();

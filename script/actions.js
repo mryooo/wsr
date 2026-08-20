@@ -73,7 +73,7 @@ function useItem(key) {
     gameState.pendingSkill = null; 
     if (item.behaviorType === 'instant') {
         if (shouldItemMisfire(key)) {
-            showToast(currentLang === 'ja' ? `${item.name.ja}は風化により不発。プレッシャー +2` : `${item.name.en} misfired from weathering. Pressure +2`, 'purple');
+            showToast(currentLang === 'ja' ? `${item.name.ja}は風化により不発。風化継続・プレッシャー +2` : `${item.name.en} misfired. Weathering persists; Pressure +2`, 'purple');
             renderHUD(); renderSkills();
             return;
         }

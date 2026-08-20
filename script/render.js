@@ -257,7 +257,7 @@ function renderSkills(){
             const conditionText = getItemConditionLabel(condition);
             const misfirePct = condition === 'weathered' ? Math.round(getErosionConfig().misfire * 100) : 0;
             const conditionEffect = condition === 'weathered'
-                ? (currentLang === 'ja' ? `使用時に最大${misfirePct}%で不発` : `Up to ${misfirePct}% misfire on use`)
+                ? (currentLang === 'ja' ? `使用時に最大${misfirePct}%で不発（状態継続）` : `Up to ${misfirePct}% misfire on use (persists)`)
                 : condition === 'polluted'
                     ? (currentLang === 'ja' ? '次の降下で1個消滅' : 'Lose one on the next descent')
                     : condition === 'decayed'
