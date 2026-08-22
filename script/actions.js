@@ -920,7 +920,7 @@ function startNewRun() {
 }
 function nextFloor(isFirst=false){
     const rewards = [];
-    const lostToDecay = isFirst ? null : resolvePendingDecay();
+    const erosionLosses = isFirst ? [] : resolvePendingDecay();
     if(!isFirst) {
         gameState.floor++; 
         gameState.erosionCleansesUsed = 0;
@@ -1003,11 +1003,11 @@ function nextFloor(isFirst=false){
     renderBoard(true);
     saveGame();
     setTimeout(() => {
-        showFloorStartSequence(rewards, erosionResults, lostToDecay);
+        showFloorStartSequence(rewards, erosionResults, erosionLosses);
         if (enteringBoss) openBossIntro();
     }, 600);
 }
-function showFloorStartSequence(rewards, erosionResults = [], lostToDecay = null) {
+function showFloorStartSequence(rewards, erosionResults = [], erosionLosses = []) {
     const floorMsg = currentLang === 'ja' ? `第 ${gameState.floor} 階層` : `FLOOR ${gameState.floor}`;
     showToast(floorMsg, 'sky');
     if ((gameState.floorProtectedItemIds || []).length) {
@@ -1017,15 +1017,16 @@ function showFloorStartSequence(rewards, erosionResults = [], lostToDecay = null
         }).join(' / ');
         setTimeout(() => showToast(currentLang === 'ja' ? `封蝋保護が侵食を遮断：${protectedNames}` : `Wax seals blocked erosion: ${protectedNames}`, 'sky'), 200);
     }
-    if (lostToDecay) {
-        const item = ITEM_REGISTRY[lostToDecay.id];
-        const remainingText = lostToDecay.remaining > 0
-            ? (currentLang === 'ja' ? `（残り${lostToDecay.remaining}個）` : ` (${lostToDecay.remaining} remaining)`)
+    erosionLosses.forEach((loss, index) => {
+        const item = ITEM_REGISTRY[loss.id];
+        if (!item) return;
+        const remainingText = loss.remaining > 0
+            ? (currentLang === 'ja' ? `（残り${loss.remaining}個）` : ` (${loss.remaining} remaining)`)
             : '';
         setTimeout(() => showToast(currentLang === 'ja'
-            ? `${item.icon} ${item.name.ja}が${lostToDecay.condition === 'decayed' ? `腐敗して${lostToDecay.lostCount}個すべて` : '汚染により1個'}消滅 ${remainingText}`
-            : `${item.icon} ${lostToDecay.condition === 'decayed' ? `Decay destroyed ${lostToDecay.lostCount}` : 'Pollution destroyed one'} ${item.name.en}${remainingText}`, 'rose'), 150);
-    }
+            ? `${item.icon} ${item.name.ja}が${loss.condition === 'decayed' ? `腐敗して${loss.lostCount}個すべて` : '汚染により1個'}消滅 ${remainingText}`
+            : `${item.icon} ${loss.condition === 'decayed' ? `Decay destroyed all ${loss.lostCount}` : 'Pollution destroyed one'} ${item.name.en}${remainingText}`, 'rose'), 150 + (index * 220));
+    });
     if (erosionResults.length) {
         const summary = erosionResults.map(({id, condition}) => `${ITEM_REGISTRY[id].icon} ${currentLang === 'ja' ? ITEM_REGISTRY[id].name.ja : ITEM_REGISTRY[id].name.en}: ${getItemConditionLabel(condition)}`).join(' / ');
         setTimeout(() => showToast(currentLang === 'ja' ? `深淵侵食：${summary}` : `Abyssal Erosion: ${summary}`, 'purple'), 300);

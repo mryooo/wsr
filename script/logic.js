@@ -150,37 +150,23 @@ function cleanupErosionInventoryState() {
 function resolvePendingDecay() {
     cleanupErosionInventoryState();
     const candidates = (gameState.decayPending || []).filter(id => {
-        if (!(gameState.inventory[id] > 0) || !['polluted', 'decayed'].includes(getItemCondition(id))) return false;
-        if (id === 'heal' || id === 'panacea') {
-            const healingCount = (gameState.inventory.heal || 0) + (gameState.inventory.panacea || 0);
-            if (healingCount <= 1) return false;
-        }
-        return true;
+        return gameState.inventory[id] > 0 && ['polluted', 'decayed'].includes(getItemCondition(id));
     });
     if (!candidates.length) {
         gameState.decayPending = [];
-        return null;
+        return [];
     }
-    const decayedCandidates = candidates.filter(id => getItemCondition(id) === 'decayed');
-    const pool = decayedCandidates.length ? decayedCandidates : candidates;
-    const stacked = pool.filter(id => (gameState.inventory[id] || 0) >= 2);
-    const lostId = pick(stacked.length ? stacked : pool);
-    const condition = getItemCondition(lostId);
-    let lostCount = condition === 'decayed' ? gameState.inventory[lostId] : 1;
-    if (lostId === 'heal' || lostId === 'panacea') {
-        const healingCount = (gameState.inventory.heal || 0) + (gameState.inventory.panacea || 0);
-        lostCount = Math.min(lostCount, Math.max(0, healingCount - 1));
-    }
-    if (lostCount <= 0) {
-        gameState.decayPending = [];
-        return null;
-    }
-    gameState.inventory[lostId] = Math.max(0, gameState.inventory[lostId] - lostCount);
-    gameState.erosionStats.lostItems += lostCount;
+    const losses = candidates.map(id => {
+        const condition = getItemCondition(id);
+        const lostCount = condition === 'decayed' ? gameState.inventory[id] : 1;
+        gameState.inventory[id] = Math.max(0, gameState.inventory[id] - lostCount);
+        gameState.erosionStats.lostItems += lostCount;
+        if (gameState.inventory[id] <= 0) delete gameState.itemConditions[id];
+        return {id, lostCount, condition, remaining: gameState.inventory[id] || 0};
+    });
     gameState.decayPending = [];
-    if (gameState.inventory[lostId] <= 0) delete gameState.itemConditions[lostId];
     cleanupErosionInventoryState();
-    return {id: lostId, lostCount, condition, remaining: gameState.inventory[lostId] || 0};
+    return losses;
 }
 function rollFloorErosion() {
     const config = getErosionConfig();
