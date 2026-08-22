@@ -230,6 +230,7 @@ function shouldItemMisfire(id) {
     if ((gameState.temporaryInventory[id] || 0) > 0 || getItemCondition(id) !== 'weathered') return false;
     const chance = getErosionConfig().misfire;
     if (!chance || Math.random() >= chance) return false;
+    consumeInventoryUnit(id);
     gameState.erosionStats.misfires++;
     gameState.pressure = Math.min(gameState.pressureMax - 1, gameState.pressure + 2);
     saveGame();

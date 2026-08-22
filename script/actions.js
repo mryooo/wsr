@@ -73,7 +73,7 @@ function useItem(key) {
     gameState.pendingSkill = null; 
     if (item.behaviorType === 'instant') {
         if (shouldItemMisfire(key)) {
-            showToast(currentLang === 'ja' ? `${item.name.ja}は風化により不発。風化継続・プレッシャー +2` : `${item.name.en} misfired. Weathering persists; Pressure +2`, 'purple');
+            showToast(currentLang === 'ja' ? `${item.name.ja}は風化により不発。1個消費・プレッシャー +2` : `${item.name.en} misfired. One consumed; Pressure +2`, 'purple');
             renderHUD(); renderSkills();
             return;
         }
@@ -145,7 +145,7 @@ async function applyItemToTube(idx) {
             if (shouldItemMisfire(key)) {
                 gameState.targetMode = null;
                 showFloatText(idx, currentLang === 'ja' ? "不発" : "MISFIRE", "#a855f7");
-                showToast(currentLang === 'ja' ? '風化により不発。アイテムは失われません' : 'Weathering caused a misfire. Item retained', 'purple');
+                showToast(currentLang === 'ja' ? '風化により不発。アイテムを1個消費' : 'Weathering caused a misfire. One item consumed', 'purple');
                 renderHUD(); renderSkills();
                 return;
             }
@@ -176,7 +176,7 @@ async function applyItemToTube(idx) {
         if (shouldItemMisfire(key)) {
             gameState.targetMode = null;
             showFloatText(idx, currentLang === 'ja' ? "不発" : "MISFIRE", "#a855f7");
-            showToast(currentLang === 'ja' ? '風化により不発。アイテムは失われません' : 'Weathering caused a misfire. Item retained', 'purple');
+            showToast(currentLang === 'ja' ? '風化により不発。アイテムを1個消費' : 'Weathering caused a misfire. One item consumed', 'purple');
             renderHUD(); renderSkills();
             return;
         }

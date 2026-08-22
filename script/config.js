@@ -1,5 +1,5 @@
 // config.js — 定数定義(バージョン、色、パレット、Perk、アイテム、ショップ、バランス係数)
-const GAME_VERSION = "0.9.02";
+const GAME_VERSION = "0.9.03";
 const IS_DEBUG = true;
 
 const DAMAGE_CAUSE_LABELS = {
