@@ -107,10 +107,29 @@ slider.addEventListener('scroll', () => {
         checkInfiniteScrollLoop();
     });
 }, { passive: true });
+let resizeFrame = 0;
 window.addEventListener('resize', () => {
-    requestAnimationFrame(adjustBoardScale);
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = 0;
+        scheduleBoardLayout(false, true);
+    });
     if (isHelpActive) closeHelpGuide();
 });
+
+// Large blurred/animated layers are disproportionately expensive on modest
+// mobile GPUs. Keep the full presentation on capable devices and lower only
+// the decorative workload when the browser reports constrained hardware.
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const lowCpu = Number.isFinite(navigator.hardwareConcurrency) && navigator.hardwareConcurrency <= 4;
+const lowMemory = Number.isFinite(navigator.deviceMemory) && navigator.deviceMemory <= 4;
+const dataSaver = !!navigator.connection?.saveData;
+document.documentElement.classList.toggle('performance-lite', prefersReducedMotion || lowCpu || lowMemory || dataSaver);
+const syncPageVisibility = () => {
+    document.documentElement.classList.toggle('page-hidden', document.hidden);
+};
+document.addEventListener('visibilitychange', syncPageVisibility, { passive: true });
+syncPageVisibility();
 document.addEventListener('mousedown', (e) => {
     if (titleAccordion?.open && !e.target.closest('#title-accordion')) {
         closeTitleMenu();

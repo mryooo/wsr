@@ -6,6 +6,7 @@ function getScrollCloneCount() {
     return gameState.tubes.length;
 }
 let boardLayoutFrame = 0;
+let lastBoardLayoutKey = '';
 let lastSkillsRenderKey = '';
 function normalizeWaterSegmentStyles(water) {
     if (!water) return;
@@ -39,6 +40,14 @@ function renderBoard(resetScroll = false){
     const counts = getBoardCounts();
     const totalTubes = gameState.tubes.length;
     if (totalTubes === 0) return;
+    // Compute values that are identical for the real tube and its two scroll
+    // clones once. Previously these array scans/stringifications ran 3x.
+    const tubeViews = gameState.tubes.map(segments => ({
+        segments,
+        state: JSON.stringify(segments),
+        isBlackOnly: segments.length > 0 && segments.every(color => color === 'K'),
+        isComplete: segments.length > 0 && segments[0] !== 'K' && isCompleteTube(segments, counts)
+    }));
     const renderList = [];
     const bossMode = isBossArena();
     boardArea.classList.toggle('boss-mode', bossMode);
@@ -59,7 +68,8 @@ function renderBoard(resetScroll = false){
     const newlyCompleted = new Set();
     renderList.forEach((item, loopIndex) => {
         const i = item.idx;
-        const segments = gameState.tubes[i];
+        const view = tubeViews[i];
+        const segments = view?.segments;
         if (!segments) return;
         let tube = existingMap.get(item.key);
         if (!tube) {
@@ -88,8 +98,7 @@ function renderBoard(resetScroll = false){
         tube.dataset.idx = String(i);
         tube.dataset.renderKey = item.key;
         const setClass = (cls, on) => on ? tube.classList.add(cls) : tube.classList.remove(cls);
-        const isBlackOnlyTube = segments.length > 0 && segments.every(color => color === 'K');
-        const isIsolatedBlack = isBlackOnlyTube && segments.length === totalBlackCount;
+        const isIsolatedBlack = view.isBlackOnly && segments.length === totalBlackCount;
         setClass('selected', i === gameState.selectedIdx);
         setClass('tube-focused', gameState.focusIdx !== null && i === gameState.focusIdx);
         setClass('deadlock-glow', deadlocked || isIsolatedBlack);
@@ -101,7 +110,7 @@ function renderBoard(resetScroll = false){
         setClass('anomaly-sealed', isAnomalySealed);
         const isAnomalyTargeted = !!gameState.anomaly && gameState.anomaly.targetTubeIdx === i;
         setClass('anomaly-targeted', isAnomalyTargeted);
-        const isCompletedNow = (segments.length > 0 && segments[0] !== 'K' && isCompleteTube(segments, counts));
+        const isCompletedNow = view.isComplete;
         if (isCompletedNow) {
             if (gameState.completedFlags[i]) {
                 tube.classList.add('capped');
@@ -127,7 +136,7 @@ function renderBoard(resetScroll = false){
         setClass('source-mode', gameState.targetMode === 'extractor' && segments.length > 0);
         const water = tube.querySelector('.water-container');
         const ghostState = (gameState.extractorHeldColor && i === gameState.extractorSourceIdx) ? ("_ghost_" + gameState.extractorHeldColor + "_" + (gameState.targetMode || "pipette")) : "";
-        const currentStateStr = JSON.stringify(segments) + ghostState;
+        const currentStateStr = view.state + ghostState;
         if (water.dataset.lastState !== currentStateStr) {
             const segmentFragment = document.createDocumentFragment();
             let displaySegments = [...segments];
@@ -173,14 +182,18 @@ function renderBoard(resetScroll = false){
     }
     renderSkills();
     renderBossHUD();
+    scheduleBoardLayout(resetScroll);
+    if (!resetScroll && slider) slider.scrollLeft = currentScrollPos;
+}
+function scheduleBoardLayout(resetScroll = false, force = false) {
+    const layoutKey = `${gameState.tubes.length}:${gameState.capacity}`;
+    if (!force && !resetScroll && layoutKey === lastBoardLayoutKey) return;
+    lastBoardLayoutKey = layoutKey;
     cancelAnimationFrame(boardLayoutFrame);
     boardLayoutFrame = requestAnimationFrame(() => {
+        boardLayoutFrame = 0;
         adjustBoardScale();
-        if (resetScroll) {
-            initInfiniteScroll();
-        } else {
-            if(slider) slider.scrollLeft = currentScrollPos;
-        }
+        if (resetScroll) initInfiniteScroll();
     });
 }
 function adjustBoardScale() {
@@ -382,7 +395,8 @@ function createPourTrail(fromEl, toEl, color) {
 }
 function spawnVfxParticles(x, y, color, count = 8, className = 'liquid-particle') {
     if (!vfxLayer || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const safeCount = Math.min(18, count);
+    const particleCap = document.documentElement.classList.contains('performance-lite') ? 6 : 12;
+    const safeCount = Math.min(particleCap, count);
     for (let i = 0; i < safeCount; i++) {
         const particle = document.createElement('i');
         particle.className = className;

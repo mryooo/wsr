@@ -58,9 +58,17 @@ body {
     box-shadow: inset 2px 0 4px rgba(255,255,255,0.05), inset -2px 0 4px rgba(0,0,0,0.2);
     flex-shrink: 0;
     pointer-events: auto; 
+    content-visibility: auto;
+    contain-intrinsic-size: 56px var(--tube-height);
 }
 .tube.is-clone {
     z-index: 5;
+}
+.tube.is-clone,
+.tube.is-clone .water-segment {
+    /* Clones can enter the viewport while scrolling, but do not need to run a
+       second and third copy of every pulse/filter animation. */
+    animation: none !important;
 }
 .tube.selected, 
 .tube.target-mode {
@@ -1069,6 +1077,7 @@ body {
         repeating-radial-gradient(ellipse at 50% 120%, transparent 0 48px, rgba(56,189,248,.35) 52px 54px, transparent 58px 92px);
     transform-origin: 50% 100%;
     animation: depth-current 12s linear infinite;
+    will-change: transform;
 }
 .vfx-vignette {
     inset: 0;
@@ -1309,6 +1318,27 @@ body {
     .pour-trail,
     .liquid-particle,
     .abyss-shockwave { display: none !important; }
+}
+.performance-lite .vfx-depth-current {
+    animation: none !important;
+    opacity: .07;
+    transform: none;
+}
+.performance-lite .glass-panel,
+.performance-lite .abyss-chip {
+    backdrop-filter: none;
+}
+.performance-lite .tube.target-mode,
+.performance-lite .tube.source-mode,
+.performance-lite .deadlock-glow,
+.performance-lite #boss-core-visual,
+.performance-lite .skill-btn.item-decayed {
+    animation: none !important;
+}
+.page-hidden *,
+.page-hidden *::before,
+.page-hidden *::after {
+    animation-play-state: paused !important;
 }
 .line-clamp-2 {
     display: -webkit-box;
