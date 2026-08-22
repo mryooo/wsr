@@ -23,6 +23,7 @@ const FLOOR_CLEAR_BONUS_CAP = 10;  // 階層ボーナスの上限
 const SUBGOAL_REWARD = 4;          // サブ目標達成報酬
 const UNDO_COST = 5;               // Undoのエッセンスコスト
 const INVENTORY_LIMIT = 3;         // 同一アイテムの所持上限
+const SHOP_CLOSURE_FLOOR = 35;     // この階層以降は通常商品の取引を終了（侵食対策は継続）
 
 // ===== 0.9.00 深淵侵食 =====
 const EROSION_TIERS = [

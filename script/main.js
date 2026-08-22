@@ -199,7 +199,7 @@ if(undoBtn) undoBtn.onclick = (e) => {
     tryUndo();
 };
 ui('reroll-btn').onclick = () => {
-    if (shopPurchasePending || perkAdvancePending) return;
+    if (isRegularShopClosed() || shopPurchasePending || perkAdvancePending) return;
     if (gameState.rerollCoupons > 0) {
         gameState.rerollCoupons--;
     } else if (gameState.essence >= 5) {

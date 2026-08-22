@@ -18,6 +18,16 @@ function updateContinueActionState() {
 
 function renderCurrentShopOffers() {
     if (!shopCards) return;
+    if (isRegularShopClosed()) {
+        shopCards.innerHTML = `<div class="col-span-2 rounded-lg border border-slate-600/40 bg-slate-950/55 px-4 py-5 text-center">
+            <div class="text-xl font-black tracking-widest text-slate-300">◇ ${currentLang === 'ja' ? '通常交易終了' : 'REGULAR TRADE CLOSED'}</div>
+            <div class="mt-2 text-[11px] leading-relaxed text-slate-400">${currentLang === 'ja'
+                ? `${SHOP_CLOSURE_FLOOR}層以降では通常商品の取引は行われません。侵食対策サービスのみ利用できます。`
+                : `Regular item trading ends from floor ${SHOP_CLOSURE_FLOOR}. Erosion Control remains available.`}</div>
+        </div>`;
+        renderErosionServices();
+        return;
+    }
     const fragment = document.createDocumentFragment();
     (gameState.currentShopOffers || []).forEach(item => fragment.appendChild(buildShopCard(item)));
     shopCards.replaceChildren(fragment);
@@ -606,7 +616,7 @@ function buildEventChoices(colorKey){
 function refreshRerollUI(){
     if(rerollBtn) {
         const can = (gameState.rerollCoupons > 0) || (gameState.essence >= 5);
-        rerollBtn.classList.toggle('hidden', !can);
+        rerollBtn.classList.toggle('hidden', isRegularShopClosed() || !can);
         const rerollText = t('reroll');
         if(gameState.rerollCoupons > 0){
             rerollBtn.textContent = `${rerollText} (Coupon x${gameState.rerollCoupons})`;
@@ -980,7 +990,13 @@ function openPerkScreen(isDeath){
         gameState.pendingOverdriveMode = null;
     }
     updateShopPriceUI();
-    if (!gameState.currentShopOffers) gameState.currentShopOffers = generateShopOffers();
+    if (isRegularShopClosed()) {
+        // Old saves may still carry offers generated before reaching the
+        // closure floor. They are intentionally discarded, not revived later.
+        gameState.currentShopOffers = null;
+    } else if (!gameState.currentShopOffers) {
+        gameState.currentShopOffers = generateShopOffers();
+    }
     const perkFragment = document.createDocumentFragment();
     gameState.currentPerkChoices.forEach(p => perkFragment.appendChild(buildPerkCard(p)));
     perkCards.appendChild(perkFragment);
@@ -1056,27 +1072,35 @@ function updateShopPriceUI() {
     const multEl = document.getElementById('price-multiplier');
     const labelEl = document.getElementById('shop-interference-label');
     if (multEl && labelEl) {
-        multEl.textContent = `x${multiplier}`;
-        const colorClasses = ['text-sky-400', 'text-yellow-500', 'text-rose-500', 'text-purple-500', 'text-white', 'animate-pulse', 'abyss-glitch'];
+        const colorClasses = ['text-sky-400', 'text-yellow-500', 'text-rose-500', 'text-purple-500', 'text-slate-300', 'text-white', 'animate-pulse', 'abyss-glitch'];
         labelEl.classList.remove(...colorClasses);
         multEl.classList.remove(...colorClasses);
-        if (f >= 31) {
+        if (isRegularShopClosed(f)) {
+            labelEl.classList.add('text-slate-300');
+            labelEl.textContent = currentLang === 'ja' ? '取引終了' : 'CLOSED';
+            multEl.textContent = '';
+        } else if (f >= 31) {
+            multEl.textContent = `x${multiplier}`;
             labelEl.classList.add('text-white', 'abyss-glitch');
             multEl.classList.add('text-white', 'abyss-glitch');
             labelEl.textContent = "ABYSS";
         } else if (f >= 21) {
+            multEl.textContent = `x${multiplier}`;
             labelEl.classList.add('text-purple-500', 'animate-pulse');
             multEl.classList.add('text-purple-500', 'animate-pulse');
             labelEl.textContent = "SINGULARITY";
         } else if (multiplier >= 1.5) {
+            multEl.textContent = `x${multiplier}`;
             labelEl.classList.add('text-rose-500');
             multEl.classList.add('text-rose-500');
             labelEl.textContent = "CRITICAL";
         } else if (multiplier >= 1.2) {
+            multEl.textContent = `x${multiplier}`;
             labelEl.classList.add('text-yellow-500');
             multEl.classList.add('text-yellow-500');
             labelEl.textContent = "UNSTABLE";
         } else {
+            multEl.textContent = `x${multiplier}`;
             labelEl.classList.add('text-sky-400');
             multEl.classList.add('text-sky-400');
             labelEl.textContent = "NORMAL";

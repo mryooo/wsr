@@ -600,6 +600,9 @@ function generateShopOffers(n=4){
     }
     return picks;
 }
+function isRegularShopClosed(floor = gameState.floor) {
+    return floor >= SHOP_CLOSURE_FLOOR;
+}
 function findInstant(id){
     return ITEM_REGISTRY[id] || null;
 }
