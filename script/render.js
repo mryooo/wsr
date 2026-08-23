@@ -26,7 +26,9 @@ function normalizeWaterSegmentStyles(water) {
 function renderBoard(resetScroll = false){
     const slider = document.getElementById('board-scroll-area');
     const currentScrollPos = slider ? slider.scrollLeft : 0;
-    const deadlocked = isDeadlocked();
+    // A completed or transitioning board naturally has no legal pours. It is
+    // not a deadlock and must never leak a warning into result overlays.
+    const deadlocked = !gameState.busy && !checkLevelClear() && isDeadlocked();
     const allSegments = gameState.tubes.flat();
     const totalBlackCount = allSegments.filter(c => c === 'K').length;
     if (alertBanner) {

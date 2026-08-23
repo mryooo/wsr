@@ -925,6 +925,7 @@ function openMutationsScreen() {
 function openPerkScreen(isDeath){
     perkAdvancePending = false;
     shopPurchasePending = false;
+    if (alertBanner) alertBanner.style.opacity = '0';
     perkScreen.classList.remove('hidden');
     const bossVictory = !isDeath && !!gameState.bossState?.defeated;
     ui('perk-title').textContent = isDeath ? t('gameOver') : (bossVictory ? (currentLang === 'ja' ? 'ボス撃破' : 'BOSS PURGED') : t('victory'));

@@ -16,6 +16,9 @@ function scheduleStalemateCheck() {
 function onLevelClear(){
     if (gameState.busy) return;
     gameState.busy = true;
+    clearTimeout(stalemateCheckTimer);
+    stalemateCheckTimer = 0;
+    if (alertBanner) alertBanner.style.opacity = '0';
     const systemResult = resolveFloorSystems();
     const baseReward = FLOOR_CLEAR_BASE_REWARD;
     const floorBonus = Math.min(FLOOR_CLEAR_BONUS_CAP, gameState.floor - 1);

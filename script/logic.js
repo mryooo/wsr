@@ -478,216 +478,69 @@ function canSafelyDeclareStalemate() {
     return true;
 }
 let lastBoardGenerationDebug = null;
-function boardStateKey(tubes) {
-    return tubes.map(tube => tube.join('')).join('|');
-}
-function boardColorCounts(tubes) {
-    const counts = {};
-    tubes.forEach(tube => tube.forEach(color => counts[color] = (counts[color] || 0) + 1));
-    return counts;
-}
-function isCompleteGeneratedTube(tube, counts, capacity) {
-    if (!tube.length || !tube.every(color => color === tube[0])) return false;
-    return tube.length >= capacity || tube.length === counts[tube[0]];
-}
-function generatedPour(tubes, fromIdx, toIdx, capacity, counts) {
-    if (fromIdx === toIdx) return null;
-    const from = tubes[fromIdx], to = tubes[toIdx];
-    if (!from.length || to.length >= capacity || isCompleteGeneratedTube(from, counts, capacity)) return null;
-    const color = from[from.length - 1];
-    if (to.length && to[to.length - 1] !== color) return null;
-    let run = 1;
-    for (let i = from.length - 2; i >= 0 && from[i] === color; i--) run++;
-    return {color, amount: Math.min(run, capacity - to.length)};
-}
-function applyGeneratedMove(tubes, fromIdx, toIdx, amount) {
-    for (let i = 0; i < amount; i++) tubes[toIdx].push(tubes[fromIdx].pop());
-}
-function generatedBoardScore(tubes, colors, capacity) {
-    const counts = boardColorCounts(tubes);
-    let transitions = 0;
-    let mixedTubes = 0;
-    let completed = 0;
-    let lowerTransitions = 0;
-    let lowerMixedTubes = 0;
-    const spread = Object.fromEntries(colors.map(color => [color, 0]));
-    tubes.forEach(tube => {
-        const present = new Set(tube);
-        present.forEach(color => { if (color in spread) spread[color]++; });
-        if (present.size > 1) mixedTubes++;
-        const lowerPart = tube.slice(0, Math.max(2, Math.ceil(capacity / 2)));
-        if (new Set(lowerPart).size > 1) lowerMixedTubes++;
-        if (isCompleteGeneratedTube(tube, counts, capacity)) completed++;
-        for (let i = 1; i < tube.length; i++) {
-            if (tube[i] === tube[i - 1]) continue;
-            transitions++;
-            if (i < Math.max(2, Math.ceil(capacity / 2))) lowerTransitions++;
-        }
-    });
-    const dispersion = Object.values(spread).reduce((sum, n) => sum + Math.max(0, n - 1), 0);
-    const emptyTubes = tubes.filter(tube => tube.length === 0).length;
-    // Empty workspace is strategically valuable and also keeps the inverse
-    // walk extensible instead of greedily mixing every tube into a short path.
-    return (transitions * 5) + (lowerTransitions * 9) + (dispersion * 3)
-        + (mixedTubes * 4) + (lowerMixedTubes * 10)
-        + (Math.min(2, emptyTubes) * 24) - (completed * 18);
-}
-function enumerateInvertibleScrambleMoves(tubes, capacity, counts, seen) {
-    const candidates = [];
-    for (let fromIdx = 0; fromIdx < tubes.length; fromIdx++) {
-        const from = tubes[fromIdx];
-        if (!from.length) continue;
-        const color = from[from.length - 1];
-        let run = 1;
-        for (let i = from.length - 2; i >= 0 && from[i] === color; i--) run++;
-        for (let toIdx = 0; toIdx < tubes.length; toIdx++) {
-            if (fromIdx === toIdx) continue;
-            const free = capacity - tubes[toIdx].length;
-            for (let amount = 1; amount <= Math.min(run, free); amount++) {
-                const next = tubes.map(tube => [...tube]);
-                applyGeneratedMove(next, fromIdx, toIdx, amount);
-                const inverse = generatedPour(next, toIdx, fromIdx, capacity, counts);
-                if (!inverse || inverse.color !== color || inverse.amount !== amount) continue;
-                const restored = next.map(tube => [...tube]);
-                applyGeneratedMove(restored, toIdx, fromIdx, amount);
-                if (boardStateKey(restored) !== boardStateKey(tubes)) continue;
-                const key = boardStateKey(next);
-                candidates.push({fromIdx, toIdx, amount, next, key, unseen: !seen.has(key)});
-            }
-        }
-    }
-    return candidates;
-}
-function validateGeneratedSolution(startTubes, inverseMoves, solvedKey, capacity, counts) {
-    const replay = startTubes.map(tube => [...tube]);
-    for (let i = inverseMoves.length - 1; i >= 0; i--) {
-        const move = inverseMoves[i];
-        const legal = generatedPour(replay, move.toIdx, move.fromIdx, capacity, counts);
-        if (!legal || legal.amount !== move.amount) return false;
-        applyGeneratedMove(replay, move.toIdx, move.fromIdx, legal.amount);
-    }
-    return boardStateKey(replay) === solvedKey;
-}
-function buildGuaranteedBoard(colors, tubeCount, capacity, floor) {
-    const solved = Array.from({length: tubeCount}, (_, idx) => idx < colors.length ? Array(capacity).fill(colors[idx]) : []);
-    const solvedKey = boardStateKey(solved);
-    const counts = boardColorCounts(solved);
-    const seedTubes = solved.map(tube => [...tube]);
-    const seedMoves = [];
-    const workspaceIdx = colors.length;
-    const seedMove = (fromIdx, toIdx, amount) => {
-        applyGeneratedMove(seedTubes, fromIdx, toIdx, amount);
-        seedMoves.push({fromIdx, toIdx, amount});
-    };
-    const rotateTopBlocks = amount => {
-        seedMove(0, workspaceIdx, amount);
-        for (let i = 1; i < colors.length; i++) seedMove(i, i - 1, amount);
-        seedMove(workspaceIdx, colors.length - 1, amount);
-    };
-    // Repeated reversible rotations split every tube into several color
-    // blocks. Each rotation returns to exactly two empty workspaces, while
-    // progressively pushing color boundaries down into the lower layers.
-    let mixAmount = Math.max(1, capacity - 1);
-    while (mixAmount >= 1) {
-        rotateTopBlocks(mixAmount);
-        if (mixAmount === 1) break;
-        mixAmount = Math.max(1, Math.floor(mixAmount * 2 / 3));
-    }
-    const targetSteps = Math.min(96, 30 + (floor * 2));
-    const attempts = 10;
-    const seedScore = generatedBoardScore(seedTubes, colors, capacity);
-    let best = {
-        tubes: seedTubes.map(tube => [...tube]),
-        moves: seedMoves.map(move => ({...move})),
-        score: seedScore,
-        quality: seedScore + (Math.min(48, seedMoves.length) * 2),
-        certificateValid: validateGeneratedSolution(seedTubes, seedMoves, solvedKey, capacity, counts),
-        hasOpeningMove: true,
-        completed: 0,
-        emptyCount: 2,
-        attempt: 0
-    };
-    for (let attempt = 0; attempt < attempts; attempt++) {
-        let tubes = seedTubes.map(tube => [...tube]);
-        const seen = new Set([solvedKey, boardStateKey(seedTubes)]);
-        const moves = seedMoves.map(move => ({...move}));
-        for (let step = 0; step < targetSteps; step++) {
-            let candidates = enumerateInvertibleScrambleMoves(tubes, capacity, counts, seen);
-            if (!candidates.length) break;
-            const unseen = candidates.filter(candidate => candidate.unseen);
-            if (unseen.length) candidates = unseen;
-            const consolidationPhase = step >= Math.floor(targetSteps * 0.65);
-            candidates.forEach(candidate => {
-                candidate.score = generatedBoardScore(candidate.next, colors, capacity) + Math.random() * 18;
-                if (!consolidationPhase) return;
-                const emptyCount = candidate.next.filter(tube => tube.length === 0).length;
-                const completedCount = candidate.next.filter(tube => isCompleteGeneratedTube(tube, counts, capacity)).length;
-                // After the lower layers have been thoroughly disturbed, steer
-                // the reversible walk back to the canonical two-empty layout.
-                candidate.score += (emptyCount * 600) - (completedCount * 240);
-                if (candidate.next[candidate.fromIdx].length === 0) candidate.score += 180;
-            });
-            candidates.sort((a, b) => b.score - a.score);
-            // A wider elite pool avoids greedily exhausting every workspace
-            // tube after only a few high-scoring moves while still rejecting
-            // obviously weak candidates.
-            const choicePool = candidates.slice(0, Math.min(24, candidates.length));
-            const chosen = pick(choicePool);
-            tubes = chosen.next;
-            seen.add(chosen.key);
-            moves.push({fromIdx: chosen.fromIdx, toIdx: chosen.toIdx, amount: chosen.amount});
-
-            // A standard starting board must reserve exactly two completely
-            // empty tubes. Since the total liquid fills all remaining tubes,
-            // this also guarantees that every non-empty tube is full.
-            const emptyCount = tubes.filter(tube => tube.length === 0).length;
-            if (emptyCount !== 2) continue;
-            const completed = tubes.filter(tube => isCompleteGeneratedTube(tube, counts, capacity)).length;
-            if (completed > 0) continue;
-            const score = generatedBoardScore(tubes, colors, capacity);
-            const quality = score + (Math.min(48, moves.length) * 2);
-            if (!best || quality > best.quality) {
-                best = {
-                    tubes: tubes.map(tube => [...tube]),
-                    moves: moves.map(move => ({...move})),
-                    score,
-                    quality,
-                    certificateValid: true,
-                    hasOpeningMove: true,
-                    completed,
-                    emptyCount,
-                    attempt: attempt + 1
-                };
-            }
-        }
-        const minimumScore = (colors.length * Math.min(4, capacity - 1) * 5) + (colors.length * 4);
-        const minimumSolutionLength = Math.min(48, 14 + floor);
-        if (best && best.score >= minimumScore && best.moves.length >= minimumSolutionLength) break;
-    }
-    if (best) best.certificateValid = validateGeneratedSolution(best.tubes, best.moves, solvedKey, capacity, counts);
-    // A valid candidate is always retained even if the aspirational difficulty
-    // threshold was not reached. The solved fallback is unreachable in normal
-    // operation, but remains safer than publishing an unproven board.
-    return best || {tubes: solved, moves: [], score: 0, certificateValid: true, hasOpeningMove: false, completed: colors.length, emptyCount: 2, attempt: attempts};
-}
 function generateBoard() {
+    lastBoardGenerationDebug = null;
     const floor = gameState.floor;
     gameState.tubeCount = Math.min(10, 6 + Math.floor((floor - 1) / 2));
     const numColors = gameState.tubeCount - 2;
     const maxPoolIndex = Math.min(COLOR_POOL.length, numColors + (floor > 5 ? 2 : 0));
-    const availablePool = COLOR_POOL.slice(0, maxPoolIndex).map(c => c.key).sort(() => Math.random() - 0.5);
+    let availablePool = COLOR_POOL.slice(0, maxPoolIndex).map(c => c.key);
+    availablePool.sort(() => Math.random() - 0.5);
     const colors = availablePool.slice(0, Math.min(numColors, availablePool.length));
-    const generated = buildGuaranteedBoard(colors, gameState.tubeCount, gameState.capacity, floor);
-    gameState.tubes = generated.tubes;
-    lastBoardGenerationDebug = {
-        floor,
-        score: generated.score,
-        solutionLength: generated.moves.length,
-        certificateValid: generated.certificateValid,
-        completedAtStart: generated.completed,
-        emptyTubesAtStart: generated.emptyCount,
-        attempts: generated.attempt
-    };
+    const tubes = Array.from({ length: gameState.tubeCount }, () => []);
+    for (let i = 0; i < colors.length; i++) {
+        for (let j = 0; j < gameState.capacity; j++) {
+            tubes[i].push(colors[i]);
+        }
+    }
+    let shuffleMoves = 0;
+    const targetMoves = gameState.capacity * colors.length * 8;
+    let failsafe = 0;
+    while (shuffleMoves < targetMoves && failsafe < 4000) {
+        failsafe++;
+        const fromIdx = randInt(gameState.tubeCount);
+        const toIdx = randInt(gameState.tubeCount);
+        if (fromIdx === toIdx) continue;
+        const fromTube = tubes[fromIdx], toTube = tubes[toIdx];
+        if (fromTube.length === 0 || toTube.length >= gameState.capacity) continue;
+        const color = fromTube[fromTube.length - 1];
+        let sameColorCount = 0;
+        for (let i = fromTube.length - 1; i >= 0; i--) {
+            if (fromTube[i] === color) sameColorCount++; else break;
+        }
+        const moveAmount = 1 + randInt(Math.min(sameColorCount, gameState.capacity - toTube.length));
+        for (let m = 0; m < moveAmount; m++) toTube.push(fromTube.pop());
+        shuffleMoves++;
+    }
+    const emptyTubeTargetCount = 2;
+    const emptyIndices = [];
+    for (let i = gameState.tubeCount - emptyTubeTargetCount; i < gameState.tubeCount; i++) emptyIndices.push(i);
+    emptyIndices.forEach(targetIdx => {
+        while (tubes[targetIdx].length > 0) {
+            const color = tubes[targetIdx].pop();
+            let placed = false;
+            const checkOrder = Array.from({ length: gameState.tubeCount }, (_, i) => i).sort(() => Math.random() - 0.5);
+            for (let i of checkOrder) {
+                if (emptyIndices.includes(i)) continue;
+                if (tubes[i].length < gameState.capacity) { tubes[i].push(color); placed = true; break; }
+            }
+            if (!placed) { tubes[targetIdx].push(color); break; }
+        }
+    });
+    const boardCounts = {};
+    tubes.forEach(t => t.forEach(c => boardCounts[c] = (boardCounts[c] || 0) + 1));
+    for (let i = 0; i < tubes.length; i++) {
+        if (tubes[i].length === 0) continue;
+        let attempts = 0;
+        while (isCompleteTube(tubes[i], boardCounts) && tubes[i][0] !== 'K' && attempts < 50) {
+            attempts++;
+            const targetIdx = randInt(gameState.tubeCount);
+            if (targetIdx !== i && tubes[targetIdx].length < gameState.capacity) {
+                tubes[targetIdx].push(tubes[i].pop());
+            }
+        }
+    }
+    gameState.tubes = tubes;
     updateTubeLayout();
 }
 function updateTubeLayout(){
