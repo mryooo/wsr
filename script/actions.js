@@ -825,6 +825,21 @@ function corruptPreferredSegment(preferredIdx = null, excludedIdx = null) {
 function corruptRandomSegment(excludedIdx = null) {
     return corruptPreferredSegment(null, excludedIdx);
 }
+function buildDebugPerksForFloor(floor) {
+    const perks = {};
+    let points = Math.max(0, floor - 1);
+    const rarityCopies = {common: 4, rare: 2, epic: 1};
+    const progression = Object.keys(PERKS).flatMap(id => Array(rarityCopies[PERKS[id].rarity] || 1).fill(id));
+    let cursor = 0;
+    let safety = points * Math.max(1, progression.length) * 2;
+    while (points > 0 && safety-- > 0) {
+        const id = progression[cursor++ % progression.length];
+        if ((perks[id] || 0) >= PERK_LEVEL_CAP) continue;
+        perks[id] = (perks[id] || 0) + 1;
+        points--;
+    }
+    return perks;
+}
 function startNewRun() {
     clearSave();
     let startFloor = 1;
@@ -855,21 +870,24 @@ function startNewRun() {
     if (startFloor >= 12) initialCapacity = 8;
     else if (startFloor >= 8) initialCapacity = 6;
     else if (startFloor >= 4) initialCapacity = 5;
+    const debugPerks = effectiveDebug ? buildDebugPerksForFloor(startFloor) : {};
+    if (debugOverdrivePerkId) {
+        debugPerks[debugOverdrivePerkId] = debugOverdriveMode ? PERK_LEVEL_CAP : OVERDRIVE_UNLOCK_LEVEL;
+    }
+    const debugMaxHp = 3 + (initialCapacity > 4 ? (debugPerks.deep_adapt || 0) : 0);
     Object.assign(gameState, {
         floor: startFloor,
         essence: effectiveDebug ? 9999 : 0,
-        hp: 3,
-        maxHp: 3,
+        hp: debugMaxHp,
+        maxHp: debugMaxHp,
         capacity: initialCapacity,
-        perks: debugOverdrivePerkId
-            ? {[debugOverdrivePerkId]: debugOverdriveMode ? PERK_LEVEL_CAP : OVERDRIVE_UNLOCK_LEVEL}
-            : {},
+        perks: debugPerks,
         pressure: 0,
-        pressureMax: PRESSURE_MAX_BASE,
+        pressureMax: PRESSURE_MAX_BASE + ((debugPerks.overflow || 0) * 4),
         history: [],
         inventory: effectiveDebug ? Object.keys(ITEMS).reduce((acc, key) => ({ ...acc, [key]: 3 }), {}) : {},
         catalystAvailable: true,
-        refluxUses: 0, // perksは同時にリセットされるため必ず0から開始
+        refluxUses: debugPerks.reflux || 0,
         momentumTurns: 0,
         rerollCoupons: 0,
         completedFlags: [],
@@ -924,7 +942,24 @@ function startNewRun() {
         gameState.busy = true;
     }
     perkScreen.classList.add('hidden');
+    const boardGenerationStartedAt = performance.now();
     generateBoard();
+    const boardGenerationMs = performance.now() - boardGenerationStartedAt;
+    if (effectiveDebug) {
+        window.__abyssDebug = {
+            floor: startFloor,
+            activeSkillLevels: Object.values(gameState.perks).reduce((sum, level) => sum + level, 0),
+            activeSkillCount: Object.keys(gameState.perks).length,
+            perks: {...gameState.perks},
+            hp: gameState.hp,
+            maxHp: gameState.maxHp,
+            pressureMax: gameState.pressureMax,
+            refluxUses: gameState.refluxUses,
+            boardGenerationMs: Math.round(boardGenerationMs * 10) / 10,
+            boardGeneration: lastBoardGenerationDebug ? {...lastBoardGenerationDebug} : null
+        };
+        document.documentElement.dataset.abyssDebug = JSON.stringify(window.__abyssDebug);
+    }
     prepareFloorSystems();
     generateGoals();
     renderHUD();
