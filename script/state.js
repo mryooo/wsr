@@ -104,6 +104,7 @@ function loadGame() {
                 openPerkScreen(false);
             } else {
                 perkScreen.classList.add('hidden');
+                scheduleStalemateCheck();
             }
             if (gameState.bossState?.pendingIntro) {
                 setTimeout(openBossIntro, 100);

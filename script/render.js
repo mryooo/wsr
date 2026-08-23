@@ -31,7 +31,11 @@ function renderBoard(resetScroll = false){
     const totalBlackCount = allSegments.filter(c => c === 'K').length;
     if (alertBanner) {
         if (deadlocked) {
-            alertBanner.textContent = currentLang === 'ja' ? '1つも動かせない...' : 'NO MOVES LEFT';
+            const hasRecovery = hasUsableUndoRecovery() || canUseOwnedItemForRecovery()
+                || isBossActive() || !!gameState.anomaly || gameState.extractorHeldColor !== null;
+            alertBanner.textContent = hasRecovery
+                ? (currentLang === 'ja' ? '通常手なし — アイテム／UNDOで打開可能' : 'NO POUR — ITEM / UNDO AVAILABLE')
+                : (currentLang === 'ja' ? '打開手段がない...' : 'NO RECOVERY AVAILABLE');
             alertBanner.style.opacity = '1';
         } else {
             alertBanner.style.opacity = '0';

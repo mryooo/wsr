@@ -430,13 +430,51 @@ function secondarySucceeded(){
 }
 function isDeadlocked() {
     for (let i = 0; i < gameState.tubes.length; i++) {
-        if (gameState.tubes[i].length === 0) continue;
+        // Completed tubes cannot be selected as a source in handleTubeClick().
+        // Counting them here used to report moves that the player cannot make.
+        if (gameState.tubes[i].length === 0 || isCompleteTube(gameState.tubes[i])) continue;
         for (let j = 0; j < gameState.tubes.length; j++) {
             if (i === j) continue;
             const check = canPour(i, j);
             if (check.ok) return false;
         }
     }
+    return true;
+}
+function hasUsableUndoRecovery() {
+    return gameState.history.length > 0 && (gameState.refluxUses > 0 || gameState.essence >= UNDO_COST);
+}
+function canUseOwnedItemForRecovery() {
+    const blockedByAnomaly = idx => gameState.anomaly?.sealTurns > 0 && gameState.anomaly.sealedTubeIdx === idx;
+    const targetableIndices = gameState.tubes
+        .map((_, idx) => idx)
+        .filter(idx => !gameState.completedFlags[idx] && !blockedByAnomaly(idx));
+    return Object.entries(ITEM_REGISTRY).some(([id, item]) => {
+        if (item.type === 'tool' || !(gameState.inventory[id] > 0)) return false;
+        if (!(gameState.temporaryInventory[id] > 0) && getItemCondition(id) === 'decayed') return false;
+        if (item.behaviorType === 'instant') {
+            // Only this instant item changes a board that has no legal pour.
+            return id === 'summon_vial';
+        }
+        if (item.behaviorType === 'target_effect') {
+            return targetableIndices.some(idx => item.canUseOn(gameState.tubes[idx], gameState.capacity).ok);
+        }
+        if (item.behaviorType === 'two_step') {
+            const hasSource = targetableIndices.some(idx => gameState.tubes[idx].length > 0);
+            const hasDestination = targetableIndices.some(idx => gameState.tubes[idx].length < gameState.capacity);
+            return hasSource && hasDestination;
+        }
+        return false;
+    });
+}
+function canSafelyDeclareStalemate() {
+    if (gameState.hp <= 0 || gameState.busy || checkLevelClear()) return false;
+    if (!isDeadlocked()) return false;
+    // Boss/anomaly timers and attacks can alter locks or the board. Treat any
+    // such state as uncertain rather than risking a false game over.
+    if (isBossActive() || gameState.anomaly) return false;
+    if (gameState.extractorHeldColor !== null) return false;
+    if (hasUsableUndoRecovery() || canUseOwnedItemForRecovery()) return false;
     return true;
 }
 function generateBoard() {

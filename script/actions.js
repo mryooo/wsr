@@ -1,5 +1,18 @@
 // actions.js — プレイヤー操作の実行(注ぐ、アイテム、完成処理、Undo、階層遷移)
 let preExtractionState = null; // two_stepアイテムの抽出前スナップショット
+let stalemateCheckTimer = 0;
+function scheduleStalemateCheck() {
+    clearTimeout(stalemateCheckTimer);
+    stalemateCheckTimer = setTimeout(() => {
+        stalemateCheckTimer = 0;
+        if (!canSafelyDeclareStalemate()) return;
+        gameState.hp = 0;
+        gameState.lastDamageCause = { key: 'stalemate', floor: gameState.floor, turn: gameState.turnCount };
+        renderHUD();
+        clearSave();
+        openPerkScreen(true);
+    }, 0);
+}
 function onLevelClear(){
     if (gameState.busy) return;
     gameState.busy = true;
@@ -97,6 +110,7 @@ function useItem(key) {
             }
             renderHUD();
             saveGame();
+            scheduleStalemateCheck();
         } else {
             showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'yellow');
         }
@@ -147,6 +161,7 @@ async function applyItemToTube(idx) {
                 showFloatText(idx, currentLang === 'ja' ? "不発" : "MISFIRE", "#a855f7");
                 showToast(currentLang === 'ja' ? '風化により不発。アイテムを1個消費' : 'Weathering caused a misfire. One item consumed', 'purple');
                 renderHUD(); renderSkills();
+                scheduleStalemateCheck();
                 return;
             }
             preExtractionState = deepCopy(gameState.tubes);
@@ -177,8 +192,9 @@ async function applyItemToTube(idx) {
             gameState.targetMode = null;
             showFloatText(idx, currentLang === 'ja' ? "不発" : "MISFIRE", "#a855f7");
             showToast(currentLang === 'ja' ? '風化により不発。アイテムを1個消費' : 'Weathering caused a misfire. One item consumed', 'purple');
-            renderHUD(); renderSkills();
-            return;
+                renderHUD(); renderSkills();
+                scheduleStalemateCheck();
+                return;
         }
         pushHistory(); gameState.busy = true;
         try {
@@ -258,6 +274,7 @@ async function finalizeItemAction(idx, colorHint) {
     const tube = gameState.tubes[idx];
     if (tube && isCompleteTube(tube)) { await handleCompletion(idx, tube[0] || colorHint); }
     if (checkLevelClear()) { onLevelClear(); }
+    else scheduleStalemateCheck();
 }
 async function handleTubeClick(idx) {
     hideGlobalTooltip();
@@ -360,6 +377,8 @@ async function tryPour(fromIdx, toIdx) {
             openPerkScreen(true);
         } else if (checkLevelClear()) {
             onLevelClear();
+        } else {
+            scheduleStalemateCheck();
         }
     }
 }
@@ -535,6 +554,7 @@ async function handleBossColorCompletion(tubeIdx, colorKey) {
     renderHUD();
     renderBoard();
     saveGame();
+    scheduleStalemateCheck();
 }
 function recordBossMovePattern(fromIdx) {
     const bs = gameState.bossState;
@@ -1135,4 +1155,5 @@ async function tryUndo(){
         }
     }
     saveGame();
+    scheduleStalemateCheck();
 }

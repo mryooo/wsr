@@ -1,5 +1,5 @@
 // config.js — 定数定義(バージョン、色、パレット、Perk、アイテム、ショップ、バランス係数)
-const GAME_VERSION = "0.9.04";
+const GAME_VERSION = "0.9.05";
 const IS_DEBUG = true;
 
 const DAMAGE_CAUSE_LABELS = {
@@ -12,7 +12,8 @@ const DAMAGE_CAUSE_LABELS = {
     event_vitality: { ja: 'イベント「生命力活性」の反動', en: 'Vitality event backlash' },
     event_abyssal_price: { ja: 'イベント「深淵の代償」', en: 'Abyssal Price event' },
     event_greed: { ja: 'イベント「強欲」の反動', en: 'Greed event backlash' },
-    abandoned: { ja: '探索を断念した', en: 'Exploration abandoned' }
+    abandoned: { ja: '探索を断念した', en: 'Exploration abandoned' },
+    stalemate: { ja: '打開手段のない完全な行き詰まり', en: 'Stalemate with no available recovery' }
 };
 
 // ===== バランス定数 =====
