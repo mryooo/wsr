@@ -6,7 +6,7 @@ function deepCopy(x){ return JSON.parse(JSON.stringify(x)); }
 function ui(id){ return document.getElementById(id); }
 function setText(id, text){
     const el = document.getElementById(id);
-    if(el) el.textContent = text;
+    if(el && el.textContent !== String(text)) el.textContent = text;
 }
 const tooltipEl = document.getElementById('global-tooltip');
 function showGlobalTooltip(targetEl, title, desc) {

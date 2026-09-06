@@ -48,14 +48,18 @@ body {
     border-bottom-left-radius: 28px;
     border-bottom-right-radius: 28px;
     position: relative;
-    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
-    background: var(--tube-bg);
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+    background:
+        linear-gradient(90deg, rgba(255,255,255,.08), transparent 18% 76%, rgba(255,255,255,.11)),
+        var(--tube-bg);
     margin: 3px;
     z-index: 10; 
     cursor: pointer;
     overflow: visible;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    box-shadow: inset 2px 0 4px rgba(255,255,255,0.05), inset -2px 0 4px rgba(0,0,0,0.2);
+    box-shadow:
+        inset 2px 0 4px rgba(255,255,255,.08),
+        inset -2px 0 5px rgba(255,255,255,.045),
+        0 6px 12px rgba(0,0,0,.28);
     flex-shrink: 0;
     pointer-events: auto; 
     content-visibility: auto;
@@ -79,6 +83,25 @@ body {
     border-color: var(--primary-glow);
     box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
 }
+.tube.valid-pour-target:not(.selected) {
+    border-color: rgba(103, 232, 249, .78);
+    box-shadow:
+        inset 2px 0 4px rgba(255,255,255,.08),
+        inset -2px 0 5px rgba(255,255,255,.045),
+        0 0 0 2px rgba(34,211,238,.12),
+        0 7px 15px rgba(8,145,178,.16);
+}
+.tube.tube-denied {
+    border-color: rgba(251, 113, 133, .92) !important;
+    box-shadow: 0 0 0 3px rgba(244,63,94,.2), 0 7px 16px rgba(159,18,57,.24) !important;
+    animation: tube-denied .26s ease-out;
+}
+@keyframes tube-denied {
+    0%, 100% { translate: 0 0; }
+    28% { translate: -4px 0; }
+    58% { translate: 4px 0; }
+    82% { translate: -2px 0; }
+}
 .water-container {
     position: absolute;
     bottom: 0;
@@ -93,6 +116,22 @@ body {
     overflow: hidden;
     border-bottom-left-radius: 25px; 
     border-bottom-right-radius: 25px;
+    box-shadow: inset 0 -8px 12px rgba(0,0,0,.12);
+    isolation: isolate;
+}
+.water-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: inherit;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,.5) 0%,
+        rgba(255,255,255,.14) 13%,
+        transparent 28% 66%,
+        rgba(255,255,255,.12) 82%,
+        rgba(255,255,255,.16) 100%);
+    pointer-events: none;
 }
 .tube.target-mode {
     border-color: #a855f7;
@@ -129,23 +168,8 @@ body {
     width: 100%;
     height: var(--segment-height);
     position: relative;
+    z-index: 0;
     transition: height 0.3s ease, opacity 0.3s ease;
-}
-.water-segment::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, 
-        rgba(255,255,255,1) 0%,
-        rgba(255,255,255,0.1) 20%,
-        rgba(255,255,255,0) 25%,
-                rgba(0,0,0,0.5) 50%,
-                rgba(255,255,255,0) 75%,
-        rgba(255,255,255,0.1) 90%,
-        rgba(255,255,255,0.6) 100%
-    );
-    opacity: 0.8;
-    mix-blend-mode: overlay;
 }
 .water-segment:last-child {
     border-top: 1px solid rgba(255,255,255,0.3);
@@ -156,11 +180,11 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: rgba(255,255,255,0.4);
-    filter: blur(2px);
+    height: 5px;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,.68), rgba(255,255,255,.2) 48%, transparent 72%);
     border-radius: 50%;
-    transform: scaleX(0.9);
+    transform: translateY(-2px) scaleX(.92);
+    z-index: 3;
 }
 @keyframes evaporate {
     0% { 
@@ -181,6 +205,9 @@ body {
 .evaporating .water-segment {
     animation: evaporate 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
     pointer-events: none;
+}
+.evaporating .water-container::before {
+    display: none;
 }
 .lang-btn{
     padding: 6px 10px;
@@ -915,9 +942,31 @@ body {
     background: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #020617 80%, #000000 100%) !important;
     animation: pulse-void 2s infinite linear; 
     position: relative;
+    z-index: 3;
     overflow: hidden;
     backface-visibility: hidden;
     border: none;
+}
+.water-segment.void-ink::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,1) 0%,
+        rgba(255,255,255,.1) 20%,
+        rgba(255,255,255,0) 25%,
+        rgba(0,0,0,.5) 50%,
+        rgba(255,255,255,0) 75%,
+        rgba(255,255,255,.1) 90%,
+        rgba(255,255,255,.6) 100%);
+    opacity: .8;
+    mix-blend-mode: overlay;
+}
+.water-segment.void-ink:last-child::after {
+    height: 4px;
+    background: rgba(255,255,255,.4);
+    filter: blur(2px);
+    transform: scaleX(.9);
 }
 .help-bubble {
     position: fixed;
@@ -1100,17 +1149,33 @@ body {
 }
 .pour-trail {
     position: fixed;
-    height: 4px;
+    --trail-angle: 0deg;
+    height: 5px;
     transform-origin: 0 50%;
     border-radius: 999px;
-    background: linear-gradient(90deg, transparent, var(--trail-color), rgba(255,255,255,.9), var(--trail-color), transparent);
-    box-shadow: 0 0 12px var(--trail-color);
+    background: linear-gradient(90deg, var(--trail-color), rgba(255,255,255,.92) 52%, var(--trail-color));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--trail-color) 72%, transparent);
     animation: pour-trail-flow .5s ease-out forwards;
+    contain: strict;
+    will-change: transform, opacity;
+}
+.pour-trail::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--trail-color);
+    box-shadow: 0 0 8px var(--trail-color);
+    transform: translateY(-50%);
 }
 @keyframes pour-trail-flow {
-    0% { opacity: 0; clip-path: inset(0 100% 0 0); }
-    25% { opacity: 1; clip-path: inset(0 0 0 0); }
-    100% { opacity: 0; clip-path: inset(0 0 0 100%); }
+    0% { opacity: 0; transform: rotate(var(--trail-angle)) scaleX(.03); }
+    22% { opacity: .96; }
+    72% { opacity: .9; transform: rotate(var(--trail-angle)) scaleX(1); }
+    100% { opacity: 0; transform: rotate(var(--trail-angle)) scaleX(1); }
 }
 .liquid-particle {
     position: fixed;
@@ -1314,7 +1379,8 @@ body {
     .tube.anomaly-targeted::before,
     .tube.boss-targeted::before,
     .overdrive-ready-badge,
-    .skill-btn.item-decayed { animation: none !important; }
+    .skill-btn.item-decayed,
+    .tube.tube-denied { animation: none !important; }
     .pour-trail,
     .liquid-particle,
     .abyss-shockwave { display: none !important; }
@@ -1332,7 +1398,8 @@ body {
 .performance-lite .tube.source-mode,
 .performance-lite .deadlock-glow,
 .performance-lite #boss-core-visual,
-.performance-lite .skill-btn.item-decayed {
+.performance-lite .skill-btn.item-decayed,
+.performance-lite .tube.tube-denied {
     animation: none !important;
 }
 .page-hidden *,

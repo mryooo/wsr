@@ -321,6 +321,7 @@ async function tryPour(fromIdx, toIdx) {
         const destinationLocked = check.reason === 'sealed' || check.reason === 'anomaly-sealed';
         gameState.selectedIdx = (!destinationLocked && content.length > 0 && !isCompleteTube(content)) ? toIdx : null;
         renderBoard();
+        if (typeof triggerInvalidPourVfx === 'function') triggerInvalidPourVfx(toIdx);
         return;
     }
     gameState.busy = true;

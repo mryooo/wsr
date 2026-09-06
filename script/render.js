@@ -46,6 +46,12 @@ function renderBoard(resetScroll = false){
     const counts = getBoardCounts();
     const totalTubes = gameState.tubes.length;
     if (totalTubes === 0) return;
+    const validPourTargets = new Set();
+    if (!gameState.busy && gameState.selectedIdx !== null && !gameState.targetMode) {
+        for (let i = 0; i < totalTubes; i++) {
+            if (canPour(gameState.selectedIdx, i).ok) validPourTargets.add(i);
+        }
+    }
     // Compute values that are identical for the real tube and its two scroll
     // clones once. Previously these array scans/stringifications ran 3x.
     const tubeViews = gameState.tubes.map(segments => ({
@@ -107,6 +113,7 @@ function renderBoard(resetScroll = false){
         const isIsolatedBlack = view.isBlackOnly && segments.length === totalBlackCount;
         setClass('selected', i === gameState.selectedIdx);
         setClass('tube-focused', gameState.focusIdx !== null && i === gameState.focusIdx);
+        setClass('valid-pour-target', validPourTargets.has(i));
         setClass('deadlock-glow', deadlocked || isIsolatedBlack);
         const isBossSealed = bossMode && gameState.bossState.sealTurns > 0 && gameState.bossState.sealedTubeIdx === i;
         setClass('boss-sealed', isBossSealed);
@@ -395,9 +402,17 @@ function createPourTrail(fromEl, toEl, color) {
     trail.style.top = `${y1}px`;
     trail.style.width = `${distance}px`;
     trail.style.setProperty('--trail-color', color);
-    trail.style.transform = `rotate(${angle}deg)`;
+    trail.style.setProperty('--trail-angle', `${angle}deg`);
     vfxLayer.appendChild(trail);
     setTimeout(() => trail.remove(), 520);
+}
+function triggerInvalidPourVfx(tubeIdx) {
+    const target = tubeCenterEl(tubeIdx);
+    if (!target) return;
+    target.classList.remove('tube-denied');
+    void target.offsetWidth;
+    target.classList.add('tube-denied');
+    setTimeout(() => target.classList.remove('tube-denied'), 280);
 }
 function spawnVfxParticles(x, y, color, count = 8, className = 'liquid-particle') {
     if (!vfxLayer || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -446,61 +461,52 @@ function animatePour(fromIdx, toIdx, colorKey, count){
         if (!primaryFrom || !primaryTo){ resolve(); return; }
         const isRight = primaryTo.getBoundingClientRect().left > primaryFrom.getBoundingClientRect().left;
         createPourTrail(primaryFrom, primaryTo, colorMeta(colorKey)?.hex || '#38bdf8');
-        const fromEls = document.querySelectorAll(`.tube[data-idx="${fromIdx}"]`);
-        const toEls = document.querySelectorAll(`.tube[data-idx="${toIdx}"]`);
-        fromEls.forEach(fromEl => {
-            const fromWater = fromEl.querySelector('.water-container');
-            const shrinkSegments = [];
-            for(let i=0; i<count; i++) {
-                if(fromWater.children.length > i) {
-                    shrinkSegments.push(fromWater.children[fromWater.children.length - 1 - i]);
-                }
+        // Only the visible copy needs transitional DOM. The infinite-scroll
+        // clones receive the final state on the next renderBoard(), avoiding
+        // three copies of every style write and layout flush.
+        const fromWater = primaryFrom.querySelector('.water-container');
+        const toWater = primaryTo.querySelector('.water-container');
+        const shrinkSegments = [];
+        for(let i=0; i<count; i++) {
+            if(fromWater.children.length > i) {
+                shrinkSegments.push(fromWater.children[fromWater.children.length - 1 - i]);
             }
-            fromEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
-            fromEl.style.transform = `translateY(-10px) rotate(${isRight ? 45 : -45}deg)`;
-            fromEl.style.zIndex = 50;
-            setTimeout(() => {
-                shrinkSegments.forEach(seg => { 
-                    if(seg) { 
-                        seg.style.height = '0px'; 
-                        seg.style.opacity = '0'; 
-                        seg.style.borderTop = 'none'; 
-                    } 
-                });
-            }, 50);
-        });
+        }
+        primaryFrom.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        primaryFrom.style.transform = `translateY(-10px) rotate(${isRight ? 45 : -45}deg)`;
+        primaryFrom.style.zIndex = 50;
         setTimeout(() => {
-            toEls.forEach(toEl => {
-                const toWater = toEl.querySelector('.water-container');
-                const incomingSegments = [];
-                for(let i=0; i<count; i++){
-                    const newSeg = document.createElement('div'); 
-                    newSeg.className = 'water-segment'; 
-                    if (colorKey === 'K') {
-                        newSeg.classList.add('void-ink');
-                    }
-                    newSeg.style.backgroundColor = colorMeta(colorKey).hex;
-                    newSeg.style.height = '0px'; 
-                    newSeg.style.opacity = '0.5'; 
-                    toWater.appendChild(newSeg); 
-                    incomingSegments.push(newSeg);
+            shrinkSegments.forEach(seg => {
+                if(seg) {
+                    seg.style.height = '0px';
+                    seg.style.opacity = '0';
+                    seg.style.borderTop = 'none';
                 }
-                // One layout flush per destination tube, rather than one per
-                // liquid segment.
-                void toWater.offsetWidth;
-                incomingSegments.forEach(newSeg => {
-                    newSeg.style.height = 'var(--segment-height)'; 
-                    newSeg.style.opacity = '1';
-                });
+            });
+            const incomingSegments = [];
+            for(let i=0; i<count; i++){
+                const newSeg = document.createElement('div');
+                newSeg.className = 'water-segment';
+                if (colorKey === 'K') newSeg.classList.add('void-ink');
+                newSeg.style.backgroundColor = colorMeta(colorKey).hex;
+                newSeg.style.height = '0px';
+                newSeg.style.opacity = '0.5';
+                toWater.appendChild(newSeg);
+                incomingSegments.push(newSeg);
+            }
+            // One layout flush for the visible destination, regardless of the
+            // number of poured segments.
+            void toWater.offsetWidth;
+            incomingSegments.forEach(newSeg => {
+                newSeg.style.height = 'var(--segment-height)';
+                newSeg.style.opacity = '1';
             });
         }, 50);
         setTimeout(() => { 
-            fromEls.forEach(fromEl => {
-                fromEl.style.transform = ''; 
-                fromEl.style.zIndex = ''; 
-                normalizeWaterSegmentStyles(fromEl.querySelector('.water-container'));
-            });
-            toEls.forEach(toEl => normalizeWaterSegmentStyles(toEl.querySelector('.water-container')));
+            primaryFrom.style.transform = '';
+            primaryFrom.style.zIndex = '';
+            normalizeWaterSegmentStyles(fromWater);
+            normalizeWaterSegmentStyles(toWater);
             resolve(); 
         }, 400); 
     });
