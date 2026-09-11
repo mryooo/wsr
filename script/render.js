@@ -1,9 +1,34 @@
 // render.js — 描画(盤面、HUD、スキル欄、アニメーション、無限スクロール)
+const BOARD_VIEW_STORAGE_KEY = 'abyss_alchemy_board_view';
+let showAllTubes = false;
 // One complete copy on each side is sufficient for a seamless loop.  The old
 // fixed padding of 30 created up to 70 fully-painted tubes (and every liquid
 // segment inside them) on mobile.
 function getScrollCloneCount() {
-    return gameState.tubes.length;
+    return showAllTubes ? 0 : gameState.tubes.length;
+}
+function updateBoardViewButton() {
+    const button = document.getElementById('btn-board-view');
+    const label = document.getElementById('btn-board-view-text');
+    const icon = document.getElementById('btn-board-view-icon');
+    if (!button || !label || !icon) return;
+    const text = showAllTubes ? t('boardViewScroll') : t('boardViewAll');
+    label.textContent = text;
+    icon.textContent = showAllTubes ? '∞' : '≡';
+    button.title = text;
+    button.setAttribute('aria-label', text);
+    button.setAttribute('aria-pressed', String(showAllTubes));
+}
+function setBoardViewMode(showAll, persist = true) {
+    showAllTubes = !!showAll;
+    if (persist) localStorage.setItem(BOARD_VIEW_STORAGE_KEY, showAllTubes ? 'all' : 'infinite');
+    lastBoardLayoutKey = '';
+    updateBoardViewButton();
+    renderBoard(true);
+}
+function initBoardViewMode() {
+    showAllTubes = localStorage.getItem(BOARD_VIEW_STORAGE_KEY) === 'all';
+    updateBoardViewButton();
 }
 let boardLayoutFrame = 0;
 let lastBoardLayoutKey = '';
@@ -26,6 +51,8 @@ function normalizeWaterSegmentStyles(water) {
 function renderBoard(resetScroll = false){
     const slider = document.getElementById('board-scroll-area');
     const currentScrollPos = slider ? slider.scrollLeft : 0;
+    slider?.classList.toggle('all-tubes-view', showAllTubes);
+    tubesContainer?.classList.toggle('all-tubes-view', showAllTubes);
     // A completed or transitioning board naturally has no legal pours. It is
     // not a deadlock and must never leak a warning into result overlays.
     const deadlocked = !gameState.busy && !checkLevelClear() && isDeadlocked();
@@ -209,14 +236,40 @@ function scheduleBoardLayout(resetScroll = false, force = false) {
         if (resetScroll) initInfiniteScroll();
     });
 }
+function updateAllTubesWrapWidth() {
+    if (!tubesContainer) return;
+    if (!showAllTubes) {
+        tubesContainer.style.removeProperty('width');
+        return;
+    }
+    const tubeEl = tubesContainer.querySelector('.tube:not(.is-clone)');
+    if (!tubeEl || !gameState.tubes.length) return;
+    const tubeStyle = window.getComputedStyle(tubeEl);
+    const containerStyle = window.getComputedStyle(tubesContainer);
+    const tubeOuterWidth = tubeEl.offsetWidth
+        + (parseFloat(tubeStyle.marginLeft) || 0)
+        + (parseFloat(tubeStyle.marginRight) || 0);
+    const gap = parseFloat(containerStyle.gap) || 0;
+    const horizontalPadding = (parseFloat(containerStyle.paddingLeft) || 0)
+        + (parseFloat(containerStyle.paddingRight) || 0);
+    const availableWidth = boardArea?.clientWidth || window.innerWidth;
+    const maxColumns = Math.max(1, Math.floor((availableWidth - horizontalPadding + gap) / (tubeOuterWidth + gap)));
+    const rowCount = Math.ceil(gameState.tubes.length / maxColumns);
+    const balancedColumns = Math.ceil(gameState.tubes.length / rowCount);
+    const balancedWidth = (balancedColumns * tubeOuterWidth)
+        + (Math.max(0, balancedColumns - 1) * gap)
+        + horizontalPadding;
+    tubesContainer.style.width = `${Math.min(availableWidth, balancedWidth)}px`;
+}
 function adjustBoardScale() {
     if (!boardArea || !tubesContainer) return;
+    updateAllTubesWrapWidth();
     const availableH = boardArea.clientHeight;
     const contentH = tubesContainer.scrollHeight;
     if (contentH === 0) return;
     const targetH = availableH * 0.95; 
     let scale = targetH / contentH;
-    scale = Math.min(Math.max(scale, 0.3), 1.5);
+    scale = Math.min(Math.max(scale, 0.3), showAllTubes ? 1 : 1.5);
     const nextTransform = `scale(${scale})`;
     if (tubesContainer.style.transform !== nextTransform) {
         tubesContainer.style.transform = nextTransform;
@@ -236,7 +289,7 @@ function updateBoardScrollMode(scale = getBoardScale()) {
     const horizontalPadding = (parseFloat(containerStyle.paddingLeft) || 0)
         + (parseFloat(containerStyle.paddingRight) || 0);
     const realBoardWidth = ((itemWidth * gameState.tubes.length) + horizontalPadding) * scale;
-    const finite = realBoardWidth <= slider.clientWidth;
+    const finite = showAllTubes || realBoardWidth <= slider.clientWidth;
     const changed = slider.classList.contains('finite-board') !== finite;
     slider.classList.toggle('finite-board', finite);
     tubesContainer.classList.toggle('finite-board', finite);

@@ -46,6 +46,8 @@ const translations = {
         helpBtn: "Help",
         paletteBtn: "Pallette",
         paletteTitle: "Color Palette",
+        boardViewAll: "Show all tubes",
+        boardViewScroll: "Infinite scroll",
         close: "Close"
     },
     ja: {
@@ -95,6 +97,8 @@ const translations = {
         helpBtn: "ヘルプ",
         paletteBtn: "パレット",
         paletteTitle: "カラーパレット",
+        boardViewAll: "全試験管を表示",
+        boardViewScroll: "無限スクロール",
         close: "閉じる"
     }
 };
@@ -127,6 +131,7 @@ function applyLang(){
     setText('btn-palette-text', t('paletteBtn'));
     setText('palette-modal-title', t('paletteTitle'));
     setText('palette-close', t('close'));
+    if (typeof updateBoardViewButton === 'function') updateBoardViewButton();
     const btnText = currentLang === 'ja' ? 'ステータス' : 'Status';
     const mutationBtnLabel = document.getElementById('btn-mutations-text');
     if(mutationBtnLabel) mutationBtnLabel.textContent = btnText;

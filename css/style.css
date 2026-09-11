@@ -700,6 +700,20 @@ body {
     justify-content: center;
     transform-origin: center center;
 }
+#board-scroll-area.all-tubes-view {
+    overflow: hidden;
+    mask-image: none;
+    -webkit-mask-image: none;
+    cursor: default;
+    touch-action: manipulation;
+}
+#tubes-container.all-tubes-view {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+    transform-origin: center center;
+}
 #tubes-container.finite-board > .is-clone {
     display: none;
 }

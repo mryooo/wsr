@@ -68,6 +68,14 @@ if(btnPaletteClose){
         closeModal('palette-screen');
     };
 }
+const btnBoardView = ui('btn-board-view');
+if (btnBoardView) {
+    btnBoardView.onclick = (e) => {
+        e.stopPropagation();
+        closeTitleMenu();
+        setBoardViewMode(!showAllTubes);
+    };
+}
 let isDown = false;
 let startX;
 let dragStartX;
@@ -264,6 +272,7 @@ function initGameSettings() {
     const savedLang = localStorage.getItem('abyss_alchemy_lang');
     setLang(savedLang === 'en' || savedLang === 'ja' ? savedLang : 'ja');
     initPalette();
+    initBoardViewMode();
     const debugToggle = ui('debug-toggle');
     if (debugToggle) {
         debugToggle.textContent = `Alpha Ver ${GAME_VERSION}`;
