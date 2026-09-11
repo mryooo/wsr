@@ -240,6 +240,7 @@ function updateAllTubesWrapWidth() {
     if (!tubesContainer) return;
     if (!showAllTubes) {
         tubesContainer.style.removeProperty('width');
+        tubesContainer.style.removeProperty('gap');
         return;
     }
     const tubeEl = tubesContainer.querySelector('.tube:not(.is-clone)');
@@ -249,16 +250,21 @@ function updateAllTubesWrapWidth() {
     const tubeOuterWidth = tubeEl.offsetWidth
         + (parseFloat(tubeStyle.marginLeft) || 0)
         + (parseFloat(tubeStyle.marginRight) || 0);
-    const gap = parseFloat(containerStyle.gap) || 0;
+    const minimumGap = 6;
     const horizontalPadding = (parseFloat(containerStyle.paddingLeft) || 0)
         + (parseFloat(containerStyle.paddingRight) || 0);
     const availableWidth = boardArea?.clientWidth || window.innerWidth;
-    const maxColumns = Math.max(1, Math.floor((availableWidth - horizontalPadding + gap) / (tubeOuterWidth + gap)));
+    const maxColumns = Math.max(1, Math.floor((availableWidth - horizontalPadding + minimumGap) / (tubeOuterWidth + minimumGap)));
     const rowCount = Math.ceil(gameState.tubes.length / maxColumns);
     const balancedColumns = Math.ceil(gameState.tubes.length / rowCount);
+    const flexibleGap = balancedColumns > 1
+        ? (availableWidth - horizontalPadding - (balancedColumns * tubeOuterWidth)) / (balancedColumns + 1)
+        : minimumGap;
+    const gap = Math.max(minimumGap, Math.min(32, flexibleGap));
     const balancedWidth = (balancedColumns * tubeOuterWidth)
         + (Math.max(0, balancedColumns - 1) * gap)
         + horizontalPadding;
+    tubesContainer.style.gap = `${gap}px`;
     tubesContainer.style.width = `${Math.min(availableWidth, balancedWidth)}px`;
 }
 function adjustBoardScale() {
