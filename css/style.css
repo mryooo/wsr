@@ -672,6 +672,8 @@ body {
     touch-action: pan-x;
     position: relative;
     z-index: 0;
+    box-sizing: border-box;
+    padding-top: var(--board-overlay-inset, 0px);
 }
 #board-scroll-area:active {
     cursor: grabbing;
@@ -1232,6 +1234,8 @@ body {
     transform: translateX(-50%);
     z-index: 76;
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     align-items: center;
     gap: 5px;
     pointer-events: none;

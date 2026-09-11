@@ -270,7 +270,9 @@ function updateAllTubesWrapWidth() {
 function adjustBoardScale() {
     if (!boardArea || !tubesContainer) return;
     updateAllTubesWrapWidth();
-    const availableH = boardArea.clientHeight;
+    const slider = document.getElementById('board-scroll-area');
+    const overlayInset = slider ? (parseFloat(window.getComputedStyle(slider).paddingTop) || 0) : 0;
+    const availableH = Math.max(0, boardArea.clientHeight - overlayInset);
     const contentH = tubesContainer.scrollHeight;
     if (contentH === 0) return;
     const targetH = availableH * 0.95; 
@@ -625,6 +627,24 @@ function renderAbyssSystems() {
         if (gameState.routeContract) container.classList.add(`contract-${contract.id}`);
         if (isBossArena()) container.classList.add(`boss-theme-${getBossDefinition().id}`);
     }
+    updateBoardOverlayInset();
+}
+function updateBoardOverlayInset() {
+    if (!boardArea) return;
+    const systemHud = ui('abyss-system-hud');
+    const bossHeader = ui('boss-arena-header');
+    let overlayBottom = 0;
+    if (systemHud && systemHud.offsetHeight > 0) {
+        overlayBottom = Math.max(overlayBottom, systemHud.offsetTop + systemHud.offsetHeight);
+    }
+    if (bossHeader && !bossHeader.classList.contains('hidden') && bossHeader.offsetHeight > 0) {
+        overlayBottom = Math.max(overlayBottom, bossHeader.offsetTop + bossHeader.offsetHeight);
+    }
+    const inset = Math.ceil(overlayBottom + 8);
+    if (boardArea.dataset.overlayInset === String(inset)) return;
+    boardArea.dataset.overlayInset = String(inset);
+    boardArea.style.setProperty('--board-overlay-inset', `${inset}px`);
+    scheduleBoardLayout(false, true);
 }
 function renderHUD(){
     updateFloorDisplayEffect();
@@ -818,7 +838,9 @@ function getBoardScale() {
     const boardArea = document.getElementById('board-area');
     const tubesContainer = document.getElementById('tubes-container');
     if (!boardArea || !tubesContainer) return 1;
-    const availableH = boardArea.clientHeight;
+    const slider = document.getElementById('board-scroll-area');
+    const overlayInset = slider ? (parseFloat(window.getComputedStyle(slider).paddingTop) || 0) : 0;
+    const availableH = Math.max(0, boardArea.clientHeight - overlayInset);
     const contentH = tubesContainer.scrollHeight;
     if (contentH === 0) return 1;
     const targetH = availableH * 0.95;
