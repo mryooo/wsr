@@ -207,6 +207,8 @@ function openBossIntro() {
     const bs = gameState.bossState;
     if (!bs || !bs.pendingIntro || !bossIntroScreen) return;
     gameState.busy = true;
+    audioManager.syncBgm();
+    audioManager.playSe('boss_warning');
     const def = getBossDefinition();
     setText('boss-intro-title', currentLang === 'ja' ? def.ja : def.en);
     setText('boss-intro-desc', currentLang === 'ja'
@@ -761,6 +763,7 @@ function buildShopCard(offer) {
                     }
                     showToast(currentLang === 'ja' ? "購入しました" : "Purchased", 'emerald');
                 }
+                audioManager.playSe('purchase');
                 refreshRerollUI();
                 renderHUD();
                 renderErosionServices();
@@ -927,6 +930,7 @@ function openPerkScreen(isDeath){
     shopPurchasePending = false;
     if (alertBanner) alertBanner.style.opacity = '0';
     perkScreen.classList.remove('hidden');
+    if (isDeath) audioManager.stopBgm(0.8);
     const bossVictory = !isDeath && !!gameState.bossState?.defeated;
     ui('perk-title').textContent = isDeath ? t('gameOver') : (bossVictory ? (currentLang === 'ja' ? 'ボス撃破' : 'BOSS PURGED') : t('victory'));
     ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : (bossVictory ? (currentLang === 'ja' ? '深淵の戦利品を選択' : 'Choose an abyssal reward') : t('victorySub'));

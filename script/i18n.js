@@ -132,6 +132,7 @@ function applyLang(){
     setText('palette-modal-title', t('paletteTitle'));
     setText('palette-close', t('close'));
     if (typeof updateBoardViewButton === 'function') updateBoardViewButton();
+    if (typeof audioManager !== 'undefined') audioManager.updateControls();
     const btnText = currentLang === 'ja' ? 'ステータス' : 'Status';
     const mutationBtnLabel = document.getElementById('btn-mutations-text');
     if(mutationBtnLabel) mutationBtnLabel.textContent = btnText;

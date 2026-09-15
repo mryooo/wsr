@@ -76,6 +76,21 @@ if (btnBoardView) {
         setBoardViewMode(!showAllTubes);
     };
 }
+const bgmVolumeSlider = ui('volume-bgm');
+if (bgmVolumeSlider) {
+    bgmVolumeSlider.addEventListener('input', () => {
+        audioManager.setMusicVolume(Number(bgmVolumeSlider.value) / 100);
+    });
+}
+const seVolumeSlider = ui('volume-se');
+if (seVolumeSlider) {
+    seVolumeSlider.addEventListener('input', () => {
+        audioManager.setSeVolume(Number(seVolumeSlider.value) / 100);
+    });
+    seVolumeSlider.addEventListener('change', () => {
+        if (Number(seVolumeSlider.value) > 0) audioManager.playSe('select');
+    });
+}
 let isDown = false;
 let startX;
 let dragStartX;
@@ -135,6 +150,7 @@ const dataSaver = !!navigator.connection?.saveData;
 document.documentElement.classList.toggle('performance-lite', prefersReducedMotion || lowCpu || lowMemory || dataSaver);
 const syncPageVisibility = () => {
     document.documentElement.classList.toggle('page-hidden', document.hidden);
+    audioManager.handleVisibility();
 };
 document.addEventListener('visibilitychange', syncPageVisibility, { passive: true });
 syncPageVisibility();
@@ -224,9 +240,15 @@ ui('reroll-btn').onclick = () => {
 };
 ui('start-run-btn').onclick = () => {
     if (hasSaveData() && !confirm(t('newRunSaveWarning'))) return;
+    audioManager.unlock();
     startNewRun();
 };
-ui('continue-run-btn').onclick = () => { startScreen.classList.add('hidden'); loadGame(); };
+ui('continue-run-btn').onclick = () => {
+    audioManager.unlock();
+    startScreen.classList.add('hidden');
+    loadGame();
+    audioManager.syncBgm();
+};
 document.addEventListener('click', (e) => {
     if (!gameState.extractorHeldColor) return;
     if (!e.target.closest('.tube') && !e.target.closest('.skill-btn')) {
@@ -273,6 +295,7 @@ function initGameSettings() {
     setLang(savedLang === 'en' || savedLang === 'ja' ? savedLang : 'ja');
     initPalette();
     initBoardViewMode();
+    audioManager.updateControls();
     const debugToggle = ui('debug-toggle');
     if (debugToggle) {
         debugToggle.textContent = `Alpha Ver ${GAME_VERSION}`;

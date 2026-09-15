@@ -21,7 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ES Modulesは**不使用**。全ファイルが1つのグローバルスコープを共有する古典的`<script>`タグ方式で、`index.html` 記載の順に読み込まれる。**順序に依存関係がある**(後のファイルは前のファイルのトップレベル`const`/`let`を参照する):
 
 ```
-utils → config → i18n → dom → state → logic → render → actions → screens → main
+utils → config → i18n → dom → state → audio → logic → render → actions → screens → main
 ```
 
 | ファイル | 役割 |
@@ -31,6 +31,7 @@ utils → config → i18n → dom → state → logic → render → actions →
 | `i18n.js` | `translations` テーブル、`t()`, `setLang()` |
 | `dom.js` | 主要DOM要素への`const`参照 |
 | `state.js` | `gameState`(唯一の可変状態)、セーブ/ロード、`pushHistory()` |
+| `audio.js` | BGM完全ループ、SE再生、音声設定の保存 |
 | `logic.js` | 純ロジック: `canPour`, `isCompleteTube`, `generateBoard`, 目標生成、Perk抽選、価格計算 |
 | `render.js` | DOM描画: `renderBoard`, `renderHUD`, `renderSkills`, アニメーション、無限スクロール |
 | `actions.js` | 操作実行: `tryPour`, `handleCompletion`, `useItem`, `tryUndo`, `nextFloor`, `startNewRun` |

@@ -1,6 +1,9 @@
 // logic.js — 純粋なゲームロジック(判定、盤面生成、目標、抽選、価格)
 function addPressure(amount) {
     gameState.pressure += amount;
+    if (typeof audioManager !== 'undefined') {
+        audioManager.notifyPressure(gameState.pressure, gameState.pressureMax);
+    }
     if (gameState.pressure >= gameState.pressureMax) {
         gameState.pressure = 0;
         return true; 

@@ -95,6 +95,7 @@ function useItem(key) {
         }
         const result = item.effect(gameState);
         if (result.success) {
+            audioManager.playSe('item_use');
             if (item.type !== 'tool') consumeInventoryUnit(key);
             registerBossItemUse(key);
             showToast(currentLang === 'ja' ? result.msg.ja : result.msg.en, result.color || 'emerald');
@@ -179,6 +180,7 @@ async function applyItemToTube(idx) {
             pushHistory();
             gameState.history[gameState.history.length - 1].tubes = preExtractionState;
             item.placeLogic(tube, gameState.extractorHeldColor);
+            audioManager.playSe('item_use');
             const placedColor = gameState.extractorHeldColor;
             gameState.extractorHeldColor = null; gameState.extractorSourceIdx = null;
             consumeItem(key, item);
@@ -203,6 +205,7 @@ async function applyItemToTube(idx) {
         try {
             const result = item.apply(tube);
             if (result.success) {
+                audioManager.playSe('item_use');
                 showFloatText(idx, result.floatText, result.color);
                 if (result.essenceDelta) gameState.essence += result.essenceDelta;
                 consumeItem(key, item);
@@ -309,6 +312,7 @@ async function handleTubeClick(idx) {
         }
         if (content.length === 0 || isCompleteTube(content)) return;
         gameState.selectedIdx = idx;
+        audioManager.playSe('select');
         renderBoard();
     } else {
         await tryPour(gameState.selectedIdx, idx);
@@ -317,6 +321,7 @@ async function handleTubeClick(idx) {
 async function tryPour(fromIdx, toIdx) {
     const check = canPour(fromIdx, toIdx);
     if (!check.ok) {
+        audioManager.playSe('denied');
         const content = gameState.tubes[toIdx];
         const destinationLocked = check.reason === 'sealed' || check.reason === 'anomaly-sealed';
         gameState.selectedIdx = (!destinationLocked && content.length > 0 && !isCompleteTube(content)) ? toIdx : null;
@@ -326,6 +331,7 @@ async function tryPour(fromIdx, toIdx) {
     }
     gameState.busy = true;
     try {
+        audioManager.playSe('pour');
         pushHistory();
         const pressurePreview = getNextMovePressurePreview();
         if (!pressurePreview.steadyHandActive && pressurePreview.momentumActive) {
@@ -387,6 +393,7 @@ async function tryPour(fromIdx, toIdx) {
     }
 }
 async function handleCompletion(tubeIdx, colorKey) {
+    audioManager.playSe('complete');
     if (colorKey === 'K') {
         gameState.busy = true;
         const segmentCount = gameState.tubes[tubeIdx].length;
@@ -737,6 +744,7 @@ async function advanceBossTurn() {
         }
     }
     bs.actionCountdown--;
+    if (bs.actionCountdown === 2) audioManager.playSe('boss_warning');
     if (bs.actionCountdown <= 2) ensureBossTelegraph();
     if (bs.actionCountdown > 0) {
         renderBossHUD();
@@ -766,6 +774,7 @@ async function applyPressureDamage(visualOnly = false, excludedCorruptionTubeIdx
             floor: gameState.floor,
             turn: gameState.turnCount
         };
+        audioManager.playSe('damage');
     }
     const container = ui('game-container');
     container.classList.remove('animate-shake');
@@ -845,6 +854,7 @@ function buildDebugPerksForFloor(floor) {
     return perks;
 }
 function startNewRun() {
+    audioManager.unlock();
     clearSave();
     let startFloor = 1;
     let effectiveDebug = IS_DEBUG;
@@ -968,6 +978,7 @@ function startNewRun() {
     generateGoals();
     renderHUD();
     renderBoard(true);
+    audioManager.syncBgm();
     saveGame();
     if (isBossActive() && gameState.bossState.pendingIntro) {
         setTimeout(openBossIntro, 300);
@@ -1060,6 +1071,7 @@ function nextFloor(isFirst=false){
     generateGoals(); 
     renderHUD(); 
     renderBoard(true);
+    audioManager.syncBgm();
     saveGame();
     setTimeout(() => {
         showFloorStartSequence(rewards, erosionResults, erosionLosses);
@@ -1132,6 +1144,7 @@ async function tryUndo(){
         return;
     }
     gameState.history.pop();
+    audioManager.playSe('undo');
     const currentHP = gameState.hp;
     const currentEssence = gameState.essence;
     const currentPressure = gameState.pressure;
