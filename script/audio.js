@@ -1,9 +1,9 @@
 // audio.js — BGM/SE再生、完全ループ、音声設定
 const AUDIO_SETTINGS_KEY = 'abyss_alchemy_audio_v1';
 const AUDIO_BGM = {
-    normal: { src: './audio/bgm/abyss_lab_normal_hq.ogg', lossless: './audio/bgm/abyss_lab_normal.wav', loopSeconds: 76.8, gain: 1.00 },
-    depths: { src: './audio/bgm/abyss_depths_hq.ogg', lossless: './audio/bgm/abyss_depths.wav', loopSeconds: 80, gain: 1.68 },
-    boss: { src: './audio/bgm/abyss_boss_hq.ogg?v=20260916b', lossless: './audio/bgm/abyss_boss.wav?v=20260916b', loopSeconds: 60, gain: 1.30 }
+    normal: { src: './audio/bgm/abyss_lab_normal_hq.ogg?v=20260916c', lossless: './audio/bgm/abyss_lab_normal.wav?v=20260916c', loopSeconds: 76.8, gain: 1.00 },
+    depths: { src: './audio/bgm/abyss_depths_hq.ogg?v=20260916c', lossless: './audio/bgm/abyss_depths.wav?v=20260916c', loopSeconds: 80, gain: 1.68 },
+    boss: { src: './audio/bgm/abyss_boss_hq.ogg?v=20260916c', lossless: './audio/bgm/abyss_boss.wav?v=20260916c', loopSeconds: 60, gain: 1.30 }
 };
 const AUDIO_SE = {
     pour: { src: './audio/se/pour.wav?v=20260916d', gain: 0.78 },
