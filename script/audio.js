@@ -3,7 +3,7 @@ const AUDIO_SETTINGS_KEY = 'abyss_alchemy_audio_v1';
 const AUDIO_BGM = {
     normal: { src: './audio/bgm/abyss_lab_normal_hq.ogg', lossless: './audio/bgm/abyss_lab_normal.wav', loopSeconds: 76.8, gain: 1.00 },
     depths: { src: './audio/bgm/abyss_depths_hq.ogg', lossless: './audio/bgm/abyss_depths.wav', loopSeconds: 80, gain: 1.68 },
-    boss: { src: './audio/bgm/abyss_boss_hq.ogg', lossless: './audio/bgm/abyss_boss.wav', loopSeconds: 60, gain: 3.75 }
+    boss: { src: './audio/bgm/abyss_boss_hq.ogg?v=20260916b', lossless: './audio/bgm/abyss_boss.wav?v=20260916b', loopSeconds: 60, gain: 1.30 }
 };
 const AUDIO_SE = {
     pour: { src: './audio/se/pour.wav?v=20260916d', gain: 0.78 },
@@ -17,6 +17,8 @@ const AUDIO_SE = {
     boss_warning: { src: './audio/se/boss_warning.wav', gain: 0.47 },
     undo: { src: './audio/se/undo.wav', gain: 0.60 }
 };
+const MUSIC_OUTPUT_GAIN = 1.80;
+const SE_OUTPUT_GAIN = 0.40;
 
 const audioManager = (() => {
     const defaults = { musicVolume: 0.35, seVolume: 0.70 };
@@ -82,8 +84,8 @@ const audioManager = (() => {
         seDynamics.connect(seBus);
         musicBus.connect(context.destination);
         seBus.connect(context.destination);
-        musicBus.gain.value = settings.musicVolume;
-        seBus.gain.value = settings.seVolume;
+        musicBus.gain.value = settings.musicVolume * MUSIC_OUTPUT_GAIN;
+        seBus.gain.value = settings.seVolume * SE_OUTPUT_GAIN;
         publishStatus();
         return context;
     }
@@ -157,7 +159,7 @@ const audioManager = (() => {
         audio.dataset.key = key;
         audio.loop = true;
         audio.preload = 'auto';
-        audio.volume = Math.min(1, def.gain * settings.musicVolume);
+        audio.volume = Math.min(1, def.gain * settings.musicVolume * MUSIC_OUTPUT_GAIN);
         fallbackBgm = audio;
         audio.play().catch(() => {});
         publishStatus();
@@ -221,7 +223,7 @@ const audioManager = (() => {
             };
         } catch (_) {
             const audio = new Audio(def.src);
-            audio.volume = Math.min(1, def.gain * settings.seVolume);
+            audio.volume = Math.min(1, def.gain * settings.seVolume * SE_OUTPUT_GAIN);
             audio.play().catch(() => {});
         }
     }
@@ -250,10 +252,10 @@ const audioManager = (() => {
         settings.musicVolume = audioClamp(value);
         if (musicBus && context) {
             musicBus.gain.cancelScheduledValues(context.currentTime);
-            musicBus.gain.setTargetAtTime(settings.musicVolume, context.currentTime, 0.025);
+            musicBus.gain.setTargetAtTime(settings.musicVolume * MUSIC_OUTPUT_GAIN, context.currentTime, 0.025);
         }
         if (fallbackBgm && desiredBgm && AUDIO_BGM[desiredBgm]) {
-            fallbackBgm.volume = Math.min(1, AUDIO_BGM[desiredBgm].gain * settings.musicVolume);
+            fallbackBgm.volume = Math.min(1, AUDIO_BGM[desiredBgm].gain * settings.musicVolume * MUSIC_OUTPUT_GAIN);
         }
         saveSettings();
         if (settings.musicVolume <= 0) stopBgm(0.18, false);
@@ -267,7 +269,7 @@ const audioManager = (() => {
         settings.seVolume = audioClamp(value);
         if (seBus && context) {
             seBus.gain.cancelScheduledValues(context.currentTime);
-            seBus.gain.setTargetAtTime(settings.seVolume, context.currentTime, 0.02);
+            seBus.gain.setTargetAtTime(settings.seVolume * SE_OUTPUT_GAIN, context.currentTime, 0.02);
         }
         saveSettings();
     }
