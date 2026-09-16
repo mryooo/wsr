@@ -46,6 +46,9 @@ const audioManager = (() => {
     let currentBgm = null;
     let fallbackBgm = null;
     let pressureWarningArmed = true;
+    let recoveryPending = false;
+    let recoveryFailures = 0;
+    let recoveryPromise = null;
     const buffers = new Map();
     const loads = new Map();
 
@@ -57,15 +60,25 @@ const audioManager = (() => {
             usingFallback: !!fallbackBgm,
             musicVolume: settings.musicVolume,
             seVolume: settings.seVolume,
+            recoveryPending,
             loaded: [...buffers.keys()]
         });
     }
 
     function createContext() {
-        if (context) return context;
+        if (context && context.state !== 'closed') return context;
+        if (context?.state === 'closed') {
+            discardCurrentBgm();
+            context = null;
+            musicBus = null;
+            seBus = null;
+            musicDynamics = null;
+            seDynamics = null;
+        }
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextClass) return null;
         context = new AudioContextClass();
+        const createdContext = context;
         musicBus = context.createGain();
         seBus = context.createGain();
         musicDynamics = context.createDynamicsCompressor();
@@ -86,13 +99,18 @@ const audioManager = (() => {
         seBus.connect(context.destination);
         musicBus.gain.value = settings.musicVolume * MUSIC_OUTPUT_GAIN;
         seBus.gain.value = settings.seVolume * SE_OUTPUT_GAIN;
+        context.addEventListener?.('statechange', () => {
+            if (context !== createdContext) return;
+            if (createdContext.state === 'interrupted') recoveryPending = true;
+            publishStatus();
+        });
         publishStatus();
         return context;
     }
 
-    function unlock() {
+    async function unlock() {
         const ctx = createContext();
-        if (!ctx) return Promise.resolve(false);
+        if (!ctx) return false;
         const firstUnlock = !unlocked;
         unlocked = true;
         if (firstUnlock) {
@@ -101,7 +119,13 @@ const audioManager = (() => {
                 loadBuffer(`se:${name}`, [def.src]).catch(() => {});
             });
         }
-        return ctx.state === 'suspended' ? ctx.resume().then(() => true).catch(() => false) : Promise.resolve(true);
+        if (ctx.state !== 'running') {
+            try { await ctx.resume(); } catch (_) {}
+        }
+        const running = ctx.state === 'running';
+        if (!running) recoveryPending = true;
+        publishStatus();
+        return running;
     }
 
     async function loadBuffer(cacheKey, sources) {
@@ -135,6 +159,38 @@ const audioManager = (() => {
         fallbackBgm.src = '';
         fallbackBgm = null;
         publishStatus();
+    }
+
+    function discardCurrentBgm() {
+        if (!currentBgm) return;
+        const stale = currentBgm;
+        currentBgm = null;
+        try { stale.source.stop(); } catch (_) {}
+        try { stale.source.disconnect(); } catch (_) {}
+        try { stale.gain.disconnect(); } catch (_) {}
+    }
+
+    function rebuildContext() {
+        const staleContext = context;
+        discardCurrentBgm();
+        context = null;
+        musicBus = null;
+        seBus = null;
+        musicDynamics = null;
+        seDynamics = null;
+        try { staleContext?.close().catch(() => {}); } catch (_) {}
+        return createContext();
+    }
+
+    function primeMobileAudio(ctx) {
+        try {
+            const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(ctx.destination);
+            source.start(0);
+            source.onended = () => source.disconnect();
+        } catch (_) {}
     }
 
     function stopBgm(fadeSeconds = 0.35, clearDesired = true) {
@@ -304,19 +360,93 @@ const audioManager = (() => {
         }
     }
 
-    function handleVisibility() {
-        if (!context || !unlocked) return;
-        if (document.hidden) context.suspend().catch(() => {});
-        else if (settings.musicVolume > 0 || settings.seVolume > 0) context.resume().catch(() => {});
-        if (fallbackBgm) {
-            if (document.hidden) fallbackBgm.pause();
-            else if (settings.musicVolume > 0) fallbackBgm.play().catch(() => {});
+    async function finishRecovery() {
+        recoveryFailures = 0;
+        if (!recoveryPending) return true;
+        recoveryPending = false;
+        unlocked = true;
+        const key = desiredTrackForState();
+        discardCurrentBgm();
+        stopFallback();
+        desiredBgm = key;
+        if (key && settings.musicVolume > 0) await playBgm(key);
+        publishStatus();
+        return true;
+    }
+
+    async function recoverAudio(fromUserGesture = false) {
+        if (document.hidden) return false;
+        if (!unlocked && !context && !fallbackBgm) return false;
+        if (!recoveryPending && context?.state === 'running') {
+            if (fallbackBgm && settings.musicVolume > 0) fallbackBgm.play().catch(() => {});
+            return true;
         }
+        if (recoveryPromise) return recoveryPromise;
+        recoveryPromise = (async () => {
+            let ctx = context;
+            if (fromUserGesture && recoveryFailures > 0 && ctx && ctx.state !== 'running') {
+                ctx = rebuildContext();
+            } else {
+                ctx = createContext();
+            }
+            if (!ctx) {
+                if (fallbackBgm && settings.musicVolume > 0) {
+                    try { await fallbackBgm.play(); return true; } catch (_) {}
+                }
+                return false;
+            }
+            if (fromUserGesture) primeMobileAudio(ctx);
+            if (ctx.state !== 'running') {
+                try { await ctx.resume(); } catch (_) {}
+            }
+            if (ctx.state !== 'running') {
+                recoveryFailures += 1;
+                recoveryPending = true;
+                return false;
+            }
+            if (recoveryPending) {
+                await finishRecovery();
+            } else if (fallbackBgm && settings.musicVolume > 0) {
+                fallbackBgm.play().catch(() => {});
+            }
+            return true;
+        })().finally(() => {
+            recoveryPromise = null;
+            publishStatus();
+        });
+        return recoveryPromise;
+    }
+
+    function handleVisibility(forceHidden = document.hidden) {
+        if (forceHidden) {
+            if (unlocked || context || fallbackBgm) recoveryPending = true;
+            if (fallbackBgm) fallbackBgm.pause();
+            if (context?.state === 'running') context.suspend().catch(() => {});
+            publishStatus();
+            return;
+        }
+        recoverAudio(false).catch(() => {});
+    }
+
+    function recoverFromUserGesture() {
+        if (!recoveryPending && (!context || context.state === 'running')) return;
+        if (recoveryPromise) {
+            const ctx = context || createContext();
+            if (!ctx) return;
+            primeMobileAudio(ctx);
+            const finishFromGesture = () => {
+                if (ctx.state === 'running') finishRecovery().catch(() => {});
+            };
+            if (ctx.state === 'running') finishFromGesture();
+            else ctx.resume().then(finishFromGesture).catch(() => { recoveryFailures += 1; });
+            return;
+        }
+        recoverAudio(true).catch(() => {});
     }
 
     return {
         unlock, playBgm, stopBgm, syncBgm, playSe, notifyPressure, updateControls,
-        handleVisibility, setMusicVolume, setSeVolume,
+        handleVisibility, recoverFromUserGesture, setMusicVolume, setSeVolume,
         getSettings: () => ({...settings}),
         getStatus: () => ({
             contextState: context?.state || 'not-created',
@@ -325,6 +455,7 @@ const audioManager = (() => {
             usingFallback: !!fallbackBgm,
             musicVolume: settings.musicVolume,
             seVolume: settings.seVolume,
+            recoveryPending,
             loaded: [...buffers.keys()]
         })
     };

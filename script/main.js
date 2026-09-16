@@ -150,9 +150,19 @@ const dataSaver = !!navigator.connection?.saveData;
 document.documentElement.classList.toggle('performance-lite', prefersReducedMotion || lowCpu || lowMemory || dataSaver);
 const syncPageVisibility = () => {
     document.documentElement.classList.toggle('page-hidden', document.hidden);
-    audioManager.handleVisibility();
+    audioManager.handleVisibility(document.hidden);
 };
 document.addEventListener('visibilitychange', syncPageVisibility, { passive: true });
+window.addEventListener('pagehide', () => audioManager.handleVisibility(true), { passive: true });
+window.addEventListener('pageshow', () => {
+    document.documentElement.classList.toggle('page-hidden', document.hidden);
+    audioManager.handleVisibility(false);
+}, { passive: true });
+window.addEventListener('focus', () => audioManager.handleVisibility(false), { passive: true });
+const recoverAudioFromGesture = () => audioManager.recoverFromUserGesture();
+document.addEventListener('pointerdown', recoverAudioFromGesture, { capture: true, passive: true });
+document.addEventListener('touchstart', recoverAudioFromGesture, { capture: true, passive: true });
+document.addEventListener('keydown', recoverAudioFromGesture, { capture: true });
 syncPageVisibility();
 document.addEventListener('mousedown', (e) => {
     if (titleAccordion?.open && !e.target.closest('#title-accordion')) {
