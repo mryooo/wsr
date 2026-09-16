@@ -930,7 +930,7 @@ function openPerkScreen(isDeath){
     shopPurchasePending = false;
     if (alertBanner) alertBanner.style.opacity = '0';
     perkScreen.classList.remove('hidden');
-    if (isDeath) audioManager.stopBgm(0.8);
+    audioManager.syncBgm();
     const bossVictory = !isDeath && !!gameState.bossState?.defeated;
     ui('perk-title').textContent = isDeath ? t('gameOver') : (bossVictory ? (currentLang === 'ja' ? 'ボス撃破' : 'BOSS PURGED') : t('victory'));
     ui('perk-subtitle').textContent = isDeath ? t('gameOverSub') : (bossVictory ? (currentLang === 'ja' ? '深淵の戦利品を選択' : 'Choose an abyssal reward') : t('victorySub'));

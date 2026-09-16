@@ -1,6 +1,8 @@
 // audio.js — BGM/SE再生、完全ループ、音声設定
 const AUDIO_SETTINGS_KEY = 'abyss_alchemy_audio_v1';
 const AUDIO_BGM = {
+    title: { src: './audio/bgm/abyss_title_hq.ogg?v=20260916a', lossless: './audio/bgm/abyss_title.wav?v=20260916a', loopSeconds: 64, gain: 1.00 },
+    result: { src: './audio/bgm/abyss_result_hq.ogg?v=20260916a', lossless: './audio/bgm/abyss_result.wav?v=20260916a', loopSeconds: 48, gain: 1.00 },
     normal: { src: './audio/bgm/abyss_lab_normal_hq.ogg?v=20260916c', lossless: './audio/bgm/abyss_lab_normal.wav?v=20260916c', loopSeconds: 76.8, gain: 1.00 },
     depths: { src: './audio/bgm/abyss_depths_hq.ogg?v=20260916c', lossless: './audio/bgm/abyss_depths.wav?v=20260916c', loopSeconds: 80, gain: 1.68 },
     boss: { src: './audio/bgm/abyss_boss_hq.ogg?v=20260916c', lossless: './audio/bgm/abyss_boss.wav?v=20260916c', loopSeconds: 60, gain: 1.30 }
@@ -285,7 +287,9 @@ const audioManager = (() => {
     }
 
     function desiredTrackForState() {
-        if (typeof gameState === 'undefined' || !startScreen?.classList.contains('hidden')) return null;
+        if (!startScreen?.classList.contains('hidden')) return 'title';
+        if (!perkScreen?.classList.contains('hidden')) return 'result';
+        if (typeof gameState === 'undefined') return null;
         if (gameState.bossState && !gameState.bossState.defeated) return 'boss';
         if (gameState.anomaly || gameState.floor >= 11) return 'depths';
         return 'normal';
@@ -295,6 +299,11 @@ const audioManager = (() => {
         const key = desiredTrackForState();
         if (!key) stopBgm(0.25);
         else playBgm(key);
+    }
+
+    function prepareBgm() {
+        desiredBgm = desiredTrackForState();
+        publishStatus();
     }
 
     function saveSettings() {
@@ -429,6 +438,19 @@ const audioManager = (() => {
     }
 
     function recoverFromUserGesture() {
+        if (!unlocked && !context) {
+            const ctx = createContext();
+            if (ctx) primeMobileAudio(ctx);
+            unlock().then(running => {
+                if (running) syncBgm();
+            }).catch(() => {});
+            if (ctx?.state !== 'running') {
+                ctx.resume().then(() => {
+                    if (ctx.state === 'running') syncBgm();
+                }).catch(() => {});
+            }
+            return;
+        }
         if (!recoveryPending && (!context || context.state === 'running')) return;
         if (recoveryPromise) {
             const ctx = context || createContext();
@@ -445,7 +467,7 @@ const audioManager = (() => {
     }
 
     return {
-        unlock, playBgm, stopBgm, syncBgm, playSe, notifyPressure, updateControls,
+        unlock, playBgm, stopBgm, syncBgm, prepareBgm, playSe, notifyPressure, updateControls,
         handleVisibility, recoverFromUserGesture, setMusicVolume, setSeVolume,
         getSettings: () => ({...settings}),
         getStatus: () => ({

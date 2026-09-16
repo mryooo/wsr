@@ -1,5 +1,12 @@
 // main.js — イベントバインディングと初期化(必ず最後に読み込む)
 const titleAccordion = ui('title-accordion');
+if (startScreen) {
+    startScreen.addEventListener('click', () => {
+        audioManager.unlock().then(running => {
+            if (running) audioManager.syncBgm();
+        }).catch(() => {});
+    }, { passive: true });
+}
 function closeTitleMenu() {
     if (titleAccordion) titleAccordion.open = false;
 }
@@ -162,6 +169,7 @@ window.addEventListener('focus', () => audioManager.handleVisibility(false), { p
 const recoverAudioFromGesture = () => audioManager.recoverFromUserGesture();
 document.addEventListener('pointerdown', recoverAudioFromGesture, { capture: true, passive: true });
 document.addEventListener('touchstart', recoverAudioFromGesture, { capture: true, passive: true });
+document.addEventListener('click', recoverAudioFromGesture, { capture: true, passive: true });
 document.addEventListener('keydown', recoverAudioFromGesture, { capture: true });
 syncPageVisibility();
 document.addEventListener('mousedown', (e) => {
@@ -326,3 +334,4 @@ function initGameSettings() {
     }
 }
 initGameSettings();
+audioManager.prepareBgm();
