@@ -926,6 +926,7 @@ function openMutationsScreen() {
     mutationsScreen.classList.replace('hidden', 'flex');
 }
 function openPerkScreen(isDeath){
+    if (isDeath) finishScoreRun();
     perkAdvancePending = false;
     shopPurchasePending = false;
     if (alertBanner) alertBanner.style.opacity = '0';

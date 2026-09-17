@@ -77,7 +77,8 @@ function loadGame() {
         const data = localStorage.getItem(SAVE_KEY);
         if (data) {
             const loadedState = JSON.parse(data);
-            Object.assign(gameState, loadedState);
+            Object.assign(gameState, {scoreTracking: null}, loadedState);
+            ensureScoreTracking();
             migrateV080State(gameState);
             migrateV090State(gameState);
             gameState.busy = false; 
@@ -101,6 +102,7 @@ function loadGame() {
             renderHUD();
             renderBoard(true);
             if (checkLevelClear()) {
+                if (gameState.scoreTracking?.version === 0) gameState.scoreTracking.completedFloors = gameState.floor;
                 openPerkScreen(false);
             } else {
                 perkScreen.classList.add('hidden');
@@ -110,6 +112,7 @@ function loadGame() {
                 setTimeout(openBossIntro, 100);
             }
             showToast(currentLang==='ja'?'再開しました':'Game Loaded', 'emerald');
+            writeScoreRecord();
             return true;
         }
     } catch (e) {
@@ -199,6 +202,7 @@ const gameState = {
     erosionCleansesUsed: 0,
     abyssResidue: 0,
     erosionStats: {checks: 0, affected: 0, misfires: 0, lostItems: 0, essenceSpentOnProtection: 0},
+    scoreTracking: null,
 };
 function pushHistory(){
     gameState.history.push({

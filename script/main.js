@@ -332,6 +332,7 @@ function initGameSettings() {
             }
         };
     }
+    renderHighScores();
 }
 initGameSettings();
 audioManager.prepareBgm();

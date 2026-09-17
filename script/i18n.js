@@ -108,6 +108,7 @@ function setLang(lang){
     document.getElementById('lang-en').classList.toggle('active', lang==='en');
     document.getElementById('lang-ja').classList.toggle('active', lang==='ja');
     applyLang();
+    if (typeof renderHighScores === 'function') renderHighScores();
     updateStartScreenButtons();
     renderHUD();
     localStorage.setItem('abyss_alchemy_lang', lang);

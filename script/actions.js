@@ -15,6 +15,7 @@ function scheduleStalemateCheck() {
 }
 function onLevelClear(){
     if (gameState.busy) return;
+    if (gameState.scoreTracking?.lastScoredFloor === gameState.floor) return;
     gameState.busy = true;
     clearTimeout(stalemateCheckTimer);
     stalemateCheckTimer = 0;
@@ -53,6 +54,7 @@ function onLevelClear(){
     // Floor-play drops have already survived their acquisition floor. Only
     // purchases and next-floor perk grants receive freshness on the descent.
     gameState.freshItemIds = [];
+    scoreFloorClear();
     saveGame();
     setTimeout(() => {
         gameState.busy = false;
@@ -217,7 +219,10 @@ async function applyItemToTube(idx) {
     }
 }
 function consumeItem(key, item) {
-    if (item.type === 'tool') return;
+    if (item.type === 'tool') {
+        registerBossItemUse(key);
+        return;
+    }
     const recycled = hasPerk('recycler') && Math.random() < getPerkLevel('recycler') * 0.1;
     if (recycled) showToast("Recycled!", 'purple');
     else consumeInventoryUnit(key);
@@ -246,6 +251,7 @@ function clearTemporaryBossItems() {
     renderSkills();
 }
 function registerBossItemUse(key) {
+    scoreItemUse();
     gameState.floorItemsUsed = (gameState.floorItemsUsed || 0) + 1;
     if (gameState.anomaly) {
         gameState.anomaly.countdown = Math.min((getAnomalyDefinition()?.interval || 5) + 2, gameState.anomaly.countdown + 2);
@@ -769,6 +775,7 @@ async function applyPressureDamage(visualOnly = false, excludedCorruptionTubeIdx
             return;
         }
         gameState.hp -= 1;
+        scoreDamage();
         gameState.lastDamageCause = {
             key: causeKey,
             floor: gameState.floor,
@@ -855,6 +862,7 @@ function buildDebugPerksForFloor(floor) {
 }
 function startNewRun() {
     audioManager.unlock();
+    retireSavedScoreRun();
     clearSave();
     let startFloor = 1;
     let effectiveDebug = IS_DEBUG;
@@ -933,6 +941,7 @@ function startNewRun() {
         erosionCleansesUsed: 0,
         abyssResidue: 0,
         erosionStats: {checks: 0, affected: 0, misfires: 0, lostItems: 0, essenceSpentOnProtection: 0},
+        scoreTracking: newScoreTracking(),
         saveSchemaVersion: SAVE_SCHEMA_VERSION,
         runVersion: GAME_VERSION,
         turnCount: 0,
@@ -980,6 +989,7 @@ function startNewRun() {
     renderBoard(true);
     audioManager.syncBgm();
     saveGame();
+    writeScoreRecord();
     if (isBossActive() && gameState.bossState.pendingIntro) {
         setTimeout(openBossIntro, 300);
     }
@@ -1037,6 +1047,11 @@ function nextFloor(isFirst=false){
     const defaultPressureMax = PRESSURE_MAX_BASE;
     const nextPressure = isFirst ? 0 : gameState.pressure;
     const enteringBoss = isBossFloor(gameState.floor);
+    if (gameState.scoreTracking) {
+        gameState.scoreTracking.floorItems = 0;
+        gameState.scoreTracking.floorUndos = 0;
+        gameState.scoreTracking.floorDamage = 0;
+    }
     Object.assign(gameState, { 
         turnCount:0, 
         pressure: nextPressure, 
@@ -1069,7 +1084,8 @@ function nextFloor(isFirst=false){
     prepareFloorSystems();
     const erosionResults = rollFloorErosion();
     generateGoals(); 
-    renderHUD(); 
+    if (gameState.scoreTracking) writeScoreRecord();
+    renderHUD();
     renderBoard(true);
     audioManager.syncBgm();
     saveGame();
@@ -1144,6 +1160,7 @@ async function tryUndo(){
         return;
     }
     gameState.history.pop();
+    scoreUndo();
     audioManager.playSe('undo');
     const currentHP = gameState.hp;
     const currentEssence = gameState.essence;

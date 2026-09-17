@@ -331,6 +331,16 @@ body {
     pointer-events: none;
     background-size: 180%;
 }
+#start-screen {
+    overflow-y: auto;
+    justify-content: safe center;
+}
+#high-score-panel summary {
+    list-style: none;
+}
+#high-score-panel summary::-webkit-details-marker {
+    display: none;
+}
 #start-screen > div.absolute.top-8.right-8 {
     z-index: 50 !important;
 }

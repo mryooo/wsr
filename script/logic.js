@@ -221,6 +221,7 @@ function shouldItemMisfire(id) {
     if (!chance || Math.random() >= chance) return false;
     consumeInventoryUnit(id);
     gameState.erosionStats.misfires++;
+    scoreItemUse();
     gameState.pressure = Math.min(gameState.pressureMax - 1, gameState.pressure + 2);
     saveGame();
     return true;
